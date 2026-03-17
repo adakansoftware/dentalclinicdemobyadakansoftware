@@ -17,7 +17,11 @@ export default async function HomePage() {
       settings={settings}
       services={services}
       specialists={specialists}
-      reviews={reviews}
+      reviews={reviews.map((r) => ({
+        ...r,
+        createdAt: r.createdAt.toISOString(),
+        updatedAt: r.updatedAt.toISOString(),
+      }))}
     />
   );
 }
