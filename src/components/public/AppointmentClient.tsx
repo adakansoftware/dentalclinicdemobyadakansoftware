@@ -21,7 +21,7 @@ interface Props {
 
 const STEP_LABELS = ["step1", "step2", "step3", "step4"] as const;
 
-const initialState: ActionResult = { success: false };
+const initialState: ActionResult<{ id: string }> = { success: false };
 
 export default function AppointmentClient({ services, specialists, preselectedServiceId, preselectedSpecialistId }: Props) {
   const { lang } = useLang();
@@ -38,7 +38,7 @@ export default function AppointmentClient({ services, specialists, preselectedSe
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
 
-  const [state, formAction, isPending] = useActionState(createAppointmentAction, initialState);
+  const initialState: ActionResult<{ id: string }> = { success: false };
 
   // Filter specialists for selected service
   const availableSpecialists = selectedService
@@ -107,7 +107,7 @@ export default function AppointmentClient({ services, specialists, preselectedSe
               {services.map((svc) => (
                 <button key={svc.id} onClick={() => { setSelectedService(svc); setStep(2); setSelectedSpecialist(null); }}
                   className={`card p-5 text-left transition-all ${selectedService?.id === svc.id ? "ring-2" : ""}`}
-                  style={{ ringColor: "var(--color-primary)" }}>
+                  >
                   <div className="text-3xl mb-3">🦷</div>
                   <p className="font-semibold text-gray-900">{lang === "tr" ? svc.nameTr : svc.nameEn}</p>
                   <p className="text-sm text-gray-500 mt-1">{lang === "tr" ? svc.shortDescTr : svc.shortDescEn}</p>
