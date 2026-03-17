@@ -27,5 +27,14 @@ export default async function AppointmentsPage({
     include: { service: true, specialist: true },
   });
 
-  return <AppointmentsClient appointments={appointments} />;
+  return (
+    <AppointmentsClient
+      appointments={appointments.map((a) => ({
+        ...a,
+        date: a.date.toISOString(),
+        createdAt: a.createdAt.toISOString(),
+        updatedAt: a.updatedAt.toISOString(),
+      }))}
+    />
+  );
 }

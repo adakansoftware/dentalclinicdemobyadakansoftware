@@ -8,5 +8,14 @@ export default async function ReviewsPage() {
     where: { isApproved: true, isVisible: true },
     orderBy: { createdAt: "desc" },
   });
-  return <ReviewsClient reviews={reviews} />;
+
+  return (
+    <ReviewsClient
+      reviews={reviews.map((r) => ({
+        ...r,
+        createdAt: r.createdAt.toISOString(),
+        updatedAt: r.updatedAt.toISOString(),
+      }))}
+    />
+  );
 }

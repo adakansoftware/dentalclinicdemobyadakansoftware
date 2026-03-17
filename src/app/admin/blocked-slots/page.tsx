@@ -13,5 +13,14 @@ export default async function AdminBlockedSlotsPage() {
       include: { specialist: { select: { nameTr: true } } },
     }),
   ]);
-  return <AdminBlockedSlotsClient specialists={specialists} blockedSlots={blockedSlots} />;
+  return (
+    <AdminBlockedSlotsClient
+      specialists={specialists}
+      blockedSlots={blockedSlots.map((bs) => ({
+        ...bs,
+        date: bs.date.toISOString(),
+        createdAt: bs.createdAt.toISOString(),
+      }))}
+    />
+  );
 }
