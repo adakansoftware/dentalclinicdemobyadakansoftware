@@ -12,16 +12,18 @@ export default async function HomePage() {
     prisma.review.findMany({ where: { isApproved: true, isVisible: true }, orderBy: { createdAt: "desc" }, take: 4 }),
   ]);
 
+  const serializedReviews = reviews.map((r) => ({
+    ...r,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
+  }));
+
   return (
     <HomeClient
       settings={settings}
       services={services}
       specialists={specialists}
-      reviews={reviews.map((r) => ({
-        ...r,
-        createdAt: r.createdAt.toISOString(),
-        updatedAt: r.updatedAt.toISOString(),
-      }))}
+      reviews={serializedReviews}
     />
   );
 }
