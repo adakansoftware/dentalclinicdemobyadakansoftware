@@ -137,8 +137,8 @@ export interface TimeSlot {
   available: boolean;
 }
 
-// ActionResult - always a flat object for useActionState compatibility
-export interface ActionResult<T = undefined> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface ActionResult<T = any> {
   success: boolean;
   error?: string;
   data?: T;
