@@ -5,11 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { checkSlotAvailability, getAvailableSlots } from "@/lib/slots";
 import { getSiteSettings } from "@/lib/settings";
-import {
-  sendSms,
-  buildConfirmationMessage,
-  buildCancellationMessage,
-} from "@/lib/sms";
+import { sendSms, buildConfirmationMessage, buildCancellationMessage } from "@/lib/sms";
 import { revalidatePath } from "next/cache";
 import type { ActionResult, TimeSlot } from "@/types";
 
@@ -20,19 +16,16 @@ const createAppointmentSchema = z.object({
   startTime: z.string().regex(/^\d{2}:\d{2}$/, "Geçerli saat girin"),
   endTime: z.string().regex(/^\d{2}:\d{2}$/, "Geçerli bitiş saati girin"),
   patientName: z.string().min(2, "Ad soyad en az 2 karakter olmalı"),
-  patientPhone: z
-    .string()
-    .min(10, "Geçerli telefon numarası girin")
-    .regex(/^[\d\s\+\-\(\)]+$/, "Geçerli telefon numarası girin"),
-  patientEmail: z.string().email("Geçerli e-posta girin").or(z.literal("")),
+  patientPhone: z.string().min(10, "Geçerli telefon numarası girin").regex(/^[\d\s\+\-\(\)]+$/),
+  patientEmail: z.string().email().or(z.literal("")),
   patientNote: z.string().max(500).optional(),
   patientLanguage: z.enum(["TR", "EN"]).default("TR"),
 });
 
 export async function createAppointmentAction(
-  _prev: ActionResult<{ id: string }>,
+  _prev: ActionResult,
   formData: FormData
-): Promise<ActionResult<{ id: string }>> {
+): Promise<ActionResult> {
   const parsed = createAppointmentSchema.safeParse({
     serviceId: formData.get("serviceId"),
     specialistId: formData.get("specialistId"),
@@ -50,28 +43,24 @@ export async function createAppointmentAction(
     return { success: false, error: parsed.error.errors[0]?.message ?? "Hata" };
   }
 
-  const { serviceId, specialistId, date, startTime, endTime, patientLanguage } =
-    parsed.data;
+  const { serviceId, specialistId, date, startTime, endTime, patientLanguage } = parsed.data;
 
   const available = await checkSlotAvailability(specialistId, date, startTime, endTime);
 
   if (!available) {
     return {
       success: false,
-      error:
-        patientLanguage === "EN"
-          ? "This time slot is no longer available. Please choose another time."
-          : "Bu zaman dilimi artık uygun değil. Lütfen başka bir saat seçin.",
+      error: patientLanguage === "EN"
+        ? "This time slot is no longer available. Please choose another time."
+        : "Bu zaman dilimi artık uygun değil. Lütfen başka bir saat seçin.",
     };
   }
 
   const appointment = await prisma.appointment.create({
     data: {
-      serviceId,
-      specialistId,
+      serviceId, specialistId,
       date: new Date(date),
-      startTime,
-      endTime,
+      startTime, endTime,
       patientName: parsed.data.patientName,
       patientPhone: parsed.data.patientPhone,
       patientEmail: parsed.data.patientEmail ?? "",
@@ -81,24 +70,14 @@ export async function createAppointmentAction(
     },
   });
 
-  // Send confirmation SMS (fire and forget)
   void (async () => {
     try {
       const settings = await getSiteSettings();
       const message = buildConfirmationMessage(
-        parsed.data.patientLanguage,
-        parsed.data.patientName,
-        date,
-        startTime,
-        settings.clinicName,
-        settings.phone
+        parsed.data.patientLanguage, parsed.data.patientName,
+        date, startTime, settings.clinicName, settings.phone
       );
-      await sendSms({
-        phone: parsed.data.patientPhone,
-        message,
-        appointmentId: appointment.id,
-        type: "CONFIRMATION",
-      });
+      await sendSms({ phone: parsed.data.patientPhone, message, appointmentId: appointment.id, type: "CONFIRMATION" });
     } catch {}
   })();
 
@@ -150,19 +129,10 @@ export async function updateAppointmentStatusAction(
         const settings = await getSiteSettings();
         const dateStr = appointment.date.toISOString().split("T")[0] ?? "";
         const message = buildCancellationMessage(
-          appointment.patientLanguage,
-          appointment.patientName,
-          dateStr,
-          appointment.startTime,
-          settings.clinicName,
-          settings.phone
+          appointment.patientLanguage, appointment.patientName,
+          dateStr, appointment.startTime, settings.clinicName, settings.phone
         );
-        await sendSms({
-          phone: appointment.patientPhone,
-          message,
-          appointmentId: appointment.id,
-          type: "CANCELLATION",
-        });
+        await sendSms({ phone: appointment.patientPhone, message, appointmentId: appointment.id, type: "CANCELLATION" });
       } catch {}
     })();
   }

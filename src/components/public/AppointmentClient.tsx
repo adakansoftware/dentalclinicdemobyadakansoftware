@@ -21,7 +21,7 @@ interface Props {
 
 const STEP_LABELS = ["step1", "step2", "step3", "step4"] as const;
 
-const initialState: ActionResult<{ id: string }> = { success: false };
+const initialState: ActionResult = { success: false };
 
 export default function AppointmentClient({ services, specialists, preselectedServiceId, preselectedSpecialistId }: Props) {
   const { lang } = useLang();
@@ -38,14 +38,12 @@ export default function AppointmentClient({ services, specialists, preselectedSe
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
 
-  const initialState: ActionResult<{ id: string }> = { success: false };
+  const [state, formAction, isPending] = useActionState(createAppointmentAction, initialState);
 
-  // Filter specialists for selected service
   const availableSpecialists = selectedService
     ? specialists.filter((sp) => sp.specialistServices.some((ss) => ss.serviceId === selectedService.id))
     : specialists;
 
-  // Load slots when date/specialist changes
   useEffect(() => {
     if (!selectedSpecialist || !selectedDate) { setSlots([]); return; }
     setSlotsLoading(true);
@@ -79,7 +77,6 @@ export default function AppointmentClient({ services, specialists, preselectedSe
       <div className="py-12 text-white" style={{ background: "linear-gradient(135deg, var(--color-primary), var(--color-primary-dark, #145470))" }}>
         <div className="max-w-3xl mx-auto px-4 text-center">
           <h1 className="text-3xl md:text-4xl font-bold mb-6">{t("appointment", "title", lang)}</h1>
-          {/* Step indicator */}
           <div className="flex items-center justify-center gap-2">
             {stepLabels.map((label, i) => (
               <div key={i} className="flex items-center gap-2">
@@ -95,19 +92,17 @@ export default function AppointmentClient({ services, specialists, preselectedSe
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-10">
-        { state.error && (
+        {state.error && (
           <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{state.error}</div>
         )}
 
-        {/* Step 1: Service */}
         {step === 1 && (
           <div>
             <h2 className="text-xl font-bold text-gray-900 mb-6">{t("appointment", "step1", lang)}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {services.map((svc) => (
                 <button key={svc.id} onClick={() => { setSelectedService(svc); setStep(2); setSelectedSpecialist(null); }}
-                  className={`card p-5 text-left transition-all ${selectedService?.id === svc.id ? "ring-2" : ""}`}
-                  >
+                  className={`card p-5 text-left transition-all ${selectedService?.id === svc.id ? "ring-2 ring-blue-400" : ""}`}>
                   <div className="text-3xl mb-3">🦷</div>
                   <p className="font-semibold text-gray-900">{lang === "tr" ? svc.nameTr : svc.nameEn}</p>
                   <p className="text-sm text-gray-500 mt-1">{lang === "tr" ? svc.shortDescTr : svc.shortDescEn}</p>
@@ -118,7 +113,6 @@ export default function AppointmentClient({ services, specialists, preselectedSe
           </div>
         )}
 
-        {/* Step 2: Specialist */}
         {step === 2 && (
           <div>
             <h2 className="text-xl font-bold text-gray-900 mb-6">{t("appointment", "step2", lang)}</h2>
@@ -128,7 +122,7 @@ export default function AppointmentClient({ services, specialists, preselectedSe
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {availableSpecialists.map((sp) => (
                   <button key={sp.id} onClick={() => { setSelectedSpecialist(sp); setStep(3); setSelectedDate(""); setSelectedSlot(null); }}
-                    className={`card p-5 text-left flex items-center gap-4 ${selectedSpecialist?.id === sp.id ? "ring-2" : ""}`}>
+                    className={`card p-5 text-left flex items-center gap-4 ${selectedSpecialist?.id === sp.id ? "ring-2 ring-blue-400" : ""}`}>
                     <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl shrink-0" style={{ background: "var(--color-primary-light)" }}>
                       {sp.photoUrl ? <img src={sp.photoUrl} alt={sp.nameTr} className="w-full h-full rounded-full object-cover" /> : "👨‍⚕️"}
                     </div>
@@ -144,21 +138,13 @@ export default function AppointmentClient({ services, specialists, preselectedSe
           </div>
         )}
 
-        {/* Step 3: Date & Time */}
         {step === 3 && (
           <div>
             <h2 className="text-xl font-bold text-gray-900 mb-6">{t("appointment", "step3", lang)}</h2>
             <div className="mb-6">
               <label className="form-label">{t("appointment", "date", lang)}</label>
-              <input
-                type="date"
-                min={today}
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="form-input max-w-xs"
-              />
+              <input type="date" min={today} value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="form-input max-w-xs" />
             </div>
-
             {selectedDate && (
               <div>
                 <label className="form-label">{t("appointment", "time", lang)}</label>
@@ -169,10 +155,7 @@ export default function AppointmentClient({ services, specialists, preselectedSe
                 ) : (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 mt-2">
                     {slots.map((slot) => (
-                      <button
-                        key={slot.startTime}
-                        disabled={!slot.available}
-                        onClick={() => setSelectedSlot(slot)}
+                      <button key={slot.startTime} disabled={!slot.available} onClick={() => setSelectedSlot(slot)}
                         className={`py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all ${
                           !slot.available ? "opacity-40 cursor-not-allowed bg-gray-100 border-gray-200 text-gray-400" :
                           selectedSlot?.startTime === slot.startTime ? "text-white border-transparent" : "border-gray-200 text-gray-700 hover:border-gray-400"
@@ -185,25 +168,18 @@ export default function AppointmentClient({ services, specialists, preselectedSe
                 )}
               </div>
             )}
-
             <div className="mt-6 flex gap-3">
               <button onClick={() => setStep(2)} className="text-sm text-gray-500 hover:text-gray-700">← {t("appointment", "back", lang)}</button>
-              <button
-                onClick={() => setStep(4)}
-                disabled={!selectedSlot}
-                className="btn-primary ml-auto disabled:opacity-50 disabled:cursor-not-allowed">
+              <button onClick={() => setStep(4)} disabled={!selectedSlot} className="btn-primary ml-auto disabled:opacity-50 disabled:cursor-not-allowed">
                 {t("appointment", "next", lang)} →
               </button>
             </div>
           </div>
         )}
 
-        {/* Step 4: Personal Info */}
         {step === 4 && selectedService && selectedSpecialist && selectedSlot && (
           <div>
             <h2 className="text-xl font-bold text-gray-900 mb-4">{t("appointment", "step4", lang)}</h2>
-
-            {/* Summary */}
             <div className="card p-5 mb-6 text-sm space-y-2 bg-gray-50">
               <h3 className="font-semibold text-gray-900 mb-3">{t("appointment", "summary", lang)}</h3>
               <div className="flex justify-between"><span className="text-gray-500">{t("appointment", "service", lang)}</span><span className="font-medium">{lang === "tr" ? selectedService.nameTr : selectedService.nameEn}</span></div>
@@ -211,7 +187,6 @@ export default function AppointmentClient({ services, specialists, preselectedSe
               <div className="flex justify-between"><span className="text-gray-500">{t("appointment", "date", lang)}</span><span className="font-medium">{new Date(selectedDate).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">{t("appointment", "time", lang)}</span><span className="font-medium">{selectedSlot.startTime} - {selectedSlot.endTime}</span></div>
             </div>
-
             <form action={(fd) => { startTransition(() => { void formAction(fd); }); }} className="space-y-4">
               <input type="hidden" name="serviceId" value={selectedService.id} />
               <input type="hidden" name="specialistId" value={selectedSpecialist.id} />
@@ -219,7 +194,6 @@ export default function AppointmentClient({ services, specialists, preselectedSe
               <input type="hidden" name="startTime" value={selectedSlot.startTime} />
               <input type="hidden" name="endTime" value={selectedSlot.endTime} />
               <input type="hidden" name="patientLanguage" value={lang.toUpperCase()} />
-
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="form-label">{t("appointment", "name", lang)} *</label>
@@ -238,7 +212,6 @@ export default function AppointmentClient({ services, specialists, preselectedSe
                 <label className="form-label">{t("appointment", "note", lang)}</label>
                 <textarea name="patientNote" className="form-input min-h-[80px]" />
               </div>
-
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setStep(3)} className="text-sm text-gray-500 hover:text-gray-700">
                   ← {t("appointment", "back", lang)}
