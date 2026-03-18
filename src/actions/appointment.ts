@@ -30,7 +30,7 @@ const createAppointmentSchema = z.object({
 });
 
 export async function createAppointmentAction(
-  _prev: ActionResult,
+  _prev: ActionResult<{ id: string }>,
   formData: FormData
 ): Promise<ActionResult<{ id: string }>> {
   const parsed = createAppointmentSchema.safeParse({
