@@ -21,20 +21,29 @@ export default async function AppointmentsPage({
     ];
   }
 
-  const appointments = await prisma.appointment.findMany({
+  const rows = await prisma.appointment.findMany({
     where,
     orderBy: [{ date: "desc" }, { startTime: "desc" }],
     include: { service: true, specialist: true },
   });
 
-  return (
-    <AppointmentsClient
-      appointments={appointments.map((a) => ({
-        ...a,
-        date: a.date.toISOString(),
-        createdAt: a.createdAt.toISOString(),
-        updatedAt: a.updatedAt.toISOString(),
-      }))}
-    />
-  );
+  const appointments = rows.map((a) => ({
+    id: a.id,
+    patientName: a.patientName,
+    patientPhone: a.patientPhone,
+    patientEmail: a.patientEmail,
+    patientNote: a.patientNote,
+    adminNote: a.adminNote,
+    date: a.date.toISOString(),
+    startTime: a.startTime,
+    endTime: a.endTime,
+    status: a.status,
+    patientLanguage: a.patientLanguage,
+    smsSent: a.smsSent,
+    createdAt: a.createdAt.toISOString(),
+    service: { nameTr: a.service.nameTr },
+    specialist: { nameTr: a.specialist.nameTr },
+  }));
+
+  return <AppointmentsClient appointments={appointments} />;
 }

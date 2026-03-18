@@ -10,5 +10,14 @@ export default async function AdminWorkingHoursPage() {
     prisma.specialist.findMany({ where: { isActive: true }, orderBy: { order: "asc" } }),
     prisma.workingHour.findMany({ include: { specialist: { select: { nameTr: true } } } }),
   ]);
-  return <AdminWorkingHoursClient specialists={specialists} workingHours={workingHours} />;
+  return (
+    <AdminWorkingHoursClient
+      specialists={specialists.map((sp) => ({
+        ...sp,
+        createdAt: sp.createdAt.toISOString(),
+        updatedAt: sp.updatedAt.toISOString(),
+      }))}
+      workingHours={workingHours}
+    />
+  );
 }

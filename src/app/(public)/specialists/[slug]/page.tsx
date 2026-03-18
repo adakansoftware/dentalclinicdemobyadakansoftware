@@ -11,10 +11,24 @@ export async function generateStaticParams() {
 
 export default async function SpecialistDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const specialist = await prisma.specialist.findUnique({
+  const row = await prisma.specialist.findUnique({
     where: { slug, isActive: true },
     include: { specialistServices: { include: { service: true } } },
   });
-  if (!specialist) notFound();
+  if (!row) notFound();
+
+  const specialist = {
+    id: row.id, slug: row.slug, nameTr: row.nameTr, nameEn: row.nameEn,
+    titleTr: row.titleTr, titleEn: row.titleEn,
+    biographyTr: row.biographyTr, biographyEn: row.biographyEn,
+    photoUrl: row.photoUrl,
+    specialistServices: row.specialistServices.map((ss) => ({
+      service: {
+        id: ss.service.id, slug: ss.service.slug,
+        nameTr: ss.service.nameTr, nameEn: ss.service.nameEn,
+      },
+    })),
+  };
+
   return <SpecialistDetailClient specialist={specialist} />;
 }
