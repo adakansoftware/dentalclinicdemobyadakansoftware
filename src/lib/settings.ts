@@ -21,8 +21,8 @@ const LEGACY_COPY_MARKERS = [
 export const DEMO_CLINIC_PROFILE = {
   clinicName: "Adakan Dental Klinik",
   clinicNameEn: "Adakan Dental Clinic",
-  phone: "+90 342 555 27 27",
-  whatsapp: "+90 532 555 27 27",
+  phone: "+90 539 941 65 21",
+  whatsapp: "+90 539 941 65 21",
   email: "info@adakandental.com",
   address: "İncilipınar Mah., Şehitkamil / Gaziantep",
   addressEn: "Incilipinar Mah., Sehitkamil / Gaziantep",

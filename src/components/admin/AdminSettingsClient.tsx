@@ -153,8 +153,8 @@ export default function AdminSettingsClient({ settings }: Props) {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Klinik Adı (TR)" name="clinicName" defaultValue={settings.clinicName} />
             <Field label="Klinik Adı (EN)" name="clinicNameEn" defaultValue={settings.clinicNameEn} />
-            <Field label="Telefon" name="phone" defaultValue={settings.phone} placeholder="+90 342 555 27 27" />
-            <Field label="WhatsApp" name="whatsapp" defaultValue={settings.whatsapp} placeholder="+90 532 555 27 27" />
+            <Field label="Telefon" name="phone" defaultValue={settings.phone} placeholder="+90 539 941 65 21" />
+            <Field label="WhatsApp" name="whatsapp" defaultValue={settings.whatsapp} placeholder="+90 539 941 65 21" />
             <Field label="E-posta" name="email" defaultValue={settings.email} type="email" />
           </div>
           <Field label="Adres (TR)" name="address" defaultValue={settings.address} />

@@ -37,8 +37,8 @@ async function main() {
   const settings = [
     { key: "clinicName", value: "Adakan Dental Klinik" },
     { key: "clinicNameEn", value: "Adakan Dental Clinic" },
-    { key: "phone", value: "+90 342 555 27 27" },
-    { key: "whatsapp", value: "+90 532 555 27 27" },
+    { key: "phone", value: "+90 539 941 65 21" },
+    { key: "whatsapp", value: "+90 539 941 65 21" },
     { key: "email", value: "info@adakandental.com" },
     { key: "address", value: "İncilipınar Mah., Şehitkamil / Gaziantep" },
     { key: "addressEn", value: "Incilipinar Mah., Sehitkamil / Gaziantep" },
