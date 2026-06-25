@@ -18,12 +18,23 @@ const SERVICE_VISUALS = {
   portrait: "/images/editorial/doctor-female.jpg",
 } as const;
 
+const SERVICE_TR_FALLBACKS: Record<string, string> = {
+  implant: "Eksik dişler için planlı, estetik ve kalıcı çözüm",
+  ortodonti: "Diş teli ve şeffaf plak ile düzenli gülüş planlaması",
+  "dis-beyazlatma": "Daha parlak ve doğal bir gülüş için klinik beyazlatma uygulaması",
+  "kanal-tedavisi": "Doğal dişi korumaya odaklanan kök kanal tedavisi",
+};
+
 export default function ServicesClient({ services }: Props) {
   const { lang } = useLang();
   const highlightedVisuals = services.slice(0, 4).map((service, index) => ({
     id: service.id,
+    slug: service.slug,
     title: lang === "tr" ? service.nameTr : service.nameEn,
-    description: lang === "tr" ? service.shortDescTr : service.shortDescEn,
+    description:
+      lang === "tr"
+        ? SERVICE_TR_FALLBACKS[service.slug] ?? service.shortDescTr
+        : service.shortDescEn,
     image: service.imageUrl || getServiceImage(service.slug),
     accent: `0${index + 1}`,
   }));
@@ -34,7 +45,7 @@ export default function ServicesClient({ services }: Props) {
         title={t("services", "title", lang)}
         subtitle={
           lang === "tr"
-            ? "Muayene ve tedavi ihtiyaciniza gore uygulamalarimizi, surelerini ve basvuru adimlarini inceleyebilirsiniz."
+            ? "Muayene ve tedavi ihtiyacınıza göre uygulamalarımızı, sürelerini ve başvuru adımlarını inceleyebilirsiniz."
             : "Review our treatments, estimated durations, and booking paths according to your examination and care needs."
         }
         minimal
@@ -43,13 +54,13 @@ export default function ServicesClient({ services }: Props) {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="metric-card p-5">
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-main)]">
-                {lang === "tr" ? "Hizmet sayisi" : "Service count"}
+                {lang === "tr" ? "Hizmet sayısı" : "Service count"}
               </div>
               <div className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-[color:var(--text-primary)]">{services.length}</div>
             </div>
             <div className="metric-card p-5 text-sm leading-relaxed text-[color:var(--text-secondary)]">
               {lang === "tr"
-                ? "Her hizmette uygulama amaci, ortalama sure ve randevu yonlendirmesi bulunur."
+                ? "Her hizmette uygulama amacı, ortalama süre ve randevu yönlendirmesi bulunur."
                 : "Each treatment includes its purpose, approximate duration, and a direct booking path."}
             </div>
           </div>
@@ -71,7 +82,7 @@ export default function ServicesClient({ services }: Props) {
                 />
                 <div className="featured-split-card__overlay" />
                 <div className="featured-split-card__badge">
-                  {lang === "tr" ? "Bilgilendirme Alani" : "Treatment Focus"}
+                  {lang === "tr" ? "Bilgilendirme Alanı" : "Treatment Focus"}
                 </div>
               </div>
 
@@ -95,17 +106,26 @@ export default function ServicesClient({ services }: Props) {
                       <div className="px-2 pb-2 pt-4">
                         <div className="stack-card__meta">{item.accent}</div>
                         <h3 className="stack-card__title">{item.title}</h3>
+                        <p className="mt-2 text-sm leading-relaxed text-[color:var(--text-secondary)]">{item.description}</p>
+                        <div className="mt-4 flex flex-wrap gap-3">
+                          <Link href={`/services/${item.slug}`} className="btn-ghost">
+                            {lang === "tr" ? "Detayları İncele" : "Explore Details"}
+                          </Link>
+                          <Link href={`/appointment?service=${item.id}`} className="btn-outline">
+                            {lang === "tr" ? "Randevu Al" : "Book Appointment"}
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
 
                 <div className="featured-split-card__actions">
-                  <Link href="/appointment" className="btn-primary">
-                    {lang === "tr" ? "Randevu Olustur" : "Book Appointment"}
+                  <Link href={services[0] ? `/appointment?service=${services[0].id}` : "/appointment"} className="btn-primary">
+                    {lang === "tr" ? "Randevu Al" : "Book Appointment"}
                   </Link>
                   <Link href={services[0] ? `/services/${services[0].slug}` : "/services"} className="btn-ghost">
-                    {lang === "tr" ? "Detayli Incele" : "Explore Details"}
+                    {lang === "tr" ? "Detayları İncele" : "Explore Details"}
                   </Link>
                 </div>
               </div>
@@ -115,12 +135,12 @@ export default function ServicesClient({ services }: Props) {
           <SectionIntro
             title={
               lang === "tr"
-                ? "Hangi tedavinin size uygun oldugunu daha kolay karsilastirin"
+                ? "Hangi tedavinin size uygun olduğunu daha kolay karşılaştırın"
                 : "Compare treatments more easily to find the care that suits you"
             }
             subtitle={
               lang === "tr"
-                ? "Hizmetlerimiz; islem kapsami, ortalama sure ve randevu adimi ile birlikte acik bir duzende listelenir."
+                ? "Hizmetlerimiz; işlem kapsamı, ortalama süre ve randevu adımı ile birlikte açık bir düzende listelenir."
                 : "Our services are listed with procedure scope, estimated duration, and a direct booking option."
             }
           />
@@ -146,15 +166,15 @@ export default function ServicesClient({ services }: Props) {
                     {lang === "tr" ? service.nameTr : service.nameEn}
                   </h3>
                   <p className="mt-3 flex-1 text-sm leading-relaxed text-[color:var(--text-secondary)]">
-                    {lang === "tr" ? service.shortDescTr : service.shortDescEn}
+                    {lang === "tr" ? SERVICE_TR_FALLBACKS[service.slug] ?? service.shortDescTr : service.shortDescEn}
                   </p>
 
                   <div className="mt-6 flex flex-wrap gap-3">
                     <Link href={`/services/${service.slug}`} className="btn-ghost">
-                      {lang === "tr" ? "Detay Linki" : "Details"}
+                      {lang === "tr" ? "Detayları İncele" : "Details"}
                     </Link>
                     <Link href={`/appointment?service=${service.id}`} className="btn-outline">
-                      {lang === "tr" ? "Randevu" : "Appointment"}
+                      {lang === "tr" ? "Randevu Al" : "Appointment"}
                     </Link>
                   </div>
                 </div>

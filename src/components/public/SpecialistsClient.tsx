@@ -27,7 +27,7 @@ export default function SpecialistsClient({ specialists }: Props) {
         title={t("specialists", "title", lang)}
         subtitle={
           lang === "tr"
-            ? "Uzman profilleri; biyografi, alanlar ve ilgili randevu gecislerini daha sakin ve duzenli bir kurgu ile sunar."
+            ? "Uzman profilleri; biyografi, alanlar ve ilgili randevu geçişlerini daha sakin ve düzenli bir kurgu ile sunar."
             : "Specialist profiles organize biography, focus areas, and booking access in a calmer, more refined composition."
         }
         minimal
@@ -36,7 +36,7 @@ export default function SpecialistsClient({ specialists }: Props) {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="metric-card p-5">
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-main)]">
-                {lang === "tr" ? "Uzman sayisi" : "Specialist count"}
+                {lang === "tr" ? "Uzman sayısı" : "Specialist count"}
               </div>
               <div className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-[color:var(--text-primary)]">{specialists.length}</div>
             </div>
@@ -52,12 +52,12 @@ export default function SpecialistsClient({ specialists }: Props) {
           <SectionIntro
             title={
               lang === "tr"
-                ? "Uzmanlari tanimak, tedavi guveninin onemli bir parcasi"
+                ? "Uzmanları tanımak, tedavi güveninin önemli bir parçası"
                 : "Meeting the specialists is an important part of treatment trust"
             }
             subtitle={
               lang === "tr"
-                ? "Kartlar hizmet alanlarindan biraz daha sicak bir ton tasirken kurumsal dengeyi korur."
+                ? "Kartlar hizmet alanlarından biraz daha sıcak bir ton taşırken kurumsal dengeyi korur."
                 : "The cards carry a slightly warmer tone than the service grid while preserving institutional balance."
             }
           />
@@ -109,10 +109,10 @@ export default function SpecialistsClient({ specialists }: Props) {
 
                     <div className="mt-6 flex flex-wrap gap-3">
                       <Link href={`/specialists/${specialist.slug}`} className="btn-ghost">
-                        {lang === "tr" ? "Profili Incele" : "View Profile"}
+                        {lang === "tr" ? "Profili İncele" : "View Profile"}
                       </Link>
                       <Link href={`/appointment?specialist=${specialist.id}`} className="btn-outline">
-                        {lang === "tr" ? "Randevu" : "Appointment"}
+                        {lang === "tr" ? "Randevu Al" : "Appointment"}
                       </Link>
                     </div>
                   </div>

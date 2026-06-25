@@ -9,6 +9,17 @@ import type { FAQData } from "@/types";
 export const revalidate = 60;
 export const dynamic = "force-dynamic";
 
+const FAQ_TR_FALLBACKS: Record<string, string> = {
+  "Randevumu iptal edebilir miyim?":
+    "Randevunuzu iptal etmek için telefon, WhatsApp veya online randevu sayfasındaki iptal formu aracılığıyla kliniğimizle iletişime geçebilirsiniz.",
+  "Tedavi ücretleri ve ödeme seçenekleri hakkında nasıl bilgi alabilirim?":
+    "Tedavi ücretleri muayene sonrası kişisel değerlendirmeye göre belirlenmektedir. Detaylı bilgi için kliniğimizi arayabilir veya WhatsApp üzerinden yazabilirsiniz.",
+  "Diş beyazlatma kalıcı mıdır?":
+    "Diş beyazlatma etkisi kişiden kişiye farklılık gösterir. Ortalama 6 ay ile 2 yıl arasında sürebilir; düzenli ağız bakımı ile bu süre uzatılabilir.",
+  "İmplant tedavisi ağrılı mıdır?":
+    "İmplant tedavisi lokal anestezi altında uygulandığı için işlem sırasında ağrı hissedilmez. İşlem sonrası hafif bir hassasiyet normal olup birkaç gün içinde geçer.",
+};
+
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
 
@@ -30,7 +41,7 @@ export default async function FAQPage() {
     id: faq.id,
     questionTr: faq.questionTr,
     questionEn: faq.questionEn,
-    answerTr: faq.answerTr,
+    answerTr: faq.answerTr?.trim() || FAQ_TR_FALLBACKS[faq.questionTr] || "",
     answerEn: faq.answerEn,
     order: faq.order,
     isActive: faq.isActive,

@@ -24,7 +24,9 @@ export default function FAQClient({ faqs }: Props) {
         minimal
       >
         <div className="hero-panel hero-panel--compact p-6 text-sm leading-relaxed text-[color:var(--text-secondary)]">
-          {lang === "tr" ? "Sık sorulan başlıklar daha sakin bir okuma akışı ile listelenir." : "Frequently asked topics are listed in a calmer reading flow."}
+          {lang === "tr"
+            ? "Sık sorulan başlıklar daha sakin bir okuma akışı ile listelenir."
+            : "Frequently asked topics are listed in a calmer reading flow."}
         </div>
       </PageHero>
 
