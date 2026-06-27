@@ -2,23 +2,37 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
-const ADMIN_EMAIL = "adakansoftware@gmail.com";
-const ADMIN_PASSWORD = "Adakan652134.";
-const ADMIN_NAME = "Adakan Software";
 const LEGACY_ADMIN_EMAIL = "admin@klinik.com";
 
+function getSeedAdminConfig() {
+  const email = process.env.ADMIN_EMAIL?.trim();
+  const password = process.env.ADMIN_PASSWORD?.trim();
+  const name = process.env.ADMIN_NAME?.trim() || "Clinic Admin";
+
+  if (!email) {
+    throw new Error("ADMIN_EMAIL is required for prisma seed");
+  }
+
+  if (!password || password.length < 12) {
+    throw new Error("ADMIN_PASSWORD is required for prisma seed and must be at least 12 characters");
+  }
+
+  return { email, password, name };
+}
+
 async function main() {
-  const passwordHash = await bcrypt.hash(ADMIN_PASSWORD, 12);
+  const adminConfig = getSeedAdminConfig();
+  const passwordHash = await bcrypt.hash(adminConfig.password, 12);
   const admin = await prisma.adminUser.upsert({
-    where: { email: ADMIN_EMAIL },
+    where: { email: adminConfig.email },
     update: {
       passwordHash,
-      name: ADMIN_NAME,
+      name: adminConfig.name,
     },
     create: {
-      email: ADMIN_EMAIL,
+      email: adminConfig.email,
       passwordHash,
-      name: ADMIN_NAME,
+      name: adminConfig.name,
     },
   });
 
@@ -28,7 +42,7 @@ async function main() {
         in: [LEGACY_ADMIN_EMAIL],
       },
       NOT: {
-        email: ADMIN_EMAIL,
+        email: adminConfig.email,
       },
     },
   });
@@ -373,7 +387,7 @@ async function main() {
   console.log("Reviews seeded");
 
   console.log("\nSeed completed successfully!");
-  console.log(`Admin login: ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}`);
+  console.log(`Admin login ready for: ${admin.email}`);
 }
 
 main()

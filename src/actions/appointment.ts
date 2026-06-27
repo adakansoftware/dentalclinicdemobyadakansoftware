@@ -32,6 +32,36 @@ function normalizeNameForComparison(name: string) {
     .trim();
 }
 
+async function getAppointmentIdsByNormalizedPhone(params: {
+  normalizedPhone: string;
+  startUtc: Date;
+  endUtc?: Date;
+  activeOnly?: boolean;
+  limit: number;
+}) {
+  const rows = params.activeOnly && params.endUtc
+    ? await prisma.$queryRaw<Array<{ id: string }>>`
+        SELECT id
+        FROM "Appointment"
+        WHERE "date" >= ${params.startUtc}
+          AND "date" <= ${params.endUtc}
+          AND "status" IN ('PENDING', 'CONFIRMED')
+          AND regexp_replace("patientPhone", '\D', '', 'g') = ${params.normalizedPhone}
+        ORDER BY "date" ASC, "startTime" ASC
+        LIMIT ${params.limit}
+      `
+    : await prisma.$queryRaw<Array<{ id: string }>>`
+        SELECT id
+        FROM "Appointment"
+        WHERE "date" >= ${params.startUtc}
+          AND regexp_replace("patientPhone", '\D', '', 'g') = ${params.normalizedPhone}
+        ORDER BY "date" ASC, "startTime" ASC
+        LIMIT ${params.limit}
+      `;
+
+  return rows.map((row) => row.id);
+}
+
 interface PublicAppointmentLookupItem {
   id: string;
   date: string;
@@ -395,20 +425,26 @@ export async function cancelAppointmentByPhoneAction(
   const { startUtc, endUtc } = getUtcRangeForTurkeyDate(date);
 
   try {
-    const activeAppointments = await prisma.appointment.findMany({
-      where: {
-        date: {
-          gte: startUtc,
-          lte: endUtc,
-        },
-        status: {
-          in: ["PENDING", "CONFIRMED"],
-        },
-      },
-      orderBy: {
-        startTime: "asc",
-      },
+    const matchingIds = await getAppointmentIdsByNormalizedPhone({
+      normalizedPhone,
+      startUtc,
+      endUtc,
+      activeOnly: true,
+      limit: 20,
     });
+
+    const activeAppointments = matchingIds.length
+      ? await prisma.appointment.findMany({
+          where: {
+            id: {
+              in: matchingIds,
+            },
+          },
+          orderBy: {
+            startTime: "asc",
+          },
+        })
+      : [];
 
     const matchingAppointments = activeAppointments.filter(
       (appointment) =>
@@ -555,29 +591,36 @@ export async function lookupAppointmentsByPhoneAction(
   const { startUtc } = getUtcRangeForTurkeyDate(today);
 
   try {
-    const appointments = await prisma.appointment.findMany({
-      where: {
-        date: {
-          gte: startUtc,
-        },
-      },
-      include: {
-        service: {
-          select: {
-            nameTr: true,
-            nameEn: true,
-          },
-        },
-        specialist: {
-          select: {
-            nameTr: true,
-            nameEn: true,
-          },
-        },
-      },
-      orderBy: [{ date: "asc" }, { startTime: "asc" }],
-      take: 20,
+    const matchingIds = await getAppointmentIdsByNormalizedPhone({
+      normalizedPhone,
+      startUtc,
+      limit: 50,
     });
+
+    const appointments = matchingIds.length
+      ? await prisma.appointment.findMany({
+          where: {
+            id: {
+              in: matchingIds,
+            },
+          },
+          include: {
+            service: {
+              select: {
+                nameTr: true,
+                nameEn: true,
+              },
+            },
+            specialist: {
+              select: {
+                nameTr: true,
+                nameEn: true,
+              },
+            },
+          },
+          orderBy: [{ date: "asc" }, { startTime: "asc" }],
+        })
+      : [];
 
     const matches = appointments
       .filter(

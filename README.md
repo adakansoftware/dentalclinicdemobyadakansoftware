@@ -39,6 +39,8 @@ DATABASE_URL=postgresql://...
 DIRECT_URL=postgresql://...
 SESSION_SECRET=your-32-char-or-longer-secret
 NEXT_PUBLIC_APP_URL=https://your-domain.example
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=change-this-admin-password
 SMS_ENABLED=false
 ```
 
@@ -120,13 +122,12 @@ Response also includes:
 
 This helps smoke tests and live diagnostics.
 
-## Default Admin Login
+## Admin Login
 
 - URL: `/admin/login`
-- Email: `admin@klinik.com`
-- Password: `Admin123!`
+- Credentials are created from `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and optional `ADMIN_NAME` during `npm run db:seed`
 
-Change these immediately in a real client deployment.
+Do not keep shared or demo credentials in real deployments.
 
 ## Production Release Checklist
 
