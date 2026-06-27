@@ -38,7 +38,7 @@ export const DEMO_CLINIC_PROFILE = {
   aboutTitleTr: "Adakan Dental Klinik Hakkında",
   aboutTitleEn: "About Adakan Dental Clinic",
   aboutTextTr:
-    "Adakan Dental Klinik, muayeneden tedavi planlamasına kadar her adımda güven veren, sakin ve şeffaf bir hasta deneyimi sunmak için kurgulanmıştır. Kliniğimizde estetik diş hekimliği, İmplant planlaması, çocuk diş sağlığı ve koruyucu bakım süreçleri kişiye özel değerlendirme ile ele alınır.",
+    "Adakan Dental Klinik, muayeneden tedavi planlamasına kadar her adımda güven veren, sakin ve şeffaf bir hasta deneyimi sunmak için kurgulanmıştır. Kliniğimizde estetik diş hekimliği, implant planlaması, çocuk diş sağlığı ve koruyucu bakım süreçleri kişiye özel değerlendirme ile ele alınır.",
   aboutTextEn:
     "Adakan Dental Clinic is designed to deliver a calm, transparent, and reassuring patient experience from consultation to treatment planning. Aesthetic dentistry, implant planning, pediatric dentistry, and preventive care are all handled with individualized clinical evaluation.",
   seoTitleTr: "Adakan Dental Klinik | Modern Diş Kliniği Demo",

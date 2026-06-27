@@ -230,7 +230,7 @@ export async function createAppointmentAction(
 
     return {
       success: false,
-      error: patientLanguage === "EN" ? "An unexpected error occurred." : "Beklenmeyen bir hata olustu.",
+      error: patientLanguage === "EN" ? "An unexpected error occurred." : "Beklenmeyen bir hata oluştu.",
     };
   }
 }
@@ -540,7 +540,7 @@ export async function cancelAppointmentByPhoneAction(
 
     return {
       success: false,
-      error: patientLanguage === "EN" ? "An unexpected error occurred." : "Beklenmeyen bir hata olustu.",
+      error: patientLanguage === "EN" ? "An unexpected error occurred." : "Beklenmeyen bir hata oluştu.",
     };
   }
 }
@@ -678,7 +678,7 @@ export async function lookupAppointmentsByPhoneAction(
 
     return {
       success: false,
-      error: patientLanguage === "EN" ? "An unexpected error occurred." : "Beklenmeyen bir hata olustu.",
+      error: patientLanguage === "EN" ? "An unexpected error occurred." : "Beklenmeyen bir hata oluştu.",
     };
   }
 }

@@ -75,7 +75,7 @@ async function main() {
     {
       key: "aboutTextTr",
       value:
-        "Adakan Dental Klinik, muayeneden tedavi planlamasına kadar her adımda güven veren, sakin ve şeffaf bir hasta deneyimi sunmak için kurgulanmıştır. Estetik diş hekimliği, İmplant planlaması, çocuk diş sağlığı ve koruyucu bakım süreçleri kişiye özel değerlendirme ile ele alınır.",
+        "Adakan Dental Klinik, muayeneden tedavi planlamasına kadar her adımda güven veren, sakin ve şeffaf bir hasta deneyimi sunmak için kurgulanmıştır. Estetik diş hekimliği, implant planlaması, çocuk diş sağlığı ve koruyucu bakım süreçleri kişiye özel değerlendirme ile ele alınır.",
     },
     {
       key: "aboutTextEn",
@@ -213,7 +213,7 @@ async function main() {
       titleTr: "Diş Hekimi, İmplantoloji Uzmanı",
       titleEn: "Dentist, Implantology Specialist",
       biographyTr:
-        "Dr. Ayşe Kaya, İmplant planlaması ve estetik diş hekimliği alanlarında deneyimli bir klinik uzmandır. Açık bilgilendirme ve planlı tedavi sürecini önceliklendirir.",
+        "Dr. Ayşe Kaya, implant planlaması ve estetik diş hekimliği alanlarında deneyimli bir klinik uzmandır. Açık bilgilendirme ve planlı tedavi sürecini önceliklendirir.",
       biographyEn:
         "Dr. Ayse Kaya is an experienced clinician in implant and aesthetic dentistry. She prioritizes clear communication and a structured treatment process.",
       photoUrl: "/images/specialists/doctor-ayse.jpg",
@@ -306,7 +306,8 @@ async function main() {
     {
       questionTr: "Online randevu nasıl alabilirim?",
       questionEn: "How do I make an appointment?",
-      answerTr: "Web sitesi üzerinden hizmet, uzman ve uygun tarih seçerek online randevu talebi oluşturabilirsiniz. İsterseniz telefon veya WhatsApp üzerinden de bize ulaşabilirsiniz.",
+      answerTr:
+        "Web sitesi üzerinden hizmet, uzman ve uygun tarih seçerek online randevu talebi oluşturabilirsiniz. İsterseniz telefon veya WhatsApp üzerinden de bize ulaşabilirsiniz.",
       answerEn: "You can create an online request through the website, call by phone, or contact us via WhatsApp.",
       order: 1,
     },
