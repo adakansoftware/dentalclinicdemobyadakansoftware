@@ -3,6 +3,7 @@ import ServicesClient from "@/components/public/ServicesClient";
 import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/safe-query";
 import { buildPublicPageMetadata } from "@/lib/seo";
+import { resolveServiceImageUrl } from "@/lib/image-fallbacks";
 import { getSiteSettings } from "@/lib/settings";
 import type { ServiceData } from "@/types";
 
@@ -39,7 +40,7 @@ export default async function ServicesPage() {
     durationMinutes: service.durationMinutes,
     order: service.order,
     isActive: service.isActive,
-    imageUrl: service.imageUrl,
+    imageUrl: resolveServiceImageUrl(service.slug, service.imageUrl),
   }));
 
   return <ServicesClient services={services} />;

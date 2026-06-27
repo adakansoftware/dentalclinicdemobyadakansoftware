@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import SpecialistsClient from "@/components/public/SpecialistsClient";
+import { resolveSpecialistPhotoUrl } from "@/lib/image-fallbacks";
 import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/safe-query";
 import { buildPublicPageMetadata } from "@/lib/seo";
@@ -40,7 +41,7 @@ export default async function SpecialistsPage() {
     titleEn: specialist.titleEn,
     biographyTr: specialist.biographyTr,
     biographyEn: specialist.biographyEn,
-    photoUrl: specialist.photoUrl,
+    photoUrl: resolveSpecialistPhotoUrl(specialist.slug, specialist.photoUrl),
     order: specialist.order,
     isActive: specialist.isActive,
     specialistServices: specialist.specialistServices.map((specialistService) => ({

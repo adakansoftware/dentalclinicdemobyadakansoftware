@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ServiceDetailClient from "@/components/public/ServiceDetailClient";
+import { resolveServiceImageUrl, resolveSpecialistPhotoUrl } from "@/lib/image-fallbacks";
 import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/safe-query";
 import { buildPublicPageMetadata } from "@/lib/seo";
@@ -46,7 +47,7 @@ export async function generateMetadata({
     title: `${row.nameTr} | ${settings.clinicName}`,
     description: row.shortDescTr,
     path: `/services/${slug}`,
-    imageUrl: row.imageUrl,
+    imageUrl: resolveServiceImageUrl(slug, row.imageUrl),
   });
 }
 
@@ -98,9 +99,15 @@ export default async function ServiceDetailPage({
     shortDescEn: row.shortDescEn,
     iconName: row.iconName,
     durationMinutes: row.durationMinutes,
-    imageUrl: row.imageUrl,
+    imageUrl: resolveServiceImageUrl(row.slug, row.imageUrl),
     specialistServices: row.specialistServices.map((specialistService) => ({
-      specialist: specialistService.specialist,
+      specialist: {
+        ...specialistService.specialist,
+        photoUrl: resolveSpecialistPhotoUrl(
+          specialistService.specialist.slug,
+          specialistService.specialist.photoUrl
+        ),
+      },
     })),
   };
 

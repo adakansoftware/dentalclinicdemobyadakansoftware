@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import SpecialistDetailClient from "@/components/public/SpecialistDetailClient";
+import { resolveSpecialistPhotoUrl } from "@/lib/image-fallbacks";
 import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/safe-query";
 import { buildPublicPageMetadata } from "@/lib/seo";
@@ -59,7 +60,7 @@ export async function generateMetadata({
     title: `${row.nameTr} | ${settings.clinicName}`,
     description: row.titleTr,
     path: `/specialists/${slug}`,
-    imageUrl: row.photoUrl,
+    imageUrl: resolveSpecialistPhotoUrl(slug, row.photoUrl),
   });
 }
 
@@ -88,7 +89,7 @@ export default async function SpecialistDetailPage({ params }: { params: Promise
     titleEn: row.titleEn,
     biographyTr: row.biographyTr,
     biographyEn: row.biographyEn,
-    photoUrl: row.photoUrl,
+    photoUrl: resolveSpecialistPhotoUrl(row.slug, row.photoUrl),
     specialistServices: row.specialistServices.map((specialistService) => ({
       service: {
         id: specialistService.service.id,

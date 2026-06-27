@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import AppointmentClient from "@/components/public/AppointmentClient";
+import { resolveSpecialistPhotoUrl } from "@/lib/image-fallbacks";
 import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/safe-query";
 import { buildPublicPageMetadata } from "@/lib/seo";
@@ -62,7 +63,7 @@ export default async function AppointmentPage({
     nameEn: specialist.nameEn,
     titleTr: specialist.titleTr,
     titleEn: specialist.titleEn,
-    photoUrl: specialist.photoUrl,
+    photoUrl: resolveSpecialistPhotoUrl(specialist.slug, specialist.photoUrl),
     specialistServices: specialist.specialistServices,
   }));
 

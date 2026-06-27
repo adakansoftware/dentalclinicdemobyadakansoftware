@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/safe-query";
 import { getPublicReviews } from "@/lib/google-reviews";
 import { buildClinicJsonLd, buildPublicPageMetadata } from "@/lib/seo";
+import { resolveServiceImageUrl, resolveSpecialistPhotoUrl } from "@/lib/image-fallbacks";
 import { getSiteSettings } from "@/lib/settings";
 
 export const revalidate = 60;
@@ -53,14 +54,22 @@ export default async function HomePage() {
         }));
 
   const clinicJsonLd = buildClinicJsonLd(settings);
+  const resolvedServices = services.map((service) => ({
+    ...service,
+    imageUrl: resolveServiceImageUrl(service.slug, service.imageUrl),
+  }));
+  const resolvedSpecialists = specialists.map((specialist) => ({
+    ...specialist,
+    photoUrl: resolveSpecialistPhotoUrl(specialist.slug, specialist.photoUrl),
+  }));
 
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(clinicJsonLd) }} />
       <HomeClient
         settings={settings}
-        services={services}
-        specialists={specialists}
+        services={resolvedServices}
+        specialists={resolvedSpecialists}
         reviews={reviews}
       />
     </>

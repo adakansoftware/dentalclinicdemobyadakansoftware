@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import type { SiteSettings } from "@/types";
 import { getOptionalEnv } from "./env";
 
+const DEFAULT_SOCIAL_IMAGE = "/images/hero.jpg";
+
 export function getBaseUrl(): URL {
   const env = getOptionalEnv();
   const raw =
@@ -40,7 +42,7 @@ export function buildPublicPageMetadata({
   path = "/",
   imageUrl,
 }: PublicPageMetadataInput): Metadata {
-  const resolvedImage = toAbsoluteAssetUrl(imageUrl || settings.logoUrl || settings.faviconUrl);
+  const resolvedImage = toAbsoluteAssetUrl(imageUrl || settings.logoUrl || settings.faviconUrl || DEFAULT_SOCIAL_IMAGE);
 
   return {
     metadataBase: getBaseUrl(),
@@ -53,7 +55,16 @@ export function buildPublicPageMetadata({
       type: "website",
       url: absoluteUrl(path),
       siteName: settings.clinicName,
-      images: resolvedImage ? [{ url: resolvedImage }] : undefined,
+      images: resolvedImage
+        ? [
+            {
+              url: resolvedImage,
+              width: 1200,
+              height: 630,
+              alt: settings.clinicName,
+            },
+          ]
+        : undefined,
       locale: "tr_TR",
     },
     twitter: {
@@ -77,7 +88,7 @@ export function buildClinicJsonLd(settings: SiteSettings) {
     email: settings.email || undefined,
     address: settings.address ? { "@type": "PostalAddress", streetAddress: settings.address } : undefined,
     url: absoluteUrl("/"),
-    image: toAbsoluteAssetUrl(settings.logoUrl || settings.faviconUrl),
+    image: toAbsoluteAssetUrl(settings.logoUrl || settings.faviconUrl || DEFAULT_SOCIAL_IMAGE),
     sameAs: sameAs.length > 0 ? sameAs : undefined,
   };
 }
