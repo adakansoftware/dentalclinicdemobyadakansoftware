@@ -30,6 +30,9 @@ async function waitForServer(baseUrl, timeoutMs = 45_000) {
       const response = await fetch(`${baseUrl}/api/health`, {
         cache: "no-store",
         signal: AbortSignal.timeout(5_000),
+        headers: process.env.HEALTHCHECK_SECRET
+          ? { authorization: `Bearer ${process.env.HEALTHCHECK_SECRET}` }
+          : undefined,
       });
 
       if (response.ok) {
@@ -129,7 +132,11 @@ async function main() {
       `/admin redirect expected /admin/login, got ${admin.headers.get("location") ?? "missing"}`
     );
 
-    const health = await request("/api/health");
+    const health = await request("/api/health", {
+      headers: process.env.HEALTHCHECK_SECRET
+        ? { authorization: `Bearer ${process.env.HEALTHCHECK_SECRET}` }
+        : undefined,
+    });
     assert(health.status === 200, `/api/health expected 200, got ${health.status}`);
     assert(health.text.includes('"ok":true'), "/api/health did not report ok");
     assert(health.text.includes('"status":"'), "/api/health did not report overall status");
@@ -161,13 +168,22 @@ async function main() {
     const cronUnauthorized = await request("/api/cron/reminders");
     assert(cronUnauthorized.status === 401, `/api/cron/reminders expected 401, got ${cronUnauthorized.status}`);
 
-    const invalidSlots = await request("/api/slots");
+    const invalidSlots = await request("/api/slots", {
+      headers: { referer: `http://127.0.0.1:${port}/appointment` },
+    });
     assert(invalidSlots.status === 400, `/api/slots without params expected 400, got ${invalidSlots.status}`);
 
-    const malformedDateSlots = await request("/api/slots?specialistId=test&date=07-04-2026");
+    const malformedDateSlots = await request("/api/slots?specialistId=test&date=07-04-2026", {
+      headers: { referer: `http://127.0.0.1:${port}/appointment` },
+    });
     assert(malformedDateSlots.status === 400, `/api/slots malformed date expected 400, got ${malformedDateSlots.status}`);
 
-    const unsupportedHealthMethod = await request("/api/health", { method: "POST" });
+    const unsupportedHealthMethod = await request("/api/health", {
+      method: "POST",
+      headers: process.env.HEALTHCHECK_SECRET
+        ? { authorization: `Bearer ${process.env.HEALTHCHECK_SECRET}` }
+        : undefined,
+    });
     assert(unsupportedHealthMethod.status === 405, `/api/health POST expected 405, got ${unsupportedHealthMethod.status}`);
     assertHeader(unsupportedHealthMethod, "allow", "GET");
 
@@ -182,7 +198,9 @@ async function main() {
     tomorrow.setDate(tomorrow.getDate() + 1);
     const slotDate = tomorrow.toISOString().slice(0, 10);
 
-    const validSlots = await request(`/api/slots?specialistId=${encodeURIComponent(specialist.id)}&date=${slotDate}`);
+    const validSlots = await request(`/api/slots?specialistId=${encodeURIComponent(specialist.id)}&date=${slotDate}`, {
+      headers: { referer: `http://127.0.0.1:${port}/appointment` },
+    });
     assert(validSlots.status === 200, `/api/slots valid request expected 200, got ${validSlots.status}`);
     assert(validSlots.headers.get("x-slots-cache"), "/api/slots did not include x-slots-cache header");
 
@@ -193,7 +211,9 @@ async function main() {
 
     let rateLimited = 0;
     for (let i = 0; i < 65; i += 1) {
-      const response = await request(`/api/slots?specialistId=${encodeURIComponent(specialist.id)}&date=${slotDate}`);
+      const response = await request(`/api/slots?specialistId=${encodeURIComponent(specialist.id)}&date=${slotDate}`, {
+        headers: { referer: `http://127.0.0.1:${port}/appointment` },
+      });
       if (response.status === 429) {
         rateLimited += 1;
       }

@@ -24,6 +24,7 @@ const envSchema = z.object({
   NETGSM_PASSWORD: optionalTrimmedString,
   NETGSM_HEADER: optionalTrimmedString,
   CRON_SECRET: optionalTrimmedString,
+  HEALTHCHECK_SECRET: optionalTrimmedString,
   NEXT_PUBLIC_APP_URL: optionalUrlString,
   NEXT_PUBLIC_SITE_URL: optionalUrlString,
   NEXTAUTH_URL: optionalUrlString,
@@ -50,6 +51,10 @@ function collectEnvIssues(env: AppEnv) {
 
   if (env.CRON_SECRET && env.CRON_SECRET.length < 16) {
     issues.push("CRON_SECRET must be at least 16 characters");
+  }
+
+  if (env.HEALTHCHECK_SECRET && env.HEALTHCHECK_SECRET.length < 16) {
+    issues.push("HEALTHCHECK_SECRET must be at least 16 characters");
   }
 
   if (env.NODE_ENV === "production") {

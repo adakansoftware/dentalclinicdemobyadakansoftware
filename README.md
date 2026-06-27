@@ -48,6 +48,7 @@ Recommended additional values:
 
 ```env
 CRON_SECRET=your-strong-cron-secret
+HEALTHCHECK_SECRET=your-healthcheck-secret
 NEXT_PUBLIC_SITE_URL=https://your-domain.example
 NEXTAUTH_URL=https://your-domain.example
 TURNSTILE_SECRET_KEY=...
@@ -97,6 +98,8 @@ npm run test:smoke
 
 `/api/health` now reports more than simple uptime.
 
+In production, access should be protected with `Authorization: Bearer $HEALTHCHECK_SECRET`.
+
 It includes:
 
 - database connectivity
@@ -121,6 +124,8 @@ Response also includes:
 - `X-Slots-Cache: MISS`
 
 This helps smoke tests and live diagnostics.
+
+In production, requests without a same-site `Origin` or `Referer` are rejected.
 
 ## Admin Login
 

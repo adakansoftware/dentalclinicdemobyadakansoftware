@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   const requestId = getRequestIdFromHeaders(request.headers);
   const startedAt = Date.now();
 
-  if (!isAllowedBrowserOrigin(request.headers, request.url)) {
+  if (!isAllowedBrowserOrigin(request.headers, request.url, { requireHeaderInProduction: true })) {
     logEvent({
       level: "warn",
       event: "slots_origin_rejected",

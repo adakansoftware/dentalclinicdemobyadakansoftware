@@ -36,6 +36,11 @@ export function secureCompare(expected: string | undefined, actual: string | nul
   return timingSafeEqual(expectedBuffer, actualBuffer);
 }
 
+export function getBearerTokenFromHeaders(headers: Headers | { get(name: string): string | null }) {
+  const authHeader = headers.get("authorization");
+  return authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : null;
+}
+
 function normalizeOrigin(origin: string) {
   return origin.replace(/\/$/, "").toLowerCase();
 }
@@ -82,13 +87,20 @@ export function getAllowedOrigins() {
   return origins;
 }
 
-export function isAllowedBrowserOrigin(headers: Headers, requestUrl: string) {
+export function isAllowedBrowserOrigin(
+  headers: Headers,
+  requestUrl: string,
+  options: { requireHeaderInProduction?: boolean } = {}
+) {
   const requestOrigin = tryGetOriginFromUrl(requestUrl);
   const originHeader = tryGetOriginFromUrl(headers.get("origin"));
   const refererOrigin = tryGetOriginFromUrl(headers.get("referer"));
   const candidateOrigin = originHeader ?? refererOrigin;
 
   if (!candidateOrigin) {
+    if (options.requireHeaderInProduction && process.env.NODE_ENV === "production") {
+      return false;
+    }
     return true;
   }
 

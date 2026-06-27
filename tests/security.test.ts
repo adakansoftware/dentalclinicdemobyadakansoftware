@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   buildApiHeaders,
+  getBearerTokenFromHeaders,
   getAllowedOrigins,
   getRequestIdFromHeaders,
   isAllowedBrowserOrigin,
@@ -86,6 +87,22 @@ test("isAllowedBrowserOrigin rejects unrelated origins", () => {
   assert.equal(isAllowedBrowserOrigin(headers, "https://example.com/api/slots"), false);
 });
 
+test("isAllowedBrowserOrigin rejects missing headers in production when required", () => {
+  const previousEnv = process.env.NODE_ENV;
+  process.env.NODE_ENV = "production";
+
+  try {
+    const headers = new Headers();
+    assert.equal(isAllowedBrowserOrigin(headers, "https://example.com/api/slots", { requireHeaderInProduction: true }), false);
+  } finally {
+    if (previousEnv === undefined) {
+      delete process.env.NODE_ENV;
+    } else {
+      process.env.NODE_ENV = previousEnv;
+    }
+  }
+});
+
 test("getAllowedOrigins normalizes Vercel production hostnames", () => {
   const previousValue = process.env.VERCEL_PROJECT_PRODUCTION_URL;
   process.env.VERCEL_PROJECT_PRODUCTION_URL = "dental-demo-by-adakan-cx97.vercel.app";
@@ -106,6 +123,14 @@ test("secureCompare matches only exact secrets", () => {
   assert.equal(secureCompare("secret-value", "secret-value"), true);
   assert.equal(secureCompare("secret-value", "secret-value-2"), false);
   assert.equal(secureCompare("secret-value", null), false);
+});
+
+test("getBearerTokenFromHeaders extracts bearer token", () => {
+  const headers = new Headers({
+    authorization: "Bearer secret-value",
+  });
+
+  assert.equal(getBearerTokenFromHeaders(headers), "secret-value");
 });
 
 test("validateHoneypot rejects filled bot field", () => {

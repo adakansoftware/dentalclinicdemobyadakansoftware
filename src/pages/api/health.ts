@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 import { getEnvIssues, getOptionalEnv } from "@/lib/env";
 import { getDurationMs, logEvent } from "@/lib/observability";
-import { buildApiHeaders } from "@/lib/api-security";
+import { buildApiHeaders, getBearerTokenFromHeaders, secureCompare } from "@/lib/api-security";
 import { buildHealthSummary } from "@/lib/health";
 
 function buildRequestId() {
@@ -24,10 +24,39 @@ function applyApiHeaders(res: NextApiResponse, requestId: string, extras: Record
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const requestId = getRequestId(req);
   const startedAt = Date.now();
+  const env = getOptionalEnv();
+  const isProduction = process.env.NODE_ENV === "production";
+  const healthcheckSecret = env.HEALTHCHECK_SECRET;
 
   if (req.method !== "GET") {
     applyApiHeaders(res, requestId, { Allow: "GET" });
     return res.status(405).json({ error: "Method Not Allowed", requestId });
+  }
+
+  if (isProduction) {
+    const bearerToken = getBearerTokenFromHeaders({
+      get(name: string) {
+        const value = req.headers[name];
+        return typeof value === "string" ? value : null;
+      },
+    });
+    const isAuthorized = secureCompare(healthcheckSecret, bearerToken);
+
+    if (!isAuthorized) {
+      logEvent({
+        level: "warn",
+        event: "health_check_unauthorized",
+        requestId,
+        route: "/api/health",
+        meta: {
+          hasAuthorizationHeader: Boolean(req.headers.authorization),
+          durationMs: getDurationMs(startedAt),
+        },
+      });
+
+      applyApiHeaders(res, requestId);
+      return res.status(404).json({ error: "Not Found", requestId });
+    }
   }
 
   try {
@@ -39,7 +68,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         AND tablename = 'Appointment'
         AND indexname = 'appointment_active_slot_unique'
     `;
-    const env = getOptionalEnv();
     const envIssues = getEnvIssues();
     const isEnvReady = envIssues.length === 0;
     const durationMs = getDurationMs(startedAt);
@@ -98,7 +126,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    const isProduction = process.env.NODE_ENV === "production";
     const durationMs = getDurationMs(startedAt);
     const summary = buildHealthSummary({
       databaseOk: false,
