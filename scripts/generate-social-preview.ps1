@@ -5,7 +5,7 @@ Set-StrictMode -Version Latest
 
 $root = Split-Path -Parent $PSScriptRoot
 $backgroundPath = Join-Path $root "public\images\editorial\clinic-interior.jpg"
-$doctorPath = Join-Path $root "public\images\editorial\doctor-male.jpg"
+$doctorPath = Join-Path $root "public\images\editorial\doctor-female.jpg"
 $outputOgPath = Join-Path $root "src\app\opengraph-image.png"
 $outputTwitterPath = Join-Path $root "src\app\twitter-image.png"
 
@@ -115,6 +115,9 @@ $accentGlow = $null
 $panelBrush = $null
 $panelPen = $null
 $accentBarBrush = $null
+$eyebrowBrush = $null
+$featureLinePen = $null
+$shadowBrush = $null
 $brandFont = $null
 $titleFont = $null
 $subtitleFont = $null
@@ -128,10 +131,10 @@ $pillBrush = $null
 $doctorCardBrush = $null
 $doctorCardPen = $null
 $doctorImagePen = $null
+$doctorShadowPath = $null
 $panelPath = $null
 $pill1 = $null
 $pill2 = $null
-$pill3 = $null
 $doctorCardPath = $null
 $doctorImagePath = $null
 
@@ -174,72 +177,78 @@ try {
   $graphics.FillEllipse($accentGlow, (Scale 835), (Scale 52), (Scale 290), (Scale 290))
   $graphics.FillEllipse($accentGlow, (Scale 1010), (Scale 360), (Scale 170), (Scale 170))
 
-  $panelPath = New-RoundedPath -X (Scale 62) -Y (Scale 68) -Width (Scale 630) -Height (Scale 494) -Radius (Scale 34)
-  $panelBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(78, 255, 255, 255))
-  $panelPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(95, 255, 255, 255), (Scale 1.6))
+  $panelPath = New-RoundedPath -X (Scale 76) -Y (Scale 88) -Width (Scale 616) -Height (Scale 446) -Radius (Scale 30)
+  $panelBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(60, 255, 255, 255))
+  $panelPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(82, 255, 255, 255), (Scale 1.2))
   $graphics.FillPath($panelBrush, $panelPath)
   $graphics.DrawPath($panelPen, $panelPath)
 
   $accentBarBrush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
-    (New-Object System.Drawing.RectangleF(0, 0, (Scale 16), (Scale 240))),
+    (New-Object System.Drawing.RectangleF(0, 0, (Scale 12), (Scale 180))),
     [System.Drawing.Color]::FromArgb(255, 226, 190, 116),
     [System.Drawing.Color]::FromArgb(255, 122, 214, 224),
     90
   )
-  $graphics.FillRectangle($accentBarBrush, (Scale 96), (Scale 130), (Scale 16), (Scale 226))
+  $graphics.FillRectangle($accentBarBrush, (Scale 118), (Scale 156), (Scale 12), (Scale 166))
 
   $brandFont = New-Object System.Drawing.Font("Segoe UI Semibold", (Scale 20), [System.Drawing.FontStyle]::Regular)
-  $titleFont = New-Object System.Drawing.Font("Segoe UI Semibold", (Scale 34), [System.Drawing.FontStyle]::Bold)
-  $subtitleFont = New-Object System.Drawing.Font("Segoe UI", (Scale 18), [System.Drawing.FontStyle]::Regular)
-  $pillFont = New-Object System.Drawing.Font("Segoe UI Semibold", (Scale 17), [System.Drawing.FontStyle]::Regular)
-  $captionFont = New-Object System.Drawing.Font("Segoe UI", (Scale 17), [System.Drawing.FontStyle]::Regular)
+  $titleFont = New-Object System.Drawing.Font("Segoe UI Semibold", (Scale 25), [System.Drawing.FontStyle]::Bold)
+  $subtitleFont = New-Object System.Drawing.Font("Segoe UI", (Scale 17), [System.Drawing.FontStyle]::Regular)
+  $pillFont = New-Object System.Drawing.Font("Segoe UI Semibold", (Scale 16), [System.Drawing.FontStyle]::Regular)
+  $captionFont = New-Object System.Drawing.Font("Segoe UI", (Scale 16), [System.Drawing.FontStyle]::Regular)
 
   $whiteBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(244, 249, 251, 255))
   $mutedBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(228, 219, 228, 238))
   $goldBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 226, 190, 116))
   $cyanBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 122, 214, 224))
+  $eyebrowBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(44, 255, 255, 255))
+  $featureLinePen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(90, 255, 255, 255), (Scale 1))
+  $shadowBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(36, 0, 0, 0))
 
-  $graphics.DrawString("ADAKAN DENTAL KLINIK", $brandFont, $goldBrush, (Scale 130), (Scale 120))
+  $eyebrowPath = New-RoundedPath -X (Scale 146) -Y (Scale 118) -Width (Scale 214) -Height (Scale 40) -Radius (Scale 20)
+  $graphics.FillPath($eyebrowBrush, $eyebrowPath)
+  $graphics.DrawString("ADAKAN DENTAL KLINIK", $brandFont, $goldBrush, (Scale 170), (Scale 123))
   $graphics.DrawString(
-    "Premium clinic care",
+    "Premium first impression.",
     $titleFont,
     $whiteBrush,
-    (New-Object System.Drawing.RectangleF((Scale 128), (Scale 184), (Scale 482), (Scale 72)))
+    (New-Object System.Drawing.RectangleF((Scale 146), (Scale 212), (Scale 404), (Scale 92)))
   )
   $graphics.DrawString(
-    "Built for sharp, trustworthy first impressions across WhatsApp, X, and shared links.",
+    "A cleaner, more trustworthy social share experience before the site is even opened.",
     $subtitleFont,
     $mutedBrush,
-    (New-Object System.Drawing.RectangleF((Scale 130), (Scale 286), (Scale 472), (Scale 86)))
+    (New-Object System.Drawing.RectangleF((Scale 146), (Scale 314), (Scale 414), (Scale 92)))
   )
 
   $pillBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(38, 255, 255, 255))
-  $pill1 = New-RoundedPath -X (Scale 130) -Y (Scale 438) -Width (Scale 182) -Height (Scale 46) -Radius (Scale 23)
-  $pill2 = New-RoundedPath -X (Scale 326) -Y (Scale 438) -Width (Scale 170) -Height (Scale 46) -Radius (Scale 23)
-  $pill3 = New-RoundedPath -X (Scale 130) -Y (Scale 496) -Width (Scale 214) -Height (Scale 46) -Radius (Scale 23)
+  $pill1 = New-RoundedPath -X (Scale 146) -Y (Scale 458) -Width (Scale 164) -Height (Scale 42) -Radius (Scale 21)
+  $pill2 = New-RoundedPath -X (Scale 324) -Y (Scale 458) -Width (Scale 150) -Height (Scale 42) -Radius (Scale 21)
   $graphics.FillPath($pillBrush, $pill1)
   $graphics.FillPath($pillBrush, $pill2)
-  $graphics.FillPath($pillBrush, $pill3)
-  $graphics.DrawString("Online booking", $pillFont, $whiteBrush, (Scale 158), (Scale 451))
-  $graphics.DrawString("Mobile first", $pillFont, $whiteBrush, (Scale 356), (Scale 451))
-  $graphics.DrawString("Premium social preview", $pillFont, $whiteBrush, (Scale 157), (Scale 509))
+  $graphics.DrawString("Online booking", $pillFont, $whiteBrush, (Scale 171), (Scale 469))
+  $graphics.DrawString("Mobile first", $pillFont, $whiteBrush, (Scale 355), (Scale 469))
+  $graphics.DrawLine($featureLinePen, (Scale 146), (Scale 530), (Scale 590), (Scale 530))
+  $graphics.DrawString("Premium social preview", $captionFont, $cyanBrush, (Scale 146), (Scale 546))
 
-  $doctorCardPath = New-RoundedPath -X (Scale 760) -Y (Scale 78) -Width (Scale 372) -Height (Scale 474) -Radius (Scale 36)
-  $doctorCardBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(80, 10, 22, 40))
-  $doctorCardPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(128, 122, 214, 224), (Scale 2))
+  $doctorShadowPath = New-RoundedPath -X (Scale 772) -Y (Scale 98) -Width (Scale 366) -Height (Scale 434) -Radius (Scale 34)
+  $graphics.FillPath($shadowBrush, $doctorShadowPath)
+  $doctorCardPath = New-RoundedPath -X (Scale 760) -Y (Scale 86) -Width (Scale 366) -Height (Scale 434) -Radius (Scale 34)
+  $doctorCardBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(72, 10, 22, 40))
+  $doctorCardPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(120, 122, 214, 224), (Scale 1.6))
   $graphics.FillPath($doctorCardBrush, $doctorCardPath)
   $graphics.DrawPath($doctorCardPen, $doctorCardPath)
 
-  $doctorImagePath = New-RoundedPath -X (Scale 792) -Y (Scale 110) -Width (Scale 308) -Height (Scale 286) -Radius (Scale 28)
+  $doctorImagePath = New-RoundedPath -X (Scale 788) -Y (Scale 114) -Width (Scale 310) -Height (Scale 248) -Radius (Scale 24)
   $graphics.SetClip($doctorImagePath)
-  $doctorScale = [Math]::Max((Scale 308) / $doctor.Width, (Scale 286) / $doctor.Height)
-  $doctorSrcWidth = (Scale 308) / $doctorScale
-  $doctorSrcHeight = (Scale 286) / $doctorScale
+  $doctorScale = [Math]::Max((Scale 310) / $doctor.Width, (Scale 248) / $doctor.Height)
+  $doctorSrcWidth = (Scale 310) / $doctorScale
+  $doctorSrcHeight = (Scale 248) / $doctorScale
   $doctorSrcX = ($doctor.Width - $doctorSrcWidth) / 2
-  $doctorSrcY = 210
+  $doctorSrcY = 80
   $graphics.DrawImage(
     $doctor,
-    (New-Object System.Drawing.RectangleF((Scale 792), (Scale 110), (Scale 308), (Scale 286))),
+    (New-Object System.Drawing.RectangleF((Scale 788), (Scale 114), (Scale 310), (Scale 248))),
     (New-Object System.Drawing.RectangleF($doctorSrcX, $doctorSrcY, $doctorSrcWidth, $doctorSrcHeight)),
     [System.Drawing.GraphicsUnit]::Pixel
   )
@@ -247,12 +256,12 @@ try {
   $doctorImagePen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(210, 255, 255, 255), (Scale 1.2))
   $graphics.DrawPath($doctorImagePen, $doctorImagePath)
 
-  $graphics.DrawString("Confident first impression", $pillFont, $cyanBrush, (Scale 792), (Scale 426))
+  $graphics.DrawString("Confident first impression", $pillFont, $cyanBrush, (Scale 790), (Scale 390))
   $graphics.DrawString(
-    "Sharper preview art with a premium, trustworthy tone before the site is even opened.",
+    "Cleaner hierarchy and softer contrast.",
     $captionFont,
     $whiteBrush,
-    (New-Object System.Drawing.RectangleF((Scale 792), (Scale 458), (Scale 286), (Scale 60)))
+    (New-Object System.Drawing.RectangleF((Scale 790), (Scale 424), (Scale 262), (Scale 62)))
   )
 
   Save-ImageAtomically -Bitmap $bitmap -DestinationPath $outputOgPath
@@ -282,10 +291,14 @@ finally {
   if ($doctorCardBrush) { $doctorCardBrush.Dispose() }
   if ($doctorCardPen) { $doctorCardPen.Dispose() }
   if ($doctorImagePen) { $doctorImagePen.Dispose() }
+  if ($eyebrowBrush) { $eyebrowBrush.Dispose() }
+  if ($featureLinePen) { $featureLinePen.Dispose() }
+  if ($shadowBrush) { $shadowBrush.Dispose() }
   if ($panelPath) { $panelPath.Dispose() }
   if ($pill1) { $pill1.Dispose() }
   if ($pill2) { $pill2.Dispose() }
-  if ($pill3) { $pill3.Dispose() }
   if ($doctorCardPath) { $doctorCardPath.Dispose() }
   if ($doctorImagePath) { $doctorImagePath.Dispose() }
+  if ($doctorShadowPath) { $doctorShadowPath.Dispose() }
+  if ($eyebrowPath) { $eyebrowPath.Dispose() }
 }
