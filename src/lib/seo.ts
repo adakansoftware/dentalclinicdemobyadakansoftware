@@ -3,7 +3,7 @@ import type { SiteSettings } from "@/types";
 import { getOptionalEnv } from "./env";
 import { sanitizeAssetReference } from "./upload-assets";
 
-const DEFAULT_SOCIAL_IMAGE = "/opengraph-image.jpg";
+const DEFAULT_SOCIAL_IMAGE = "/opengraph-image.png";
 
 export function getBaseUrl(): URL {
   const env = getOptionalEnv();

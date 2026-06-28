@@ -14,10 +14,10 @@ export const metadata: Metadata = {
     description: defaultDescription,
     images: [
       {
-        url: "/opengraph-image.jpg",
-        width: 1344,
-        height: 768,
-        alt: "Adakan Dental Klinik hero gorseli",
+        url: "/opengraph-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Adakan Dental Klinik social preview",
       },
     ],
   },
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: defaultTitle,
     description: defaultDescription,
-    images: ["/twitter-image.jpg"],
+    images: ["/twitter-image.png"],
   },
   verification: {
     google: "F9CjZoLhgyYJb2LPXCUGlNthcunJ53kN_RQqINd2ZUU",
