@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import type { SiteSettings } from "@/types";
 import { getOptionalEnv } from "./env";
+import { sanitizeAssetReference } from "./upload-assets";
 
-const DEFAULT_SOCIAL_IMAGE = "/images/hero.jpg";
+const DEFAULT_SOCIAL_IMAGE = "/opengraph-image.jpg";
 
 export function getBaseUrl(): URL {
   const env = getOptionalEnv();
@@ -21,10 +22,10 @@ export function absoluteUrl(path = "/"): string {
 }
 
 export function toAbsoluteAssetUrl(url?: string | null): string | undefined {
-  if (!url) return undefined;
-  if (url.startsWith("data:")) return url;
-  if (url.startsWith("http://") || url.startsWith("https://")) return url;
-  return absoluteUrl(url.startsWith("/") ? url : `/${url}`);
+  const safeUrl = sanitizeAssetReference(url);
+  if (!safeUrl) return undefined;
+  if (safeUrl.startsWith("http://") || safeUrl.startsWith("https://")) return safeUrl;
+  return absoluteUrl(safeUrl.startsWith("/") ? safeUrl : `/${safeUrl}`);
 }
 
 interface PublicPageMetadataInput {
