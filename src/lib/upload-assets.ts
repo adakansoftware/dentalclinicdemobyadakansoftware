@@ -1,9 +1,13 @@
 import { randomUUID } from "crypto";
 import { mkdir, unlink, writeFile } from "fs/promises";
 import path from "path";
+import { getAllowedOrigins } from "./api-security.ts";
+import { SOCIAL_IMAGE_PATH, TWITTER_IMAGE_PATH } from "./social-preview.ts";
 
 const PUBLIC_DIR = path.join(process.cwd(), "public");
 const UPLOADS_DIR = path.join(PUBLIC_DIR, "uploads");
+const ALLOWED_LOCAL_ASSET_PREFIXES = ["/uploads/", "/images/"] as const;
+const ALLOWED_EXACT_ASSET_PATHS = new Set([SOCIAL_IMAGE_PATH, TWITTER_IMAGE_PATH]);
 
 const MIME_EXTENSION_MAP = {
   "image/jpeg": "jpg",
@@ -29,6 +33,52 @@ function isHttpUrl(value: string) {
 
 function isLocalUploadPath(value: string) {
   return value.startsWith("/uploads/");
+}
+
+function hasUnsafePathSegments(value: string) {
+  return value.includes("..") || /[\r\n\t]/.test(value);
+}
+
+function normalizeOrigin(origin: string) {
+  return origin.replace(/\/$/, "").toLowerCase();
+}
+
+export function isAllowedLocalAssetPath(value: string) {
+  if (!value.startsWith("/") || hasUnsafePathSegments(value)) {
+    return false;
+  }
+
+  return ALLOWED_EXACT_ASSET_PATHS.has(value) || ALLOWED_LOCAL_ASSET_PREFIXES.some((prefix) => value.startsWith(prefix));
+}
+
+export function isAllowedAbsoluteAssetUrl(value: string) {
+  if (!isHttpUrl(value)) {
+    return false;
+  }
+
+  try {
+    const url = new URL(value);
+    if (!getAllowedOrigins().has(normalizeOrigin(url.origin))) {
+      return false;
+    }
+
+    return isAllowedLocalAssetPath(url.pathname);
+  } catch {
+    return false;
+  }
+}
+
+export function sanitizeAssetReference(value?: string | null, fallback = "") {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return fallback;
+  }
+
+  if (isAllowedLocalAssetPath(trimmed) || isAllowedAbsoluteAssetUrl(trimmed)) {
+    return trimmed;
+  }
+
+  return fallback;
 }
 
 function parseDataUrl(value: string) {
@@ -84,7 +134,7 @@ export async function persistImageAsset({
     return "";
   }
 
-  if (isHttpUrl(trimmed) || trimmed.startsWith("/")) {
+  if (isAllowedAbsoluteAssetUrl(trimmed) || isAllowedLocalAssetPath(trimmed)) {
     if (existingValue && existingValue !== trimmed && isLocalUploadPath(existingValue)) {
       await safeDeleteLocalUpload(existingValue);
     }
@@ -92,7 +142,7 @@ export async function persistImageAsset({
   }
 
   if (!trimmed.startsWith("data:image/")) {
-    throw new Error("Görsel alanı yalnızca yüklenen dosya, yerel yol veya geçerli URL kabul eder.");
+    throw new Error("Görsel alanı yalnızca yüklenen dosya veya güvenli yerel görsel yolu kabul eder.");
   }
 
   const { mimeType, base64 } = parseDataUrl(trimmed);
@@ -130,5 +180,10 @@ export const IMAGE_INPUT_SCHEMA_MESSAGE = "Geçerli bir görsel girin.";
 
 export function isValidAssetInput(value: string) {
   const trimmed = normalizeAssetValue(value);
-  return trimmed === "" || trimmed.startsWith("data:image/") || isHttpUrl(trimmed) || trimmed.startsWith("/");
+  return (
+    trimmed === "" ||
+    trimmed.startsWith("data:image/") ||
+    isAllowedAbsoluteAssetUrl(trimmed) ||
+    isAllowedLocalAssetPath(trimmed)
+  );
 }

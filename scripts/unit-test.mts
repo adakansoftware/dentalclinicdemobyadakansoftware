@@ -21,6 +21,8 @@ import {
   validateHoneypot,
 } from "../src/lib/security-core.ts";
 import { getDurationMs } from "../src/lib/observability.ts";
+import { SOCIAL_IMAGE_HEIGHT, SOCIAL_IMAGE_PATH, SOCIAL_IMAGE_WIDTH, TWITTER_IMAGE_PATH } from "../src/lib/social-preview.ts";
+import { sanitizeAssetReference } from "../src/lib/upload-assets.ts";
 
 const results: string[] = [];
 
@@ -284,6 +286,33 @@ run("getEnv accepts valid minimal configuration", () => {
       assert.equal(env.DATABASE_URL, "postgresql://example");
       assert.equal(env.SMS_ENABLED, "false");
       assert.equal(env.NEXT_PUBLIC_APP_URL, "https://adakan.example");
+    }
+  );
+});
+
+run("social preview metadata constants stay aligned", () => {
+  assert.equal(SOCIAL_IMAGE_PATH, "/opengraph-image.png");
+  assert.equal(TWITTER_IMAGE_PATH, "/twitter-image.png");
+  assert.equal(SOCIAL_IMAGE_WIDTH, 2400);
+  assert.equal(SOCIAL_IMAGE_HEIGHT, 1260);
+});
+
+run("sanitizeAssetReference rejects off-origin asset urls", () => {
+  withEnv(
+    {
+      DATABASE_URL: "postgresql://example",
+      SESSION_SECRET: "12345678901234567890123456789012",
+      NEXT_PUBLIC_APP_URL: "https://clinic.example",
+      SMS_ENABLED: "false",
+      NODE_ENV: "development",
+    },
+    () => {
+      assert.equal(sanitizeAssetReference("/opengraph-image.png"), "/opengraph-image.png");
+      assert.equal(
+        sanitizeAssetReference("https://clinic.example/twitter-image.png"),
+        "https://clinic.example/twitter-image.png"
+      );
+      assert.equal(sanitizeAssetReference("https://evil.example/og.png"), "");
     }
   );
 });

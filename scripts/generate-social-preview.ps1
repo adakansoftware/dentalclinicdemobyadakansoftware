@@ -1,6 +1,7 @@
 Add-Type -AssemblyName System.Drawing
 
 $ErrorActionPreference = "Stop"
+Set-StrictMode -Version Latest
 
 $root = Split-Path -Parent $PSScriptRoot
 $backgroundPath = Join-Path $root "public\images\editorial\clinic-interior.jpg"
@@ -34,6 +35,28 @@ function Resolve-WorkspacePath {
   }
 
   return $resolved
+}
+
+function Save-ImageAtomically {
+  param(
+    [System.Drawing.Bitmap]$Bitmap,
+    [string]$DestinationPath
+  )
+
+  $directory = Split-Path -Parent $DestinationPath
+  if (-not (Test-Path -LiteralPath $directory)) {
+    New-Item -ItemType Directory -Path $directory | Out-Null
+  }
+
+  $tempPath = Join-Path $directory ([System.IO.Path]::GetRandomFileName() + ".png")
+  try {
+    $Bitmap.Save($tempPath, [System.Drawing.Imaging.ImageFormat]::Png)
+    Move-Item -LiteralPath $tempPath -Destination $DestinationPath -Force
+  } finally {
+    if (Test-Path -LiteralPath $tempPath) {
+      Remove-Item -LiteralPath $tempPath -Force
+    }
+  }
 }
 
 function Scale {
@@ -232,8 +255,8 @@ try {
     (New-Object System.Drawing.RectangleF((Scale 792), (Scale 458), (Scale 286), (Scale 60)))
   )
 
-  $bitmap.Save($outputOgPath, [System.Drawing.Imaging.ImageFormat]::Png)
-  $bitmap.Save($outputTwitterPath, [System.Drawing.Imaging.ImageFormat]::Png)
+  Save-ImageAtomically -Bitmap $bitmap -DestinationPath $outputOgPath
+  Save-ImageAtomically -Bitmap $bitmap -DestinationPath $outputTwitterPath
 }
 finally {
   if ($graphics) { $graphics.Dispose() }

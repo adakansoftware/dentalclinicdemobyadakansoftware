@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import type { SiteSettings } from "@/types";
-import { getOptionalEnv } from "./env";
-import { sanitizeAssetReference } from "./upload-assets";
+import { getOptionalEnv } from "./env.ts";
+import { sanitizeAssetReference } from "./upload-assets.ts";
+import { SOCIAL_IMAGE_HEIGHT, SOCIAL_IMAGE_PATH, SOCIAL_IMAGE_WIDTH } from "./social-preview.ts";
 
-const DEFAULT_SOCIAL_IMAGE = "/opengraph-image.png";
+const DEFAULT_SOCIAL_IMAGE = SOCIAL_IMAGE_PATH;
 
 export function getBaseUrl(): URL {
   const env = getOptionalEnv();
@@ -60,8 +61,8 @@ export function buildPublicPageMetadata({
         ? [
             {
               url: resolvedImage,
-              width: 2400,
-              height: 1260,
+              width: SOCIAL_IMAGE_WIDTH,
+              height: SOCIAL_IMAGE_HEIGHT,
               alt: settings.clinicName,
             },
           ]

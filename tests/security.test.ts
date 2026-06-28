@@ -8,6 +8,8 @@ import {
   isAllowedBrowserOrigin,
   secureCompare,
 } from "../src/lib/api-security.ts";
+import { SOCIAL_IMAGE_HEIGHT, SOCIAL_IMAGE_PATH, SOCIAL_IMAGE_WIDTH, TWITTER_IMAGE_PATH } from "../src/lib/social-preview.ts";
+import { toAbsoluteAssetUrl } from "../src/lib/seo.ts";
 import {
   buildRequestFingerprintFromHeaders,
   enforceRateLimitByKey,
@@ -15,6 +17,7 @@ import {
   validateFormAge,
   validateHoneypot,
 } from "../src/lib/security-core.ts";
+import { isAllowedAbsoluteAssetUrl, isAllowedLocalAssetPath, isValidAssetInput } from "../src/lib/upload-assets.ts";
 
 test("getClientIpFromHeadersSync prefers forwarded headers", () => {
   const headers = new Headers({
@@ -131,6 +134,57 @@ test("getBearerTokenFromHeaders extracts bearer token", () => {
   });
 
   assert.equal(getBearerTokenFromHeaders(headers), "secret-value");
+});
+
+test("asset validators accept only safe local asset references", () => {
+  assert.equal(isAllowedLocalAssetPath("/images/hero.jpg"), true);
+  assert.equal(isAllowedLocalAssetPath("/uploads/services/demo.jpg"), true);
+  assert.equal(isAllowedLocalAssetPath("/opengraph-image.png"), true);
+  assert.equal(isAllowedLocalAssetPath("/twitter-image.png"), true);
+  assert.equal(isAllowedLocalAssetPath("/admin/secret.txt"), false);
+  assert.equal(isValidAssetInput("https://evil.example/logo.png"), false);
+});
+
+test("asset validators accept same-site absolute asset urls only", () => {
+  const previousUrl = process.env.NEXT_PUBLIC_APP_URL;
+  process.env.NEXT_PUBLIC_APP_URL = "https://clinic.example";
+
+  try {
+    assert.equal(isAllowedAbsoluteAssetUrl("https://clinic.example/images/hero.jpg"), true);
+    assert.equal(isAllowedAbsoluteAssetUrl("https://clinic.example/uploads/branding/logo.png"), true);
+    assert.equal(isAllowedAbsoluteAssetUrl("https://clinic.example/private/logo.png"), false);
+    assert.equal(isAllowedAbsoluteAssetUrl("https://cdn.example/logo.png"), false);
+  } finally {
+    if (previousUrl === undefined) {
+      delete process.env.NEXT_PUBLIC_APP_URL;
+    } else {
+      process.env.NEXT_PUBLIC_APP_URL = previousUrl;
+    }
+  }
+});
+
+test("social metadata asset helpers keep canonical preview dimensions", () => {
+  assert.equal(SOCIAL_IMAGE_PATH, "/opengraph-image.png");
+  assert.equal(TWITTER_IMAGE_PATH, "/twitter-image.png");
+  assert.equal(SOCIAL_IMAGE_WIDTH, 2400);
+  assert.equal(SOCIAL_IMAGE_HEIGHT, 1260);
+});
+
+test("toAbsoluteAssetUrl normalizes local social asset urls to canonical origin", () => {
+  const previousUrl = process.env.NEXT_PUBLIC_APP_URL;
+  process.env.NEXT_PUBLIC_APP_URL = "https://clinic.example";
+
+  try {
+    assert.equal(toAbsoluteAssetUrl("/opengraph-image.png"), "https://clinic.example/opengraph-image.png");
+    assert.equal(toAbsoluteAssetUrl("/twitter-image.png"), "https://clinic.example/twitter-image.png");
+    assert.equal(toAbsoluteAssetUrl("https://evil.example/og.png"), undefined);
+  } finally {
+    if (previousUrl === undefined) {
+      delete process.env.NEXT_PUBLIC_APP_URL;
+    } else {
+      process.env.NEXT_PUBLIC_APP_URL = previousUrl;
+    }
+  }
 });
 
 test("validateHoneypot rejects filled bot field", () => {
