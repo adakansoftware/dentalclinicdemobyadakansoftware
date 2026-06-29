@@ -5,6 +5,7 @@ import { buildApiHeaders, getRequestIdFromHeaders, isAllowedBrowserOrigin } from
 import { compareDateStrings, getTodayDateInTurkey } from "@/lib/date";
 import { buildRequestFingerprintFromHeaders, enforceRateLimitByKey } from "@/lib/security";
 import { getDurationMs, logEvent } from "@/lib/observability";
+import { methodNotAllowed } from "@/lib/route-methods";
 
 export const dynamic = "force-dynamic";
 
@@ -165,4 +166,20 @@ export async function GET(request: Request) {
       }
     );
   }
+}
+
+export function POST(request: Request) {
+  return methodNotAllowed(request, ["GET"]);
+}
+
+export function PUT(request: Request) {
+  return methodNotAllowed(request, ["GET"]);
+}
+
+export function PATCH(request: Request) {
+  return methodNotAllowed(request, ["GET"]);
+}
+
+export function DELETE(request: Request) {
+  return methodNotAllowed(request, ["GET"]);
 }

@@ -6,6 +6,7 @@ import { buildReminderMessage, sendSms } from "@/lib/sms";
 import { getEnv } from "@/lib/env";
 import { dateToIsoDate, getTomorrowDateInTurkey, getUtcRangeForTurkeyDate } from "@/lib/date";
 import { getDurationMs, logEvent } from "@/lib/observability";
+import { methodNotAllowed } from "@/lib/route-methods";
 
 export const dynamic = "force-dynamic";
 
@@ -136,4 +137,20 @@ export async function GET(request: Request) {
       headers: buildApiHeaders(requestId, { "Server-Timing": `app;dur=${durationMs}` }),
     }
   );
+}
+
+export function POST(request: Request) {
+  return methodNotAllowed(request, ["GET"]);
+}
+
+export function PUT(request: Request) {
+  return methodNotAllowed(request, ["GET"]);
+}
+
+export function PATCH(request: Request) {
+  return methodNotAllowed(request, ["GET"]);
+}
+
+export function DELETE(request: Request) {
+  return methodNotAllowed(request, ["GET"]);
 }

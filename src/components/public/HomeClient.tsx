@@ -129,7 +129,10 @@ export default function HomeClient({ settings, services, specialists, reviews }:
         <div className="hero-orb hero-orb--one" />
         <div className="hero-orb hero-orb--two" />
         <div className="section-shell section-block relative z-10">
-          <div className="relative overflow-hidden rounded-[2.4rem] border border-white/30 shadow-[0_32px_80px_rgba(28,24,20,0.16)]">
+          <div
+            className="relative overflow-hidden rounded-[2.4rem] border border-white/30 shadow-[0_32px_80px_rgba(28,24,20,0.16)]"
+            style={{ minHeight: "540px" }}
+          >
             <div className="absolute inset-0">
               <Image src="/images/hero.jpg" alt={clinicName} fill priority sizes="100vw" className="image-cover scale-[1.04]" />
             </div>

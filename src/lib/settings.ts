@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/safe-query";
+import { sanitizeAssetReference } from "@/lib/upload-assets";
 import type { SiteSettings } from "@/types";
 
 const LEGACY_BRAND_MARKERS = ["dentacare", "diş kliniği", "dis klinigi", "dental clinic"];
@@ -124,7 +125,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     seoTitleEn: resolveBrandText(map.seoTitleEn, DEFAULT_SETTINGS.seoTitleEn),
     seoDescTr: resolveBrandText(map.seoDescTr, DEFAULT_SETTINGS.seoDescTr),
     seoDescEn: resolveBrandText(map.seoDescEn, DEFAULT_SETTINGS.seoDescEn),
-    logoUrl: map.logoUrl ?? DEFAULT_SETTINGS.logoUrl,
-    faviconUrl: map.faviconUrl ?? DEFAULT_SETTINGS.faviconUrl,
+    logoUrl: sanitizeAssetReference(map.logoUrl, DEFAULT_SETTINGS.logoUrl),
+    faviconUrl: sanitizeAssetReference(map.faviconUrl, DEFAULT_SETTINGS.faviconUrl),
   };
 }

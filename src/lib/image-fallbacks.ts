@@ -1,4 +1,5 @@
 import { getServiceImage } from "@/lib/service-images";
+import { sanitizeAssetReference } from "@/lib/upload-assets";
 
 const specialistImageMap: Record<string, string> = {
   "dr-ayse-kaya": "/images/specialists/doctor-ayse.jpg",
@@ -11,17 +12,21 @@ function isBrokenDeploymentUpload(value?: string | null) {
 }
 
 export function resolveServiceImageUrl(slug: string, imageUrl?: string | null) {
+  const fallback = getServiceImage(slug);
+
   if (!imageUrl || isBrokenDeploymentUpload(imageUrl)) {
-    return getServiceImage(slug);
+    return fallback;
   }
 
-  return imageUrl;
+  return sanitizeAssetReference(imageUrl, fallback);
 }
 
 export function resolveSpecialistPhotoUrl(slug: string, photoUrl?: string | null) {
+  const fallback = specialistImageMap[slug] ?? "";
+
   if (!photoUrl || isBrokenDeploymentUpload(photoUrl)) {
-    return specialistImageMap[slug] ?? "";
+    return fallback;
   }
 
-  return photoUrl;
+  return sanitizeAssetReference(photoUrl, fallback);
 }

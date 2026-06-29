@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { dateOnlyToDbDate } from "@/lib/date";
+import { recordIdSchema, sanitizeTextareaInput } from "@/lib/input";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/types";
 
@@ -11,7 +12,7 @@ const timeSchema = z.string().regex(/^\d{2}:\d{2}$/);
 
 const workingHourSchema = z
   .object({
-    specialistId: z.string().min(1),
+    specialistId: recordIdSchema,
     dayOfWeek: z.coerce.number().min(0).max(6),
     startTime: timeSchema,
     endTime: timeSchema,
@@ -46,11 +47,11 @@ export async function upsertWorkingHourAction(_prev: ActionResult, formData: For
 
 const blockedSlotSchema = z
   .object({
-    specialistId: z.string().min(1),
+    specialistId: recordIdSchema,
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     startTime: timeSchema,
     endTime: timeSchema,
-    reason: z.string().max(200).optional(),
+    reason: z.string().trim().max(200).transform(sanitizeTextareaInput).optional(),
   })
   .refine((data) => data.startTime < data.endTime, {
     message: "Bitiş saati başlangıçtan sonra olmalı",
@@ -82,9 +83,9 @@ export async function createBlockedSlotAction(_prev: ActionResult, formData: For
 
 export async function deleteBlockedSlotAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
   await requireAdmin();
-  const id = formData.get("id") as string;
-  if (!id) return { success: false, error: "ID gerekli" };
-  await prisma.blockedSlot.delete({ where: { id } });
+  const parsed = z.object({ id: recordIdSchema }).safeParse({ id: formData.get("id") });
+  if (!parsed.success) return { success: false, error: parsed.error.errors[0]?.message ?? "ID gerekli" };
+  await prisma.blockedSlot.delete({ where: { id: parsed.data.id } });
   revalidatePath("/admin/blocked-slots");
   return { success: true };
 }

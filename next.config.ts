@@ -2,8 +2,29 @@ import os from "os";
 import path from "path";
 import type { NextConfig } from "next";
 
+type RemotePattern = {
+  protocol: "http" | "https";
+  hostname: string;
+  port: string | undefined;
+};
+
 function normalizeOrigin(origin: string) {
   return origin.replace(/^https?:\/\//, "").replace(/\/$/, "");
+}
+
+function tryBuildRemotePattern(origin: string): RemotePattern | null {
+  try {
+    const normalized = origin.startsWith("http://") || origin.startsWith("https://") ? origin : `https://${origin}`;
+    const url = new URL(normalized);
+
+    return {
+      protocol: url.protocol.replace(":", "") as "http" | "https",
+      hostname: url.hostname,
+      port: url.port || undefined,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function getLanOrigins() {
@@ -37,15 +58,31 @@ const allowedOrigins = Array.from(
     .map((origin) => normalizeOrigin(origin!)))
 );
 
+const remotePatterns = allowedOrigins
+  .map((origin) => tryBuildRemotePattern(origin))
+  .filter((pattern): pattern is RemotePattern => Boolean(pattern));
+
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname),
   images: {
-    remotePatterns: [
+    remotePatterns,
+  },
+  async headers() {
+    return [
       {
-        protocol: "https",
-        hostname: "**",
+        source: "/:path*",
+        headers: [
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+          {
+            key: "X-Frame-Options",
+            value: "DENY",
+          },
+        ],
       },
-    ],
+    ];
   },
   experimental: {
     serverActions: {

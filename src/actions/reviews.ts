@@ -3,16 +3,21 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { recordIdSchema, sanitizeTextInput, sanitizeTextareaInput } from "@/lib/input";
 import { verifyTurnstileToken } from "@/lib/bot-protection";
 import { enforceRateLimit, validateFormAge, validateHoneypot } from "@/lib/security";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/types";
 
 const reviewSchema = z.object({
-  patientName: z.string().trim().min(2, "Ad gerekli").max(120),
+  patientName: z.string().trim().min(2, "Ad gerekli").max(120).transform(sanitizeTextInput),
   ratingStars: z.coerce.number().min(1).max(5),
-  contentTr: z.string().trim().min(10, "Yorum gerekli").max(1500),
-  contentEn: z.string().trim().optional(),
+  contentTr: z.string().trim().min(10, "Yorum gerekli").max(1500).transform(sanitizeTextareaInput),
+  contentEn: z.string().trim().transform(sanitizeTextareaInput).optional(),
+});
+
+const reviewIdSchema = z.object({
+  id: recordIdSchema,
 });
 
 export async function submitReviewAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
@@ -61,9 +66,9 @@ export async function submitReviewAction(_prev: ActionResult, formData: FormData
 
 export async function approveReviewAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
   await requireAdmin();
-  const id = formData.get("id") as string;
-  if (!id) return { success: false, error: "ID gerekli" };
-  await prisma.review.update({ where: { id }, data: { isApproved: true } });
+  const parsed = reviewIdSchema.safeParse({ id: formData.get("id") });
+  if (!parsed.success) return { success: false, error: parsed.error.errors[0]?.message ?? "ID gerekli" };
+  await prisma.review.update({ where: { id: parsed.data.id }, data: { isApproved: true } });
   revalidatePath("/admin/reviews");
   revalidatePath("/reviews");
   return { success: true };
@@ -71,9 +76,9 @@ export async function approveReviewAction(_prev: ActionResult, formData: FormDat
 
 export async function deleteReviewAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
   await requireAdmin();
-  const id = formData.get("id") as string;
-  if (!id) return { success: false, error: "ID gerekli" };
-  await prisma.review.delete({ where: { id } });
+  const parsed = reviewIdSchema.safeParse({ id: formData.get("id") });
+  if (!parsed.success) return { success: false, error: parsed.error.errors[0]?.message ?? "ID gerekli" };
+  await prisma.review.delete({ where: { id: parsed.data.id } });
   revalidatePath("/admin/reviews");
   revalidatePath("/reviews");
   return { success: true };

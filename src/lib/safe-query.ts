@@ -44,7 +44,11 @@ export async function safeQuery<T>(
       const isTimeout = error instanceof Error && error.message.startsWith("Timed out after ");
 
       if ((!isTimeout || logTimeouts) && shouldLogMessage(message)) {
-        console.error(`${label} failed:`, error);
+        if (process.env.NODE_ENV === "production") {
+          console.error(message);
+        } else {
+          console.error(`${label} failed:`, error);
+        }
       }
     }
     return fallback;
