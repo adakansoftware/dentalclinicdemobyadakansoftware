@@ -1,10 +1,14 @@
-export const SOCIAL_IMAGE_PATH = "/images/hero.jpg";
-export const TWITTER_IMAGE_PATH = "/images/hero.jpg";
-export const SOCIAL_IMAGE_WIDTH = 1344;
-export const SOCIAL_IMAGE_HEIGHT = 768;
+export const SOCIAL_IMAGE_PATH = "/opengraph-image";
+export const TWITTER_IMAGE_PATH = "/twitter-image";
+export const SOCIAL_IMAGE_WIDTH = 1200;
+export const SOCIAL_IMAGE_HEIGHT = 630;
 
 export function getSocialImageMimeType(path: string) {
   const normalized = path.toLowerCase();
+
+  if (normalized.endsWith("/opengraph-image") || normalized.endsWith("/twitter-image")) {
+    return "image/png";
+  }
 
   if (normalized.endsWith(".png")) {
     return "image/png";
