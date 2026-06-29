@@ -3,7 +3,7 @@ import type { SiteSettings } from "@/types";
 import { headers } from "next/headers";
 import { getOptionalEnv } from "./env.ts";
 import { sanitizeAssetReference } from "./upload-assets.ts";
-import { SOCIAL_IMAGE_HEIGHT, SOCIAL_IMAGE_PATH, SOCIAL_IMAGE_WIDTH } from "./social-preview.ts";
+import { getSocialImageMimeType, SOCIAL_IMAGE_HEIGHT, SOCIAL_IMAGE_PATH, SOCIAL_IMAGE_WIDTH } from "./social-preview.ts";
 
 const DEFAULT_SOCIAL_IMAGE = SOCIAL_IMAGE_PATH;
 
@@ -128,6 +128,7 @@ export async function buildPublicPageMetadata({
     imageUrl || settings.logoUrl || settings.faviconUrl || DEFAULT_SOCIAL_IMAGE,
     baseUrl
   );
+  const imageMimeType = resolvedImage ? getSocialImageMimeType(resolvedImage) : undefined;
 
   return {
     metadataBase: baseUrl,
@@ -158,6 +159,13 @@ export async function buildPublicPageMetadata({
       description,
       images: resolvedImage ? [resolvedImage] : undefined,
     },
+    other: resolvedImage
+      ? {
+          "og:image:secure_url": resolvedImage,
+          "og:image:type": imageMimeType ?? "image/jpeg",
+          "twitter:image:alt": settings.clinicName,
+        }
+      : undefined,
     icons: settings.faviconUrl ? { icon: settings.faviconUrl } : undefined,
   };
 }
