@@ -11,7 +11,7 @@ import type { Metadata } from "next";
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
-  return buildPublicPageMetadata({
+  return await buildPublicPageMetadata({
     settings,
     title: settings.seoTitleTr,
     description: settings.seoDescTr,

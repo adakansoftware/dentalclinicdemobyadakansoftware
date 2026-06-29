@@ -47,7 +47,7 @@ export async function generateMetadata({
   ]);
 
   if (!row) {
-    return buildPublicPageMetadata({
+    return await buildPublicPageMetadata({
       settings,
       title: `Uzman Bulunamadı | ${settings.clinicName}`,
       description: settings.seoDescTr,
@@ -55,7 +55,7 @@ export async function generateMetadata({
     });
   }
 
-  return buildPublicPageMetadata({
+  return await buildPublicPageMetadata({
     settings,
     title: `${row.nameTr} | ${settings.clinicName}`,
     description: row.titleTr,

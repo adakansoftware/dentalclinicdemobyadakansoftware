@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
 
-  return buildPublicPageMetadata({
+  return await buildPublicPageMetadata({
     settings,
     title: `İletişim | ${settings.clinicName}`,
     description: `${settings.clinicName} iletişim bilgileri, adres ve çalışma saatleri.`,
@@ -34,9 +34,11 @@ export default async function ContactPage() {
     ),
   ]);
 
+  const clinicJsonLd = await buildClinicJsonLd(settings);
+
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildClinicJsonLd(settings)) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(clinicJsonLd) }} />
       <ContactClient settings={settings} workingHours={workingHours} />
     </>
   );

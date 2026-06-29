@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
 
-  return buildPublicPageMetadata({
+  return await buildPublicPageMetadata({
     settings,
     title: `Online Randevu | ${settings.clinicName}`,
     description: "Diş kliniği randevunuzu hızlı ve güvenli şekilde oluşturun.",

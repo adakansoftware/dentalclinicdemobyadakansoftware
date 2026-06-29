@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import type { SiteSettings } from "@/types";
+import { headers } from "next/headers";
 import { getOptionalEnv } from "./env.ts";
 import { sanitizeAssetReference } from "./upload-assets.ts";
 import { SOCIAL_IMAGE_HEIGHT, SOCIAL_IMAGE_PATH, SOCIAL_IMAGE_WIDTH } from "./social-preview.ts";
 
 const DEFAULT_SOCIAL_IMAGE = SOCIAL_IMAGE_PATH;
 
-export function getBaseUrl(): URL {
+function getConfiguredBaseUrl(): URL {
   const env = getOptionalEnv();
   const raw =
     env.NEXT_PUBLIC_APP_URL ||
@@ -20,15 +21,41 @@ export function getBaseUrl(): URL {
   return new URL(normalized);
 }
 
-export function absoluteUrl(path = "/"): string {
-  return new URL(path, getBaseUrl()).toString();
+function getBaseUrlFromRequestHeaders(headerStore: Headers): URL | null {
+  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
+  if (!host) {
+    return null;
+  }
+
+  const protocol =
+    headerStore.get("x-forwarded-proto") ??
+    (host.includes("localhost") || host.startsWith("127.0.0.1") ? "http" : "https");
+
+  try {
+    return new URL(`${protocol}://${host}`);
+  } catch {
+    return null;
+  }
 }
 
-export function toAbsoluteAssetUrl(url?: string | null): string | undefined {
+export function getBaseUrl(): URL {
+  return getConfiguredBaseUrl();
+}
+
+export async function getRequestBaseUrl(): Promise<URL> {
+  const headerStore = await headers();
+  return getBaseUrlFromRequestHeaders(headerStore) ?? getConfiguredBaseUrl();
+}
+
+export function absoluteUrl(path = "/", baseUrl = getBaseUrl()): string {
+  return new URL(path, baseUrl).toString();
+}
+
+export function toAbsoluteAssetUrl(url?: string | null, baseUrl = getBaseUrl()): string | undefined {
   const safeUrl = sanitizeAssetReference(url);
   if (!safeUrl) return undefined;
   if (safeUrl.startsWith("http://") || safeUrl.startsWith("https://")) return safeUrl;
-  return absoluteUrl(safeUrl.startsWith("/") ? safeUrl : `/${safeUrl}`);
+  return absoluteUrl(safeUrl.startsWith("/") ? safeUrl : `/${safeUrl}`, baseUrl);
 }
 
 interface PublicPageMetadataInput {
@@ -39,17 +66,21 @@ interface PublicPageMetadataInput {
   imageUrl?: string | null;
 }
 
-export function buildPublicPageMetadata({
+export async function buildPublicPageMetadata({
   settings,
   title,
   description,
   path = "/",
   imageUrl,
-}: PublicPageMetadataInput): Metadata {
-  const resolvedImage = toAbsoluteAssetUrl(imageUrl || settings.logoUrl || settings.faviconUrl || DEFAULT_SOCIAL_IMAGE);
+}: PublicPageMetadataInput): Promise<Metadata> {
+  const baseUrl = await getRequestBaseUrl();
+  const resolvedImage = toAbsoluteAssetUrl(
+    imageUrl || settings.logoUrl || settings.faviconUrl || DEFAULT_SOCIAL_IMAGE,
+    baseUrl
+  );
 
   return {
-    metadataBase: getBaseUrl(),
+    metadataBase: baseUrl,
     title,
     description,
     alternates: { canonical: path },
@@ -57,7 +88,7 @@ export function buildPublicPageMetadata({
       title,
       description,
       type: "website",
-      url: absoluteUrl(path),
+      url: absoluteUrl(path, baseUrl),
       siteName: settings.clinicName,
       images: resolvedImage
         ? [
@@ -81,7 +112,8 @@ export function buildPublicPageMetadata({
   };
 }
 
-export function buildClinicJsonLd(settings: SiteSettings) {
+export async function buildClinicJsonLd(settings: SiteSettings) {
+  const baseUrl = await getRequestBaseUrl();
   const sameAs = [settings.instagram, settings.facebook, settings.twitter].filter(Boolean);
 
   return {
@@ -91,8 +123,8 @@ export function buildClinicJsonLd(settings: SiteSettings) {
     telephone: settings.phone,
     email: settings.email || undefined,
     address: settings.address ? { "@type": "PostalAddress", streetAddress: settings.address } : undefined,
-    url: absoluteUrl("/"),
-    image: toAbsoluteAssetUrl(settings.logoUrl || settings.faviconUrl || DEFAULT_SOCIAL_IMAGE),
+    url: absoluteUrl("/", baseUrl),
+    image: toAbsoluteAssetUrl(settings.logoUrl || settings.faviconUrl || DEFAULT_SOCIAL_IMAGE, baseUrl),
     sameAs: sameAs.length > 0 ? sameAs : undefined,
   };
 }

@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
 
-  return buildPublicPageMetadata({
+  return await buildPublicPageMetadata({
     settings,
     title: `Uzman Kadro | ${settings.clinicName}`,
     description: `${settings.clinicName} uzman doktor kadrosunu inceleyin.`,

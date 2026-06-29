@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
 
-  return buildPublicPageMetadata({
+  return await buildPublicPageMetadata({
     settings,
     title: settings.seoTitleTr,
     description: settings.seoDescTr,
@@ -53,7 +53,7 @@ export default async function HomePage() {
           createdAt: review.createdAt.toISOString(),
         }));
 
-  const clinicJsonLd = buildClinicJsonLd(settings);
+  const clinicJsonLd = await buildClinicJsonLd(settings);
   const resolvedServices = services.map((service) => ({
     ...service,
     imageUrl: resolveServiceImageUrl(service.slug, service.imageUrl),

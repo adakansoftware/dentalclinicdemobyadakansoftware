@@ -23,7 +23,7 @@ const FAQ_TR_FALLBACKS: Record<string, string> = {
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
 
-  return buildPublicPageMetadata({
+  return await buildPublicPageMetadata({
     settings,
     title: `Sık Sorulan Sorular | ${settings.clinicName}`,
     description: `${settings.clinicName} hakkında en sık sorulan sorular ve yanıtları.`,
