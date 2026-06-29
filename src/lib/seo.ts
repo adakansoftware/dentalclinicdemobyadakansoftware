@@ -1,54 +1,10 @@
 import type { Metadata } from "next";
 import type { SiteSettings } from "@/types";
-import { headers } from "next/headers";
 import { getOptionalEnv } from "./env.ts";
 import { sanitizeAssetReference } from "./upload-assets.ts";
 import { getSocialImageMimeType, SOCIAL_IMAGE_HEIGHT, SOCIAL_IMAGE_PATH, SOCIAL_IMAGE_WIDTH } from "./social-preview.ts";
 
 const DEFAULT_SOCIAL_IMAGE = SOCIAL_IMAGE_PATH;
-
-function normalizeOrigin(origin: string) {
-  return origin.replace(/\/$/, "").toLowerCase();
-}
-
-function getAllowedBaseOrigins() {
-  const env = getOptionalEnv();
-  const origins = new Set<string>();
-
-  const rawOrigins = [
-    env.NEXT_PUBLIC_APP_URL,
-    env.NEXT_PUBLIC_SITE_URL,
-    env.NEXTAUTH_URL,
-    env.VERCEL_URL,
-    env.VERCEL_BRANCH_URL,
-    env.VERCEL_PROJECT_PRODUCTION_URL,
-  ];
-
-  for (const rawOrigin of rawOrigins) {
-    if (!rawOrigin) {
-      continue;
-    }
-
-    const normalized = rawOrigin.startsWith("http://") || rawOrigin.startsWith("https://")
-      ? rawOrigin
-      : `https://${rawOrigin}`;
-
-    try {
-      origins.add(normalizeOrigin(new URL(normalized).origin));
-    } catch {
-      // Ignore malformed optional env values and fall back safely.
-    }
-  }
-
-  if (process.env.NODE_ENV !== "production") {
-    origins.add("http://localhost:3000");
-    origins.add("http://127.0.0.1:3000");
-    origins.add("https://localhost:3000");
-    origins.add("https://127.0.0.1:3000");
-  }
-
-  return origins;
-}
 
 function getConfiguredBaseUrl(): URL {
   const env = getOptionalEnv();
@@ -64,37 +20,12 @@ function getConfiguredBaseUrl(): URL {
   return new URL(normalized);
 }
 
-function getBaseUrlFromRequestHeaders(headerStore: Headers): URL | null {
-  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
-  if (!host) {
-    return null;
-  }
-
-  const protocol =
-    headerStore.get("x-forwarded-proto") ??
-    (host.includes("localhost") || host.startsWith("127.0.0.1") ? "http" : "https");
-
-  try {
-    const candidate = new URL(`${protocol}://${host}`);
-    const allowedOrigins = getAllowedBaseOrigins();
-
-    if (allowedOrigins.size > 0 && !allowedOrigins.has(normalizeOrigin(candidate.origin))) {
-      return null;
-    }
-
-    return candidate;
-  } catch {
-    return null;
-  }
-}
-
 export function getBaseUrl(): URL {
   return getConfiguredBaseUrl();
 }
 
 export async function getRequestBaseUrl(): Promise<URL> {
-  const headerStore = await headers();
-  return getBaseUrlFromRequestHeaders(headerStore) ?? getConfiguredBaseUrl();
+  return getConfiguredBaseUrl();
 }
 
 export function absoluteUrl(path = "/", baseUrl = getBaseUrl()): string {
