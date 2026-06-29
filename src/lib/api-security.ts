@@ -63,6 +63,8 @@ export function getAllowedOrigins() {
     env.NEXT_PUBLIC_APP_URL,
     env.NEXT_PUBLIC_SITE_URL,
     env.NEXTAUTH_URL,
+    env.VERCEL_URL,
+    env.VERCEL_BRANCH_URL,
     env.VERCEL_PROJECT_PRODUCTION_URL,
   ];
 

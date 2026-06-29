@@ -28,6 +28,8 @@ const envSchema = z.object({
   NEXT_PUBLIC_APP_URL: optionalUrlString,
   NEXT_PUBLIC_SITE_URL: optionalUrlString,
   NEXTAUTH_URL: optionalUrlString,
+  VERCEL_URL: optionalTrimmedString,
+  VERCEL_BRANCH_URL: optionalTrimmedString,
   VERCEL_PROJECT_PRODUCTION_URL: optionalTrimmedString,
   NODE_ENV: z.enum(["development", "test", "production"]).optional(),
 });

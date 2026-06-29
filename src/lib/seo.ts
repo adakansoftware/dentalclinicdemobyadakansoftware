@@ -12,6 +12,8 @@ export function getBaseUrl(): URL {
     env.NEXT_PUBLIC_APP_URL ||
     env.NEXT_PUBLIC_SITE_URL ||
     env.NEXTAUTH_URL ||
+    env.VERCEL_URL ||
+    env.VERCEL_BRANCH_URL ||
     env.VERCEL_PROJECT_PRODUCTION_URL ||
     "http://localhost:3000";
   const normalized = raw.startsWith("http://") || raw.startsWith("https://") ? raw : `https://${raw}`;

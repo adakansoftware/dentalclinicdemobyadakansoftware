@@ -52,6 +52,8 @@ const allowedOrigins = Array.from(
     process.env.NEXT_PUBLIC_APP_URL,
     process.env.NEXT_PUBLIC_SITE_URL,
     process.env.NEXTAUTH_URL,
+    process.env.VERCEL_URL,
+    process.env.VERCEL_BRANCH_URL,
     process.env.VERCEL_PROJECT_PRODUCTION_URL,
   ]
     .filter(Boolean)
