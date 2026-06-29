@@ -1,7 +1,9 @@
 import type { MetadataRoute } from "next";
-import { absoluteUrl } from "@/lib/seo";
+import { absoluteUrl, getRequestBaseUrl } from "@/lib/seo";
 
-export default function robots(): MetadataRoute.Robots {
+export default async function robots(): Promise<MetadataRoute.Robots> {
+  const baseUrl = await getRequestBaseUrl();
+
   return {
     rules: [
       {
@@ -10,7 +12,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/admin", "/admin/*"],
       },
     ],
-    sitemap: absoluteUrl("/sitemap.xml"),
-    host: absoluteUrl("/"),
+    sitemap: absoluteUrl("/sitemap.xml", baseUrl),
+    host: absoluteUrl("/", baseUrl),
   };
 }

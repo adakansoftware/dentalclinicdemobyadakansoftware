@@ -7,6 +7,49 @@ import { SOCIAL_IMAGE_HEIGHT, SOCIAL_IMAGE_PATH, SOCIAL_IMAGE_WIDTH } from "./so
 
 const DEFAULT_SOCIAL_IMAGE = SOCIAL_IMAGE_PATH;
 
+function normalizeOrigin(origin: string) {
+  return origin.replace(/\/$/, "").toLowerCase();
+}
+
+function getAllowedBaseOrigins() {
+  const env = getOptionalEnv();
+  const origins = new Set<string>();
+
+  const rawOrigins = [
+    env.NEXT_PUBLIC_APP_URL,
+    env.NEXT_PUBLIC_SITE_URL,
+    env.NEXTAUTH_URL,
+    env.VERCEL_URL,
+    env.VERCEL_BRANCH_URL,
+    env.VERCEL_PROJECT_PRODUCTION_URL,
+  ];
+
+  for (const rawOrigin of rawOrigins) {
+    if (!rawOrigin) {
+      continue;
+    }
+
+    const normalized = rawOrigin.startsWith("http://") || rawOrigin.startsWith("https://")
+      ? rawOrigin
+      : `https://${rawOrigin}`;
+
+    try {
+      origins.add(normalizeOrigin(new URL(normalized).origin));
+    } catch {
+      // Ignore malformed optional env values and fall back safely.
+    }
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    origins.add("http://localhost:3000");
+    origins.add("http://127.0.0.1:3000");
+    origins.add("https://localhost:3000");
+    origins.add("https://127.0.0.1:3000");
+  }
+
+  return origins;
+}
+
 function getConfiguredBaseUrl(): URL {
   const env = getOptionalEnv();
   const raw =
@@ -32,7 +75,14 @@ function getBaseUrlFromRequestHeaders(headerStore: Headers): URL | null {
     (host.includes("localhost") || host.startsWith("127.0.0.1") ? "http" : "https");
 
   try {
-    return new URL(`${protocol}://${host}`);
+    const candidate = new URL(`${protocol}://${host}`);
+    const allowedOrigins = getAllowedBaseOrigins();
+
+    if (allowedOrigins.size > 0 && !allowedOrigins.has(normalizeOrigin(candidate.origin))) {
+      return null;
+    }
+
+    return candidate;
   } catch {
     return null;
   }

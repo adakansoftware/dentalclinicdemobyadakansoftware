@@ -1,9 +1,10 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/safe-query";
-import { absoluteUrl } from "@/lib/seo";
+import { absoluteUrl, getRequestBaseUrl } from "@/lib/seo";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const baseUrl = await getRequestBaseUrl();
   const [services, specialists] = await Promise.all([
     safeQuery(
       "sitemap services",
@@ -27,17 +28,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/services",
     "/specialists",
   ].map((path) => ({
-    url: absoluteUrl(path || "/"),
+    url: absoluteUrl(path || "/", baseUrl),
     lastModified: new Date(),
   }));
 
   const servicePages: MetadataRoute.Sitemap = services.map((service) => ({
-    url: absoluteUrl(`/services/${service.slug}`),
+    url: absoluteUrl(`/services/${service.slug}`, baseUrl),
     lastModified: service.updatedAt,
   }));
 
   const specialistPages: MetadataRoute.Sitemap = specialists.map((specialist) => ({
-    url: absoluteUrl(`/specialists/${specialist.slug}`),
+    url: absoluteUrl(`/specialists/${specialist.slug}`, baseUrl),
     lastModified: specialist.updatedAt,
   }));
 
