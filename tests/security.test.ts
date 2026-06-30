@@ -19,6 +19,17 @@ import {
 } from "../src/lib/security-core.ts";
 import { isAllowedAbsoluteAssetUrl, isAllowedLocalAssetPath, isValidAssetInput } from "../src/lib/upload-assets.ts";
 
+function setEnvValue(key: string, value: string | undefined) {
+  const env = process.env as Record<string, string | undefined>;
+
+  if (value === undefined) {
+    delete env[key];
+    return;
+  }
+
+  env[key] = value;
+}
+
 test("getClientIpFromHeadersSync prefers forwarded headers", () => {
   const headers = new Headers({
     "x-forwarded-for": "203.0.113.10, 10.0.0.2",
@@ -92,17 +103,13 @@ test("isAllowedBrowserOrigin rejects unrelated origins", () => {
 
 test("isAllowedBrowserOrigin rejects missing headers in production when required", () => {
   const previousEnv = process.env.NODE_ENV;
-  process.env.NODE_ENV = "production";
+  setEnvValue("NODE_ENV", "production");
 
   try {
     const headers = new Headers();
     assert.equal(isAllowedBrowserOrigin(headers, "https://example.com/api/slots", { requireHeaderInProduction: true }), false);
   } finally {
-    if (previousEnv === undefined) {
-      delete process.env.NODE_ENV;
-    } else {
-      process.env.NODE_ENV = previousEnv;
-    }
+    setEnvValue("NODE_ENV", previousEnv);
   }
 });
 
@@ -164,10 +171,10 @@ test("asset validators accept same-site absolute asset urls only", () => {
 });
 
 test("social metadata asset helpers keep canonical preview dimensions", () => {
-  assert.equal(SOCIAL_IMAGE_PATH, "/opengraph-image.png");
-  assert.equal(TWITTER_IMAGE_PATH, "/twitter-image.png");
-  assert.equal(SOCIAL_IMAGE_WIDTH, 2400);
-  assert.equal(SOCIAL_IMAGE_HEIGHT, 1260);
+  assert.equal(SOCIAL_IMAGE_PATH, "/images/hero.jpg");
+  assert.equal(TWITTER_IMAGE_PATH, "/images/hero.jpg");
+  assert.equal(SOCIAL_IMAGE_WIDTH, 1344);
+  assert.equal(SOCIAL_IMAGE_HEIGHT, 768);
 });
 
 test("toAbsoluteAssetUrl normalizes local social asset urls to canonical origin", () => {
@@ -175,8 +182,7 @@ test("toAbsoluteAssetUrl normalizes local social asset urls to canonical origin"
   process.env.NEXT_PUBLIC_APP_URL = "https://clinic.example";
 
   try {
-    assert.equal(toAbsoluteAssetUrl("/opengraph-image.png"), "https://clinic.example/opengraph-image.png");
-    assert.equal(toAbsoluteAssetUrl("/twitter-image.png"), "https://clinic.example/twitter-image.png");
+    assert.equal(toAbsoluteAssetUrl("/images/hero.jpg"), "https://clinic.example/images/hero.jpg");
     assert.equal(toAbsoluteAssetUrl("https://evil.example/og.png"), undefined);
   } finally {
     if (previousUrl === undefined) {

@@ -145,6 +145,16 @@ export interface ContactRequestData {
   createdAt: string;
 }
 
+export interface PublicAppointmentLookupItem {
+  id: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
+  serviceName: string;
+  specialistName: string;
+}
+
 export interface TimeSlot {
   startTime: string;
   endTime: string;

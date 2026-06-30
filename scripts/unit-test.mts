@@ -12,6 +12,7 @@ import {
 import { buildHealthSummary } from "../src/lib/health.ts";
 import { canTransitionAppointmentStatus, getAllowedAppointmentTransitions } from "../src/lib/appointment-state.ts";
 import { isStatusBlockingSlot, timesOverlap } from "../src/lib/appointment-conflicts.ts";
+import { BackendError, isBackendError } from "../src/lib/backend-errors.ts";
 import { getEnv, resetEnvCacheForTests } from "../src/lib/env.ts";
 import {
   buildRequestFingerprintFromHeaders,
@@ -157,6 +158,17 @@ run("appointment transition rules allow only supported status changes", () => {
   assert.equal(canTransitionAppointmentStatus("COMPLETED", "PENDING"), false);
 });
 
+run("BackendError helpers preserve typed backend error codes", () => {
+  const error = new BackendError("SLOT_UNAVAILABLE", "Slot is already booked", {
+    specialistId: "spec-1",
+  });
+
+  assert.equal(isBackendError(error), true);
+  assert.equal(isBackendError(error, "SLOT_UNAVAILABLE"), true);
+  assert.equal(isBackendError(error, "APPOINTMENT_NOT_FOUND"), false);
+  assert.equal(isBackendError(new Error("plain error")), false);
+});
+
 run("buildHealthSummary returns warn when configuration is incomplete", () => {
   const summary = buildHealthSummary({
     databaseOk: true,
@@ -291,10 +303,10 @@ run("getEnv accepts valid minimal configuration", () => {
 });
 
 run("social preview metadata constants stay aligned", () => {
-  assert.equal(SOCIAL_IMAGE_PATH, "/opengraph-image.png");
-  assert.equal(TWITTER_IMAGE_PATH, "/twitter-image.png");
-  assert.equal(SOCIAL_IMAGE_WIDTH, 2400);
-  assert.equal(SOCIAL_IMAGE_HEIGHT, 1260);
+  assert.equal(SOCIAL_IMAGE_PATH, "/images/hero.jpg");
+  assert.equal(TWITTER_IMAGE_PATH, "/images/hero.jpg");
+  assert.equal(SOCIAL_IMAGE_WIDTH, 1344);
+  assert.equal(SOCIAL_IMAGE_HEIGHT, 768);
 });
 
 run("sanitizeAssetReference rejects off-origin asset urls", () => {
@@ -307,10 +319,10 @@ run("sanitizeAssetReference rejects off-origin asset urls", () => {
       NODE_ENV: "development",
     },
     () => {
-      assert.equal(sanitizeAssetReference("/opengraph-image.png"), "/opengraph-image.png");
+      assert.equal(sanitizeAssetReference("/images/hero.jpg"), "/images/hero.jpg");
       assert.equal(
-        sanitizeAssetReference("https://clinic.example/twitter-image.png"),
-        "https://clinic.example/twitter-image.png"
+        sanitizeAssetReference("https://clinic.example/images/hero.jpg"),
+        "https://clinic.example/images/hero.jpg"
       );
       assert.equal(sanitizeAssetReference("https://evil.example/og.png"), "");
     }

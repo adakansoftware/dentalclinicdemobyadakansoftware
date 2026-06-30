@@ -1,106 +1,50 @@
 "use server";
 
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { hasConflictingActiveAppointment } from "@/lib/appointment-conflicts";
-import { canTransitionAppointmentStatus } from "@/lib/appointment-state";
-import { checkSlotAvailabilityWithDb, getAvailableSlots } from "@/lib/slots";
+import {
+  cancelAppointmentByPhoneRecord,
+  createAppointmentRecord,
+  lookupAppointmentsByPhoneRecord,
+  updateAppointmentStatusRecord,
+} from "@/lib/appointment-service";
+import { isBackendError } from "@/lib/backend-errors";
 import { verifyTurnstileToken } from "@/lib/bot-protection";
-import { getSiteSettings } from "@/lib/settings";
-import { sendSms, buildConfirmationMessage, buildCancellationMessage } from "@/lib/sms";
-import { dateOnlyToDbDate, dateToIsoDate, getTodayDateInTurkey, compareDateStrings, getUtcRangeForTurkeyDate } from "@/lib/date";
-import { enforceRateLimit, validateFormAge, validateHoneypot } from "@/lib/security";
+import { getTodayDateInTurkey, compareDateStrings, dateToIsoDate } from "@/lib/date";
 import { logEvent } from "@/lib/observability";
+import { enforceRateLimit, validateFormAge, validateHoneypot } from "@/lib/security";
+import { getSiteSettings } from "@/lib/settings";
+import { getAvailableSlots } from "@/lib/slots";
+import { buildCancellationMessage, buildConfirmationMessage, sendSms } from "@/lib/sms";
 import { revalidatePath } from "next/cache";
-import type { ActionResult, TimeSlot } from "@/types";
-
-const SLOT_UNAVAILABLE_ERROR = "SLOT_UNAVAILABLE_ERROR";
-const APPOINTMENT_CANCEL_CONFLICT = "APPOINTMENT_CANCEL_CONFLICT";
-const APPOINTMENT_STATUS_CONFLICT = "APPOINTMENT_STATUS_CONFLICT";
-
-function normalizePhoneForComparison(phone: string) {
-  return phone.replace(/\D/g, "");
-}
-
-function normalizeNameForComparison(name: string) {
-  return name
-    .toLocaleLowerCase("tr-TR")
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-async function getAppointmentIdsByNormalizedPhone(params: {
-  normalizedPhone: string;
-  startUtc: Date;
-  endUtc?: Date;
-  activeOnly?: boolean;
-  limit: number;
-}) {
-  const rows = params.activeOnly && params.endUtc
-    ? await prisma.$queryRaw<Array<{ id: string }>>`
-        SELECT id
-        FROM "Appointment"
-        WHERE "date" >= ${params.startUtc}
-          AND "date" <= ${params.endUtc}
-          AND "status" IN ('PENDING', 'CONFIRMED')
-          AND regexp_replace("patientPhone", '\D', '', 'g') = ${params.normalizedPhone}
-        ORDER BY "date" ASC, "startTime" ASC
-        LIMIT ${params.limit}
-      `
-    : await prisma.$queryRaw<Array<{ id: string }>>`
-        SELECT id
-        FROM "Appointment"
-        WHERE "date" >= ${params.startUtc}
-          AND regexp_replace("patientPhone", '\D', '', 'g') = ${params.normalizedPhone}
-        ORDER BY "date" ASC, "startTime" ASC
-        LIMIT ${params.limit}
-      `;
-
-  return rows.map((row) => row.id);
-}
-
-interface PublicAppointmentLookupItem {
-  id: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  status: "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
-  serviceName: string;
-  specialistName: string;
-}
+import type { ActionResult, PublicAppointmentLookupItem, TimeSlot } from "@/types";
 
 const createAppointmentSchema = z
   .object({
-    serviceId: z.string().min(1, "Hizmet seçimi gerekli"),
-    specialistId: z.string().min(1, "Uzman seçimi gerekli"),
-    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Geçerli tarih girin"),
-    startTime: z.string().regex(/^\d{2}:\d{2}$/, "Geçerli saat girin"),
-    endTime: z.string().regex(/^\d{2}:\d{2}$/, "Geçerli bitiş saati girin"),
-    patientName: z.string().trim().min(2, "Ad soyad en az 2 karakter olmalı").max(120),
-    patientPhone: z.string().trim().min(10, "Geçerli telefon numarası girin").max(30).regex(/^[\d\s\+\-\(\)]+$/),
+    serviceId: z.string().min(1, "Hizmet secimi gerekli"),
+    specialistId: z.string().min(1, "Uzman secimi gerekli"),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Gecerli tarih girin"),
+    startTime: z.string().regex(/^\d{2}:\d{2}$/, "Gecerli saat girin"),
+    endTime: z.string().regex(/^\d{2}:\d{2}$/, "Gecerli bitis saati girin"),
+    patientName: z.string().trim().min(2, "Ad soyad en az 2 karakter olmali").max(120),
+    patientPhone: z.string().trim().min(10, "Gecerli telefon numarasi girin").max(30).regex(/^[\d\s\+\-\(\)]+$/),
     patientEmail: z.string().trim().email().or(z.literal("")),
     patientNote: z.string().trim().max(500).optional(),
     patientLanguage: z.enum(["TR", "EN"]).default("TR"),
   })
   .refine((data) => data.startTime < data.endTime, {
-    message: "Bitiş saati başlangıç saatinden sonra olmalı",
+    message: "Bitis saati baslangic saatinden sonra olmali",
     path: ["endTime"],
   });
 
-export async function createAppointmentAction(
-  _prev: ActionResult,
-  formData: FormData
-): Promise<ActionResult> {
+export async function createAppointmentAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
   if (!validateHoneypot(formData) || !validateFormAge(formData)) {
-    return { success: false, error: "İstek doğrulanamadı. Lütfen formu tekrar gönderin." };
+    return { success: false, error: "Istek dogrulanamadi. Lutfen formu tekrar gonderin." };
   }
 
   const turnstileValid = await verifyTurnstileToken(formData.get("cf-turnstile-response"));
   if (!turnstileValid) {
-    return { success: false, error: "Bot doğrulaması başarısız oldu. Lütfen tekrar deneyin." };
+    return { success: false, error: "Bot dogrulamasi basarisiz oldu. Lutfen tekrar deneyin." };
   }
 
   const allowed = await enforceRateLimit({
@@ -110,7 +54,7 @@ export async function createAppointmentAction(
   });
 
   if (!allowed) {
-    return { success: false, error: "Çok fazla deneme yapıldı. Lütfen biraz sonra tekrar deneyin." };
+    return { success: false, error: "Cok fazla deneme yapildi. Lutfen biraz sonra tekrar deneyin." };
   }
 
   const parsed = createAppointmentSchema.safeParse({
@@ -135,35 +79,22 @@ export async function createAppointmentAction(
   if (compareDateStrings(date, getTodayDateInTurkey()) < 0) {
     return {
       success: false,
-      error: patientLanguage === "EN" ? "Please choose a future date." : "Lütfen ileri bir tarih seçin.",
+      error: patientLanguage === "EN" ? "Please choose a future date." : "Lutfen ileri bir tarih secin.",
     };
   }
 
   try {
-    const appointment = await prisma.$transaction(async (tx) => {
-      const lockKey = `appointment:${specialistId}:${date}:${startTime}:${endTime}`;
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;
-
-      const available = await checkSlotAvailabilityWithDb(tx, specialistId, date, startTime, endTime);
-      if (!available) {
-        throw new Error(SLOT_UNAVAILABLE_ERROR);
-      }
-
-      return tx.appointment.create({
-        data: {
-          serviceId,
-          specialistId,
-          date: dateOnlyToDbDate(date),
-          startTime,
-          endTime,
-          patientName: parsed.data.patientName,
-          patientPhone: parsed.data.patientPhone,
-          patientEmail: parsed.data.patientEmail ?? "",
-          patientNote: parsed.data.patientNote ?? "",
-          patientLanguage: parsed.data.patientLanguage,
-          status: "PENDING",
-        },
-      });
+    const appointment = await createAppointmentRecord({
+      serviceId,
+      specialistId,
+      date,
+      startTime,
+      endTime,
+      patientName: parsed.data.patientName,
+      patientPhone: parsed.data.patientPhone,
+      patientEmail: parsed.data.patientEmail ?? "",
+      patientNote: parsed.data.patientNote ?? "",
+      patientLanguage: parsed.data.patientLanguage,
     });
 
     void (async () => {
@@ -203,13 +134,13 @@ export async function createAppointmentAction(
 
     return { success: true, data: { id: appointment.id } };
   } catch (error) {
-    if (error instanceof Error && error.message === SLOT_UNAVAILABLE_ERROR) {
+    if (isBackendError(error, "SLOT_UNAVAILABLE")) {
       return {
         success: false,
         error:
           patientLanguage === "EN"
             ? "This time slot is no longer available. Please choose another time."
-            : "Bu zaman dilimi artık uygun değil. Lütfen başka bir saat seçin.",
+            : "Bu zaman dilimi artik uygun degil. Lutfen baska bir saat secin.",
       };
     }
 
@@ -230,7 +161,7 @@ export async function createAppointmentAction(
 
     return {
       success: false,
-      error: patientLanguage === "EN" ? "An unexpected error occurred." : "Beklenmeyen bir hata oluştu.",
+      error: patientLanguage === "EN" ? "An unexpected error occurred." : "Beklenmeyen bir hata olustu.",
     };
   }
 }
@@ -241,10 +172,7 @@ const updateStatusSchema = z.object({
   adminNote: z.string().max(1000).optional(),
 });
 
-export async function updateAppointmentStatusAction(
-  _prev: ActionResult,
-  formData: FormData
-): Promise<ActionResult> {
+export async function updateAppointmentStatusAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
   await requireAdmin();
 
   const parsed = updateStatusSchema.safeParse({
@@ -257,105 +185,70 @@ export async function updateAppointmentStatusAction(
     return { success: false, error: parsed.error.errors[0]?.message ?? "Hata" };
   }
 
-  const appointment = await prisma.appointment.findUnique({
-    where: { id: parsed.data.id },
-    include: { service: true, specialist: true },
-  });
-
-  if (!appointment) {
-    return { success: false, error: "Randevu bulunamadı" };
-  }
-
-  if (!canTransitionAppointmentStatus(appointment.status, parsed.data.status)) {
-    return {
-      success: false,
-      error: "Bu randevu durumu için seçilen geçiş desteklenmiyor.",
-    };
-  }
-
   try {
-    await prisma.$transaction(async (tx) => {
-      const nextStatus = parsed.data.status;
-
-      if (nextStatus === "PENDING" || nextStatus === "CONFIRMED") {
-        const date = dateToIsoDate(appointment.date);
-        const lockKey = `appointment:${appointment.specialistId}:${date}:${appointment.startTime}:${appointment.endTime}`;
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;
-
-        const hasConflict = await hasConflictingActiveAppointment(tx, {
-          specialistId: appointment.specialistId,
-          date,
-          startTime: appointment.startTime,
-          endTime: appointment.endTime,
-          excludeAppointmentId: appointment.id,
-        });
-
-        if (hasConflict) {
-          throw new Error(APPOINTMENT_STATUS_CONFLICT);
-        }
-      }
-
-      await tx.appointment.update({
-        where: { id: parsed.data.id },
-        data: {
-          status: parsed.data.status,
-          adminNote: parsed.data.adminNote ?? appointment.adminNote,
-        },
-      });
+    const { previousAppointment, updatedAppointment } = await updateAppointmentStatusRecord({
+      id: parsed.data.id,
+      status: parsed.data.status,
+      adminNote: parsed.data.adminNote ?? "",
     });
+
+    if (updatedAppointment.status === "CANCELLED" && previousAppointment.status !== "CANCELLED") {
+      void (async () => {
+        try {
+          const settings = await getSiteSettings();
+          const dateStr = dateToIsoDate(previousAppointment.date);
+          const message = buildCancellationMessage(
+            previousAppointment.patientLanguage,
+            previousAppointment.patientName,
+            dateStr,
+            previousAppointment.startTime,
+            settings.clinicName,
+            settings.phone
+          );
+          await sendSms({
+            phone: previousAppointment.patientPhone,
+            message,
+            appointmentId: previousAppointment.id,
+            type: "CANCELLATION",
+          });
+        } catch {
+          // SMS failures should not block the admin flow.
+        }
+      })();
+    }
+
+    logEvent({
+      event: "appointment_status_updated",
+      route: "action:updateAppointmentStatus",
+      meta: {
+        appointmentId: parsed.data.id,
+        previousStatus: previousAppointment.status,
+        nextStatus: updatedAppointment.status,
+      },
+    });
+
+    revalidatePath("/admin/appointments");
+    return { success: true };
   } catch (error) {
-    if (error instanceof Error && error.message === APPOINTMENT_STATUS_CONFLICT) {
+    if (isBackendError(error, "APPOINTMENT_NOT_FOUND")) {
+      return { success: false, error: "Randevu bulunamadi" };
+    }
+
+    if (isBackendError(error, "APPOINTMENT_STATUS_CONFLICT")) {
       return {
         success: false,
-        error: "Bu uzman icin ayni tarih ve saatte baska aktif bir randevu zaten bulunuyor.",
+        error:
+          parsed.data.status === "PENDING" || parsed.data.status === "CONFIRMED"
+            ? "Bu uzman icin ayni tarih ve saatte baska aktif bir randevu zaten bulunuyor."
+            : "Bu randevu durumu icin secilen gecis desteklenmiyor.",
       };
     }
 
     throw error;
   }
-  if (parsed.data.status === "CANCELLED" && appointment.status !== "CANCELLED") {
-    void (async () => {
-      try {
-        const settings = await getSiteSettings();
-        const dateStr = dateToIsoDate(appointment.date);
-        const message = buildCancellationMessage(
-          appointment.patientLanguage,
-          appointment.patientName,
-          dateStr,
-          appointment.startTime,
-          settings.clinicName,
-          settings.phone
-        );
-        await sendSms({
-          phone: appointment.patientPhone,
-          message,
-          appointmentId: appointment.id,
-          type: "CANCELLATION",
-        });
-      } catch {
-        // SMS failures should not block the admin flow.
-      }
-    })();
-  }
-
-  logEvent({
-    event: "appointment_status_updated",
-    route: "action:updateAppointmentStatus",
-    meta: {
-      appointmentId: parsed.data.id,
-      previousStatus: appointment.status,
-      nextStatus: parsed.data.status,
-    },
-  });
-
-  revalidatePath("/admin/appointments");
-  return { success: true };
 }
 
-export async function getAvailableSlotsAction(
-  specialistId: string,
-  date: string
-): Promise<TimeSlot[]> {
+export async function getAvailableSlotsAction(specialistId: string, date: string): Promise<TimeSlot[]> {
   const allowed = await enforceRateLimit({
     scope: "slots-action",
     limit: 24,
@@ -371,9 +264,9 @@ export async function getAvailableSlotsAction(
 }
 
 const cancelAppointmentSchema = z.object({
-  patientName: z.string().trim().min(2, "Ad soyad en az 2 karakter olmalı").max(120),
-  patientPhone: z.string().trim().min(10, "Geçerli telefon numarası girin").max(30).regex(/^[\d\s\+\-\(\)]+$/),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Geçerli tarih girin"),
+  patientName: z.string().trim().min(2, "Ad soyad en az 2 karakter olmali").max(120),
+  patientPhone: z.string().trim().min(10, "Gecerli telefon numarasi girin").max(30).regex(/^[\d\s\+\-\(\)]+$/),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Gecerli tarih girin"),
   patientLanguage: z.enum(["TR", "EN"]).default("TR"),
 });
 
@@ -382,12 +275,12 @@ export async function cancelAppointmentByPhoneAction(
   formData: FormData
 ): Promise<ActionResult<{ cancelledId: string }>> {
   if (!validateHoneypot(formData) || !validateFormAge(formData)) {
-    return { success: false, error: "İstek doğrulanamadı. Lütfen formu tekrar gönderin." };
+    return { success: false, error: "Istek dogrulanamadi. Lutfen formu tekrar gonderin." };
   }
 
   const turnstileValid = await verifyTurnstileToken(formData.get("cf-turnstile-response"));
   if (!turnstileValid) {
-    return { success: false, error: "Bot doğrulaması başarısız oldu. Lütfen tekrar deneyin." };
+    return { success: false, error: "Bot dogrulamasi basarisiz oldu. Lutfen tekrar deneyin." };
   }
 
   const allowed = await enforceRateLimit({
@@ -397,7 +290,7 @@ export async function cancelAppointmentByPhoneAction(
   });
 
   if (!allowed) {
-    return { success: false, error: "Çok fazla iptal denemesi yapıldı. Lütfen biraz sonra tekrar deneyin." };
+    return { success: false, error: "Cok fazla iptal denemesi yapildi. Lutfen biraz sonra tekrar deneyin." };
   }
 
   const parsed = cancelAppointmentSchema.safeParse({
@@ -416,62 +309,26 @@ export async function cancelAppointmentByPhoneAction(
   if (compareDateStrings(date, getTodayDateInTurkey()) < 0) {
     return {
       success: false,
-      error: patientLanguage === "EN" ? "Please enter today or a future date." : "Lütfen bugün veya ileri bir tarih girin.",
+      error: patientLanguage === "EN" ? "Please enter today or a future date." : "Lutfen bugun veya ileri bir tarih girin.",
     };
   }
 
-  const normalizedPhone = normalizePhoneForComparison(patientPhone);
-  const normalizedName = normalizeNameForComparison(patientName);
-  const { startUtc, endUtc } = getUtcRangeForTurkeyDate(date);
-
   try {
-    const matchingIds = await getAppointmentIdsByNormalizedPhone({
-      normalizedPhone,
-      startUtc,
-      endUtc,
-      activeOnly: true,
-      limit: 20,
+    const appointment = await cancelAppointmentByPhoneRecord({
+      patientName,
+      patientPhone,
+      date,
     });
 
-    const activeAppointments = matchingIds.length
-      ? await prisma.appointment.findMany({
-          where: {
-            id: {
-              in: matchingIds,
-            },
-          },
-          orderBy: {
-            startTime: "asc",
-          },
-        })
-      : [];
-
-    const matchingAppointments = activeAppointments.filter(
-      (appointment) =>
-        normalizePhoneForComparison(appointment.patientPhone) === normalizedPhone &&
-        normalizeNameForComparison(appointment.patientName) === normalizedName
-    );
-
-    if (matchingAppointments.length === 0) {
+    if (!appointment) {
       return {
         success: false,
         error:
           patientLanguage === "EN"
             ? "No active appointment was found for this phone number on the selected date."
-            : "Seçilen tarihte bu telefon numarasına ait aktif bir randevu bulunamadı.",
+            : "Secilen tarihte bu telefon numarasina ait aktif bir randevu bulunamadi.",
       };
     }
-
-    if (matchingAppointments.length > 1) {
-      throw new Error(APPOINTMENT_CANCEL_CONFLICT);
-    }
-
-    const appointment = matchingAppointments[0];
-
-    await prisma.appointment.update({
-      where: { id: appointment.id },
-      data: { status: "CANCELLED" },
-    });
 
     void (async () => {
       try {
@@ -517,13 +374,13 @@ export async function cancelAppointmentByPhoneAction(
           : `${date} tarihindeki ${appointment.startTime} randevunuz iptal edildi.`,
     };
   } catch (error) {
-    if (error instanceof Error && error.message === APPOINTMENT_CANCEL_CONFLICT) {
+    if (isBackendError(error, "APPOINTMENT_CANCEL_CONFLICT")) {
       return {
         success: false,
         error:
           patientLanguage === "EN"
             ? "Multiple appointments were found for that phone number on the selected date. Please contact the clinic."
-            : "Seçilen tarihte bu numaraya ait birden fazla randevu bulundu. Lütfen klinikle iletişime geçin.",
+            : "Secilen tarihte bu numaraya ait birden fazla randevu bulundu. Lutfen klinikle iletisime gecin.",
       };
     }
 
@@ -540,14 +397,14 @@ export async function cancelAppointmentByPhoneAction(
 
     return {
       success: false,
-      error: patientLanguage === "EN" ? "An unexpected error occurred." : "Beklenmeyen bir hata oluştu.",
+      error: patientLanguage === "EN" ? "An unexpected error occurred." : "Beklenmeyen bir hata olustu.",
     };
   }
 }
 
 const lookupAppointmentsSchema = z.object({
-  patientName: z.string().trim().min(2, "Ad soyad en az 2 karakter olmalı").max(120),
-  patientPhone: z.string().trim().min(10, "Geçerli telefon numarası girin").max(30).regex(/^[\d\s\+\-\(\)]+$/),
+  patientName: z.string().trim().min(2, "Ad soyad en az 2 karakter olmali").max(120),
+  patientPhone: z.string().trim().min(10, "Gecerli telefon numarasi girin").max(30).regex(/^[\d\s\+\-\(\)]+$/),
   patientLanguage: z.enum(["TR", "EN"]).default("TR"),
 });
 
@@ -556,12 +413,12 @@ export async function lookupAppointmentsByPhoneAction(
   formData: FormData
 ): Promise<ActionResult<PublicAppointmentLookupItem[]>> {
   if (!validateHoneypot(formData) || !validateFormAge(formData)) {
-    return { success: false, error: "İstek doğrulanamadı. Lütfen formu tekrar gönderin." };
+    return { success: false, error: "Istek dogrulanamadi. Lutfen formu tekrar gonderin." };
   }
 
   const turnstileValid = await verifyTurnstileToken(formData.get("cf-turnstile-response"));
   if (!turnstileValid) {
-    return { success: false, error: "Bot doğrulaması başarısız oldu. Lütfen tekrar deneyin." };
+    return { success: false, error: "Bot dogrulamasi basarisiz oldu. Lutfen tekrar deneyin." };
   }
 
   const allowed = await enforceRateLimit({
@@ -571,7 +428,7 @@ export async function lookupAppointmentsByPhoneAction(
   });
 
   if (!allowed) {
-    return { success: false, error: "Çok fazla sorgu yapıldı. Lütfen biraz sonra tekrar deneyin." };
+    return { success: false, error: "Cok fazla sorgu yapildi. Lutfen biraz sonra tekrar deneyin." };
   }
 
   const parsed = lookupAppointmentsSchema.safeParse({
@@ -585,58 +442,15 @@ export async function lookupAppointmentsByPhoneAction(
   }
 
   const { patientName, patientPhone, patientLanguage } = parsed.data;
-  const normalizedPhone = normalizePhoneForComparison(patientPhone);
-  const normalizedName = normalizeNameForComparison(patientName);
   const today = getTodayDateInTurkey();
-  const { startUtc } = getUtcRangeForTurkeyDate(today);
 
   try {
-    const matchingIds = await getAppointmentIdsByNormalizedPhone({
-      normalizedPhone,
-      startUtc,
-      limit: 50,
+    const matches = await lookupAppointmentsByPhoneRecord({
+      patientName,
+      patientPhone,
+      patientLanguage,
+      fromDate: today,
     });
-
-    const appointments = matchingIds.length
-      ? await prisma.appointment.findMany({
-          where: {
-            id: {
-              in: matchingIds,
-            },
-          },
-          include: {
-            service: {
-              select: {
-                nameTr: true,
-                nameEn: true,
-              },
-            },
-            specialist: {
-              select: {
-                nameTr: true,
-                nameEn: true,
-              },
-            },
-          },
-          orderBy: [{ date: "asc" }, { startTime: "asc" }],
-        })
-      : [];
-
-    const matches = appointments
-      .filter(
-        (appointment) =>
-          normalizePhoneForComparison(appointment.patientPhone) === normalizedPhone &&
-          normalizeNameForComparison(appointment.patientName) === normalizedName
-      )
-      .map((appointment) => ({
-        id: appointment.id,
-        date: dateToIsoDate(appointment.date),
-        startTime: appointment.startTime,
-        endTime: appointment.endTime,
-        status: appointment.status,
-        serviceName: patientLanguage === "EN" ? appointment.service.nameEn : appointment.service.nameTr,
-        specialistName: patientLanguage === "EN" ? appointment.specialist.nameEn : appointment.specialist.nameTr,
-      }));
 
     if (matches.length === 0) {
       return {
@@ -644,7 +458,7 @@ export async function lookupAppointmentsByPhoneAction(
         error:
           patientLanguage === "EN"
             ? "No upcoming appointments were found for this phone number."
-            : "Bu telefon numarasına ait yaklaşan bir randevu bulunamadı.",
+            : "Bu telefon numarasina ait yaklasan bir randevu bulunamadi.",
       };
     }
 
@@ -678,7 +492,7 @@ export async function lookupAppointmentsByPhoneAction(
 
     return {
       success: false,
-      error: patientLanguage === "EN" ? "An unexpected error occurred." : "Beklenmeyen bir hata oluştu.",
+      error: patientLanguage === "EN" ? "An unexpected error occurred." : "Beklenmeyen bir hata olustu.",
     };
   }
 }
