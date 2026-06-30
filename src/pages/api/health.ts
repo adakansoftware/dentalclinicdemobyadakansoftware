@@ -4,6 +4,7 @@ import { getEnvIssues, getOptionalEnv } from "@/lib/env";
 import { getDurationMs, logEvent } from "@/lib/observability";
 import { buildApiHeaders, getBearerTokenFromHeaders, secureCompare } from "@/lib/api-security";
 import { buildHealthSummary } from "@/lib/health";
+import { getResilienceSnapshot } from "@/lib/resilience";
 
 function buildRequestId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -78,6 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const cronConfigured = Boolean(env.CRON_SECRET);
     const smsEnabled = env.SMS_ENABLED === "true";
     const dbHardeningConfigured = hardeningRows.length > 0;
+    const resilience = getResilienceSnapshot();
     const summary = buildHealthSummary({
       databaseOk: true,
       envIssues,
@@ -101,6 +103,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         turnstileConfigured,
         cronConfigured,
         dbHardeningConfigured,
+        openCircuitCount: Object.values(resilience.circuits).filter((c) => c.isOpen).length,
         healthStatus: summary.status,
       },
     });
@@ -120,6 +123,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       appUrlConfigured: hasCanonicalUrl,
       turnstileConfigured,
       cronConfigured,
+      resilience,
       environment: process.env.NODE_ENV ?? "development",
       requestId,
       responseTimeMs: durationMs,

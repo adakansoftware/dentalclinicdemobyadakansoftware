@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { buildApiHeaders, getRequestIdFromHeaders, secureCompare } from "@/lib/api-security";
+import { buildIpRateLimitKeyFromHeaders } from "@/lib/security-core";
+import { recordSuspiciousActivity } from "@/lib/attack-monitor";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettings } from "@/lib/settings";
 import { buildReminderMessage, sendSms } from "@/lib/sms";
@@ -37,6 +39,7 @@ export async function GET(request: Request) {
   const isAuthorized = secureCompare(cronSecret, bearerToken);
 
   if (!isAuthorized) {
+    recordSuspiciousActivity(buildIpRateLimitKeyFromHeaders(request.headers), 4);
     logEvent({
       level: "warn",
       event: "cron_reminders_unauthorized",

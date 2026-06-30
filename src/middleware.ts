@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { buildIpRateLimitKeyFromHeaders, getRateLimitDecisionByKey } from "@/lib/security";
+import { getSuspicionDecision, recordSuspiciousActivity } from "@/lib/attack-monitor";
 
 function buildRequestId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -92,11 +93,29 @@ function isSensitiveRequest(request: NextRequest) {
 }
 
 export function middleware(request: NextRequest) {
+  const clientKey = buildIpRateLimitKeyFromHeaders(request.headers);
+
+  const suspicionDecision = getSuspicionDecision(clientKey);
+  if (suspicionDecision.blocked) {
+    return NextResponse.json(
+      { error: "Temporarily blocked" },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(suspicionDecision.retryAfterSec),
+          "Cache-Control": "no-store",
+        },
+      }
+    );
+  }
+
   if (request.method === "TRACE" || request.method === "TRACK") {
+    recordSuspiciousActivity(clientKey, 3);
     return new NextResponse(null, { status: 405 });
   }
 
   if (request.url.length > 2048 || request.nextUrl.pathname.length > 256 || request.nextUrl.search.length > 1024) {
+    recordSuspiciousActivity(clientKey, 2);
     return NextResponse.json({ error: "Request too large" }, { status: 414 });
   }
 
@@ -111,6 +130,7 @@ export function middleware(request: NextRequest) {
   const userAgent = request.headers.get("user-agent")?.trim() ?? "";
 
   if (isSensitiveRequest(request) && userAgent.length < 8) {
+    recordSuspiciousActivity(clientKey, 2);
     return NextResponse.json(
       { error: "Suspicious request rejected" },
       {
@@ -124,11 +144,11 @@ export function middleware(request: NextRequest) {
   }
 
   if (!isStaticAsset) {
-    const clientKey = buildIpRateLimitKeyFromHeaders(request.headers);
     const policy = getRateLimitPolicy(request);
     const decision = getRateLimitDecisionByKey(policy, clientKey);
 
     if (!decision.allowed) {
+      recordSuspiciousActivity(clientKey, 1);
       return NextResponse.json(
         { error: "Too many requests" },
         {
@@ -173,6 +193,10 @@ export function middleware(request: NextRequest) {
 
   if (!isStaticAsset) {
     response.headers.set("Content-Security-Policy", buildCsp(request));
+  }
+
+  if (!isStaticAsset && isSensitiveRequest(request)) {
+    response.headers.set("X-App-Shield", "active");
   }
 
   return response;

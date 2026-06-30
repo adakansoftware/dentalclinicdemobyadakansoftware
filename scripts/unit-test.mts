@@ -13,6 +13,7 @@ import { buildHealthSummary } from "../src/lib/health.ts";
 import { canTransitionAppointmentStatus, getAllowedAppointmentTransitions } from "../src/lib/appointment-state.ts";
 import { isStatusBlockingSlot, timesOverlap } from "../src/lib/appointment-conflicts.ts";
 import { BackendError, isBackendError } from "../src/lib/backend-errors.ts";
+import { clearSuspicion, getSuspicionDecision, recordSuspiciousActivity } from "../src/lib/attack-monitor.ts";
 import { getEnv, resetEnvCacheForTests } from "../src/lib/env.ts";
 import {
   buildRequestFingerprintFromHeaders,
@@ -23,7 +24,7 @@ import {
   validateHoneypot,
 } from "../src/lib/security-core.ts";
 import { getDurationMs } from "../src/lib/observability.ts";
-import { ResilienceError, runWithCircuitBreaker, runWithConcurrencyLimit, runWithTimeout } from "../src/lib/resilience.ts";
+import { ResilienceError, getResilienceSnapshot, runWithCircuitBreaker, runWithConcurrencyLimit, runWithTimeout } from "../src/lib/resilience.ts";
 import { SOCIAL_IMAGE_HEIGHT, SOCIAL_IMAGE_PATH, SOCIAL_IMAGE_WIDTH, TWITTER_IMAGE_PATH } from "../src/lib/social-preview.ts";
 import { sanitizeAssetReference } from "../src/lib/upload-assets.ts";
 
@@ -270,6 +271,33 @@ await run("runWithCircuitBreaker opens after repeated failures", async () => {
     () => runWithCircuitBreaker("unit-circuit", { failureThreshold: 1, cooldownMs: 60_000 }, async () => true),
     (error: unknown) => error instanceof ResilienceError && error.code === "CIRCUIT_OPEN"
   );
+});
+
+await run("attack monitor temporarily blocks repeated suspicious clients", () => {
+  const key = `suspicious-${Date.now()}`;
+  clearSuspicion(key);
+  recordSuspiciousActivity(key, 3);
+  const decision = getSuspicionDecision(key);
+  assert.equal(decision.blocked, false);
+  recordSuspiciousActivity(key, 3);
+  const blocked = getSuspicionDecision(key);
+  assert.equal(blocked.blocked, true);
+  assert.equal(blocked.retryAfterSec > 0, true);
+});
+
+await run("resilience snapshot exposes circuit state", async () => {
+  const scope = `snapshot-circuit-${Date.now()}`;
+  await assert.rejects(
+    () =>
+      runWithCircuitBreaker(scope, { failureThreshold: 1, cooldownMs: 60_000 }, async () => {
+        throw new Error("boom");
+      }),
+    /boom/
+  );
+
+  const snapshot = getResilienceSnapshot();
+  assert.equal(Boolean(snapshot.circuits[scope]), true);
+  assert.equal(snapshot.circuits[scope]?.isOpen, true);
 });
 
 await run("getEnv rejects SMS_ENABLED without provider credentials", () => {

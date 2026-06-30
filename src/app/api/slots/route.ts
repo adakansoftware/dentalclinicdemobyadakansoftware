@@ -4,6 +4,8 @@ import { getAvailableSlotsWithMeta } from "@/lib/slots";
 import { buildApiHeaders, getRequestIdFromHeaders, isAllowedBrowserOrigin } from "@/lib/api-security";
 import { compareDateStrings, getTodayDateInTurkey } from "@/lib/date";
 import { buildRequestFingerprintFromHeaders, getRateLimitDecisionByKey } from "@/lib/security";
+import { buildIpRateLimitKeyFromHeaders } from "@/lib/security-core";
+import { recordSuspiciousActivity } from "@/lib/attack-monitor";
 import { getDurationMs, logEvent } from "@/lib/observability";
 import { ResilienceError, runWithCircuitBreaker, runWithConcurrencyLimit, runWithTimeout } from "@/lib/resilience";
 import { methodNotAllowed } from "@/lib/route-methods";
@@ -20,6 +22,7 @@ export async function GET(request: Request) {
   const startedAt = Date.now();
 
   if (!isAllowedBrowserOrigin(request.headers, request.url, { requireHeaderInProduction: true })) {
+    recordSuspiciousActivity(buildIpRateLimitKeyFromHeaders(request.headers), 2);
     logEvent({
       level: "warn",
       event: "slots_origin_rejected",
@@ -47,6 +50,7 @@ export async function GET(request: Request) {
   });
 
   if (!parsed.success) {
+    recordSuspiciousActivity(buildIpRateLimitKeyFromHeaders(request.headers), 1);
     logEvent({
       level: "warn",
       event: "slots_validation_failed",
@@ -101,6 +105,7 @@ export async function GET(request: Request) {
   );
 
   if (!decision.allowed) {
+    recordSuspiciousActivity(buildIpRateLimitKeyFromHeaders(request.headers), 1);
     logEvent({
       level: "warn",
       event: "slots_rate_limited",

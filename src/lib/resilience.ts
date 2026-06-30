@@ -99,3 +99,20 @@ export async function runWithCircuitBreaker<T>(
     throw error;
   }
 }
+
+export function getResilienceSnapshot() {
+  return {
+    concurrency: Object.fromEntries(concurrencyStore.entries()),
+    circuits: Object.fromEntries(
+      [...circuitStore.entries()].map(([scope, value]) => [
+        scope,
+        {
+          failures: value.failures,
+          isOpen: Boolean(value.openedAt),
+          openedAt: value.openedAt,
+          halfOpenInFlight: value.halfOpenInFlight,
+        },
+      ])
+    ),
+  };
+}
