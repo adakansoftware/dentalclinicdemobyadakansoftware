@@ -1,5 +1,8 @@
 const globalStore = globalThis as typeof globalThis & {
-  __adakanRateLimitStore?: Map<string, { attempts: number[]; lastSeen: number }>;
+  __adakanRateLimitStore?: Map<
+    string,
+    { attempts: number[]; lastSeen: number; blockedUntil?: number; strikeCount: number }
+  >;
   __adakanRateLimitCleanupCounter?: number;
 };
 
@@ -7,7 +10,8 @@ const RATE_LIMIT_ENTRY_TTL_MS = 24 * 60 * 60 * 1000;
 const RATE_LIMIT_MAX_KEYS = 5000;
 
 const rateLimitStore =
-  globalStore.__adakanRateLimitStore ?? new Map<string, { attempts: number[]; lastSeen: number }>();
+  globalStore.__adakanRateLimitStore ??
+  new Map<string, { attempts: number[]; lastSeen: number; blockedUntil?: number; strikeCount: number }>();
 globalStore.__adakanRateLimitStore = rateLimitStore;
 globalStore.__adakanRateLimitCleanupCounter ??= 0;
 
@@ -16,6 +20,12 @@ export interface RateLimitOptions {
   limit: number;
   windowMs: number;
   keySuffix?: string;
+}
+
+export interface RateLimitDecision {
+  allowed: boolean;
+  blocked: boolean;
+  retryAfterSec: number;
 }
 
 export function buildRequestFingerprintFromHeaders(headerStore: Headers): string {
@@ -106,7 +116,12 @@ function cleanupRateLimitStore(now: number) {
     }
 
     if (attempts.length !== entry.attempts.length) {
-      rateLimitStore.set(key, { attempts, lastSeen: entry.lastSeen });
+      rateLimitStore.set(key, {
+        attempts,
+        lastSeen: entry.lastSeen,
+        blockedUntil: entry.blockedUntil,
+        strikeCount: entry.strikeCount,
+      });
     }
   }
 
@@ -123,23 +138,57 @@ function cleanupRateLimitStore(now: number) {
   }
 }
 
-export function enforceRateLimitByKey(options: RateLimitOptions, keySuffix: string): boolean {
+export function getRateLimitDecisionByKey(options: RateLimitOptions, keySuffix: string): RateLimitDecision {
   const key = `${options.scope}:${options.keySuffix ?? keySuffix}`;
   const now = Date.now();
   const windowStart = now - options.windowMs;
   const entry = rateLimitStore.get(key);
+  const blockedUntil = entry?.blockedUntil ?? 0;
+
+  if (blockedUntil > now) {
+    const retryAfterSec = Math.max(1, Math.ceil((blockedUntil - now) / 1000));
+    rateLimitStore.set(key, {
+      attempts: entry?.attempts ?? [],
+      lastSeen: now,
+      blockedUntil,
+      strikeCount: entry?.strikeCount ?? 1,
+    });
+    cleanupRateLimitStore(now);
+    return { allowed: false, blocked: true, retryAfterSec };
+  }
+
   const attempts = (entry?.attempts ?? []).filter((ts) => ts >= windowStart);
 
   if (attempts.length >= options.limit) {
-    rateLimitStore.set(key, { attempts, lastSeen: now });
+    const strikeCount = Math.min((entry?.strikeCount ?? 0) + 1, 6);
+    const penaltyMs = Math.min(options.windowMs * 2 ** Math.max(0, strikeCount - 1), 30 * 60 * 1000);
+    rateLimitStore.set(key, {
+      attempts,
+      lastSeen: now,
+      blockedUntil: now + penaltyMs,
+      strikeCount,
+    });
     cleanupRateLimitStore(now);
-    return false;
+    return {
+      allowed: false,
+      blocked: true,
+      retryAfterSec: Math.max(1, Math.ceil(penaltyMs / 1000)),
+    };
   }
 
   attempts.push(now);
-  rateLimitStore.set(key, { attempts, lastSeen: now });
+  rateLimitStore.set(key, {
+    attempts,
+    lastSeen: now,
+    blockedUntil: undefined,
+    strikeCount: attempts.length === 1 ? 0 : entry?.strikeCount ?? 0,
+  });
   cleanupRateLimitStore(now);
-  return true;
+  return { allowed: true, blocked: false, retryAfterSec: 0 };
+}
+
+export function enforceRateLimitByKey(options: RateLimitOptions, keySuffix: string): boolean {
+  return getRateLimitDecisionByKey(options, keySuffix).allowed;
 }
 
 export function validateHoneypot(formData: FormData, fieldName = "website"): boolean {

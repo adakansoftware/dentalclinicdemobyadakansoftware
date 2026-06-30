@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import {
   buildRequestFingerprintFromHeaders,
   enforceRateLimitByKey,
+  getRateLimitDecisionByKey,
   getClientIpFromHeadersSync,
   type RateLimitOptions,
   validateFormAge,
@@ -12,6 +13,7 @@ export {
   buildRequestFingerprintFromHeaders,
   buildIpRateLimitKeyFromHeaders,
   enforceRateLimitByKey,
+  getRateLimitDecisionByKey,
   getClientIpFromHeadersSync,
   validateFormAge,
   validateHoneypot,

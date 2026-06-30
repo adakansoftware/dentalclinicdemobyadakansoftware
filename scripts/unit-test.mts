@@ -17,18 +17,20 @@ import { getEnv, resetEnvCacheForTests } from "../src/lib/env.ts";
 import {
   buildRequestFingerprintFromHeaders,
   enforceRateLimitByKey,
+  getRateLimitDecisionByKey,
   getClientIpFromHeadersSync,
   validateFormAge,
   validateHoneypot,
 } from "../src/lib/security-core.ts";
 import { getDurationMs } from "../src/lib/observability.ts";
+import { ResilienceError, runWithCircuitBreaker, runWithConcurrencyLimit, runWithTimeout } from "../src/lib/resilience.ts";
 import { SOCIAL_IMAGE_HEIGHT, SOCIAL_IMAGE_PATH, SOCIAL_IMAGE_WIDTH, TWITTER_IMAGE_PATH } from "../src/lib/social-preview.ts";
 import { sanitizeAssetReference } from "../src/lib/upload-assets.ts";
 
 const results: string[] = [];
 
-function run(name: string, fn: () => void) {
-  fn();
+async function run(name: string, fn: () => void | Promise<void>) {
+  await fn();
   results.push(name);
 }
 
@@ -61,45 +63,45 @@ function withEnv(patch: Record<string, string | undefined>, fn: () => void) {
   }
 }
 
-run("getTodayDateInTurkey returns Turkey-local date", () => {
+await run("getTodayDateInTurkey returns Turkey-local date", () => {
   const now = new Date("2026-04-05T00:30:00.000Z");
   assert.equal(getTodayDateInTurkey(now), "2026-04-05");
 });
 
-run("getTomorrowDateInTurkey rolls over correctly", () => {
+await run("getTomorrowDateInTurkey rolls over correctly", () => {
   const now = new Date("2026-12-31T20:30:00.000Z");
   assert.equal(getTomorrowDateInTurkey(now), "2027-01-01");
 });
 
-run("getCurrentMinutesInTurkey returns local time in minutes", () => {
+await run("getCurrentMinutesInTurkey returns local time in minutes", () => {
   const now = new Date("2026-04-05T06:15:00.000Z");
   assert.equal(getCurrentMinutesInTurkey(now), 555);
 });
 
-run("compareDateStrings sorts ISO dates", () => {
+await run("compareDateStrings sorts ISO dates", () => {
   assert.equal(compareDateStrings("2026-04-05", "2026-04-05"), 0);
   assert.equal(compareDateStrings("2026-04-04", "2026-04-05"), -1);
   assert.equal(compareDateStrings("2026-04-06", "2026-04-05"), 1);
 });
 
-run("getDayOfWeekFromDate returns UTC-safe weekday", () => {
+await run("getDayOfWeekFromDate returns UTC-safe weekday", () => {
   assert.equal(getDayOfWeekFromDate("2026-04-05"), 0);
   assert.equal(getDayOfWeekFromDate("2026-04-06"), 1);
 });
 
-run("dateOnlyToDbDate and dateToIsoDate preserve date-only values", () => {
+await run("dateOnlyToDbDate and dateToIsoDate preserve date-only values", () => {
   const dbDate = dateOnlyToDbDate("2026-04-05");
   assert.equal(dateToIsoDate(dbDate), "2026-04-05");
 });
 
-run("getUtcRangeForTurkeyDate returns expected UTC range", () => {
+await run("getUtcRangeForTurkeyDate returns expected UTC range", () => {
   const { startUtc, endUtc } = getUtcRangeForTurkeyDate("2026-04-05");
   assert.ok(startUtc < endUtc);
   assert.equal(startUtc.toISOString(), "2026-04-04T21:00:00.000Z");
   assert.equal(endUtc.toISOString(), "2026-04-05T20:59:59.999Z");
 });
 
-run("getClientIpFromHeadersSync prefers forwarded headers", () => {
+await run("getClientIpFromHeadersSync prefers forwarded headers", () => {
   const headerStore = new Headers({
     "x-forwarded-for": "203.0.113.10, 10.0.0.2",
   });
@@ -107,7 +109,7 @@ run("getClientIpFromHeadersSync prefers forwarded headers", () => {
   assert.equal(getClientIpFromHeadersSync(headerStore), "203.0.113.10");
 });
 
-run("getClientIpFromHeadersSync prefers provider headers and strips ports", () => {
+await run("getClientIpFromHeadersSync prefers provider headers and strips ports", () => {
   const headerStore = new Headers({
     "cf-connecting-ip": "198.51.100.9",
     "x-forwarded-for": "203.0.113.10:443, 10.0.0.2",
@@ -117,7 +119,7 @@ run("getClientIpFromHeadersSync prefers provider headers and strips ports", () =
   assert.equal(getClientIpFromHeadersSync(headerStore), "198.51.100.9");
 });
 
-run("getClientIpFromHeadersSync falls back to RFC forwarded header syntax", () => {
+await run("getClientIpFromHeadersSync falls back to RFC forwarded header syntax", () => {
   const headerStore = new Headers({
     forwarded: 'for="[2001:db8::1]:1234";proto=https',
   });
@@ -125,7 +127,7 @@ run("getClientIpFromHeadersSync falls back to RFC forwarded header syntax", () =
   assert.equal(getClientIpFromHeadersSync(headerStore), "2001:db8::1");
 });
 
-run("buildRequestFingerprintFromHeaders includes IP and user agent", () => {
+await run("buildRequestFingerprintFromHeaders includes IP and user agent", () => {
   const headerStore = new Headers({
     "x-real-ip": "198.51.100.1",
     "user-agent": "SmokeTestAgent/1.0",
@@ -134,31 +136,31 @@ run("buildRequestFingerprintFromHeaders includes IP and user agent", () => {
   assert.equal(buildRequestFingerprintFromHeaders(headerStore), "198.51.100.1:SmokeTestAgent/1.0");
 });
 
-run("getDurationMs never returns negative values", () => {
+await run("getDurationMs never returns negative values", () => {
   assert.equal(getDurationMs(Date.now() + 1000), 0);
 });
 
-run("timesOverlap detects overlapping slots but allows edge-aligned slots", () => {
+await run("timesOverlap detects overlapping slots but allows edge-aligned slots", () => {
   assert.equal(timesOverlap("09:00", "09:30", "09:15", "09:45"), true);
   assert.equal(timesOverlap("09:00", "09:30", "09:30", "10:00"), false);
   assert.equal(timesOverlap("10:00", "10:30", "09:30", "10:00"), false);
 });
 
-run("isStatusBlockingSlot only blocks active booking states", () => {
+await run("isStatusBlockingSlot only blocks active booking states", () => {
   assert.equal(isStatusBlockingSlot("PENDING"), true);
   assert.equal(isStatusBlockingSlot("CONFIRMED"), true);
   assert.equal(isStatusBlockingSlot("CANCELLED"), false);
   assert.equal(isStatusBlockingSlot("COMPLETED"), false);
 });
 
-run("appointment transition rules allow only supported status changes", () => {
+await run("appointment transition rules allow only supported status changes", () => {
   assert.deepEqual(getAllowedAppointmentTransitions("PENDING"), ["CONFIRMED", "CANCELLED"]);
   assert.equal(canTransitionAppointmentStatus("PENDING", "COMPLETED"), false);
   assert.equal(canTransitionAppointmentStatus("CANCELLED", "CONFIRMED"), true);
   assert.equal(canTransitionAppointmentStatus("COMPLETED", "PENDING"), false);
 });
 
-run("BackendError helpers preserve typed backend error codes", () => {
+await run("BackendError helpers preserve typed backend error codes", () => {
   const error = new BackendError("SLOT_UNAVAILABLE", "Slot is already booked", {
     specialistId: "spec-1",
   });
@@ -170,7 +172,7 @@ run("BackendError helpers preserve typed backend error codes", () => {
   assert.equal(isBackendError(new Error("plain error")), false);
 });
 
-run("buildHealthSummary returns warn when configuration is incomplete", () => {
+await run("buildHealthSummary returns warn when configuration is incomplete", () => {
   const summary = buildHealthSummary({
     databaseOk: true,
     envIssues: ["Canonical URL missing"],
@@ -187,7 +189,7 @@ run("buildHealthSummary returns warn when configuration is incomplete", () => {
   assert.equal(summary.checks.some((check) => check.key === "db_hardening" && check.ok === false), true);
 });
 
-run("buildHealthSummary returns error when database is down", () => {
+await run("buildHealthSummary returns error when database is down", () => {
   const summary = buildHealthSummary({
     databaseOk: false,
     envIssues: [],
@@ -202,19 +204,19 @@ run("buildHealthSummary returns error when database is down", () => {
 });
 
 
-run("validateHoneypot rejects filled bot field", () => {
+await run("validateHoneypot rejects filled bot field", () => {
   const formData = new FormData();
   formData.set("website", "spam");
   assert.equal(validateHoneypot(formData), false);
 });
 
-run("validateFormAge accepts sufficiently old forms", () => {
+await run("validateFormAge accepts sufficiently old forms", () => {
   const formData = new FormData();
   formData.set("formStartedAt", String(Date.now() - 2000));
   assert.equal(validateFormAge(formData), true);
 });
 
-run("enforceRateLimitByKey blocks after limit", () => {
+await run("enforceRateLimitByKey blocks after limit", () => {
   const scope = `unit-test-${Date.now()}`;
   const options = { scope, limit: 2, windowMs: 60_000 };
 
@@ -223,7 +225,54 @@ run("enforceRateLimitByKey blocks after limit", () => {
   assert.equal(enforceRateLimitByKey(options, "same-user"), false);
 });
 
-run("getEnv rejects SMS_ENABLED without provider credentials", () => {
+await run("getRateLimitDecisionByKey returns retry information after repeated abuse", () => {
+  const scope = `unit-test-adaptive-${Date.now()}`;
+  const options = { scope, limit: 1, windowMs: 60_000 };
+
+  assert.equal(getRateLimitDecisionByKey(options, "same-user").allowed, true);
+  const blocked = getRateLimitDecisionByKey(options, "same-user");
+  assert.equal(blocked.allowed, false);
+  assert.equal(blocked.blocked, true);
+  assert.equal(blocked.retryAfterSec > 0, true);
+});
+
+await run("runWithTimeout rejects long operations", async () => {
+  await assert.rejects(
+    () => runWithTimeout(10, () => new Promise((resolve) => setTimeout(resolve, 25))),
+    (error: unknown) => error instanceof ResilienceError && error.code === "TIMEOUT"
+  );
+});
+
+await run("runWithConcurrencyLimit rejects when scope is saturated", async () => {
+  const pending = runWithConcurrencyLimit("unit-concurrency", 1, async () => {
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    return true;
+  });
+
+  await assert.rejects(
+    () => runWithConcurrencyLimit("unit-concurrency", 1, async () => true),
+    (error: unknown) => error instanceof ResilienceError && error.code === "CONCURRENCY_LIMIT"
+  );
+
+  await pending;
+});
+
+await run("runWithCircuitBreaker opens after repeated failures", async () => {
+  await assert.rejects(
+    () =>
+      runWithCircuitBreaker("unit-circuit", { failureThreshold: 1, cooldownMs: 60_000 }, async () => {
+        throw new Error("boom");
+      }),
+    /boom/
+  );
+
+  await assert.rejects(
+    () => runWithCircuitBreaker("unit-circuit", { failureThreshold: 1, cooldownMs: 60_000 }, async () => true),
+    (error: unknown) => error instanceof ResilienceError && error.code === "CIRCUIT_OPEN"
+  );
+});
+
+await run("getEnv rejects SMS_ENABLED without provider credentials", () => {
   withEnv(
     {
       DATABASE_URL: "postgresql://example",
@@ -243,7 +292,7 @@ run("getEnv rejects SMS_ENABLED without provider credentials", () => {
   );
 });
 
-run("getEnv rejects partial Turnstile configuration", () => {
+await run("getEnv rejects partial Turnstile configuration", () => {
   withEnv(
     {
       DATABASE_URL: "postgresql://example",
@@ -261,7 +310,7 @@ run("getEnv rejects partial Turnstile configuration", () => {
   );
 });
 
-run("getEnv requires a canonical URL in production", () => {
+await run("getEnv requires a canonical URL in production", () => {
   withEnv(
     {
       DATABASE_URL: "postgresql://example",
@@ -282,7 +331,7 @@ run("getEnv requires a canonical URL in production", () => {
   );
 });
 
-run("getEnv accepts valid minimal configuration", () => {
+await run("getEnv accepts valid minimal configuration", () => {
   withEnv(
     {
       DATABASE_URL: "postgresql://example",
@@ -303,14 +352,14 @@ run("getEnv accepts valid minimal configuration", () => {
   );
 });
 
-run("social preview metadata constants stay aligned", () => {
+await run("social preview metadata constants stay aligned", () => {
   assert.equal(SOCIAL_IMAGE_PATH, "/images/hero.jpg");
   assert.equal(TWITTER_IMAGE_PATH, "/images/hero.jpg");
   assert.equal(SOCIAL_IMAGE_WIDTH, 1344);
   assert.equal(SOCIAL_IMAGE_HEIGHT, 768);
 });
 
-run("sanitizeAssetReference rejects off-origin asset urls", () => {
+await run("sanitizeAssetReference rejects off-origin asset urls", () => {
   withEnv(
     {
       DATABASE_URL: "postgresql://example",

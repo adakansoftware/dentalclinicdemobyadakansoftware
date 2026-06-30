@@ -6,6 +6,7 @@ import { buildReminderMessage, sendSms } from "@/lib/sms";
 import { getEnv } from "@/lib/env";
 import { dateToIsoDate, getTomorrowDateInTurkey, getUtcRangeForTurkeyDate } from "@/lib/date";
 import { getDurationMs, logEvent } from "@/lib/observability";
+import { ResilienceError, runWithCircuitBreaker, runWithConcurrencyLimit, runWithTimeout } from "@/lib/resilience";
 import { methodNotAllowed } from "@/lib/route-methods";
 
 export const dynamic = "force-dynamic";
@@ -53,14 +54,48 @@ export async function GET(request: Request) {
   const tomorrowDate = getTomorrowDateInTurkey();
   const { startUtc: tomorrow, endUtc: tomorrowEnd } = getUtcRangeForTurkeyDate(tomorrowDate);
 
-  const appointments = await prisma.appointment.findMany({
-    where: {
-      date: { gte: tomorrow, lte: tomorrowEnd },
-      status: "CONFIRMED",
-      smsSent: false,
-    },
-    include: { service: true, specialist: true },
-  });
+  let appointments;
+
+  try {
+    appointments = await runWithCircuitBreaker(
+      "cron-reminders",
+      { failureThreshold: 3, cooldownMs: 60_000, halfOpenMaxConcurrent: 1 },
+      () =>
+        runWithConcurrencyLimit("cron-reminders", 1, () =>
+          runWithTimeout(10_000, () =>
+            prisma.appointment.findMany({
+              where: {
+                date: { gte: tomorrow, lte: tomorrowEnd },
+                status: "CONFIRMED",
+                smsSent: false,
+              },
+              include: { service: true, specialist: true },
+            })
+          )
+        )
+    );
+  } catch (error) {
+    if (error instanceof ResilienceError) {
+      logEvent({
+        level: "warn",
+        event: "cron_reminders_backpressure_triggered",
+        requestId,
+        route: "/api/cron/reminders",
+        message: error.message,
+        meta: {
+          code: error.code,
+          durationMs: getDurationMs(startedAt),
+        },
+      });
+
+      return NextResponse.json(
+        { error: "Reminder service temporarily unavailable" },
+        { status: 503, headers: buildApiHeaders(requestId, { "Retry-After": "60" }) }
+      );
+    }
+
+    throw error;
+  }
 
   const settings = await getSiteSettings();
   let sent = 0;

@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { buildIpRateLimitKeyFromHeaders, enforceRateLimitByKey } from "@/lib/security";
+import { buildIpRateLimitKeyFromHeaders, getRateLimitDecisionByKey } from "@/lib/security";
 
 function buildRequestId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -80,9 +80,24 @@ function getRateLimitPolicy(request: NextRequest) {
   return { scope: "mw-page", limit: 180, windowMs: 60 * 1000 };
 }
 
+function isSensitiveRequest(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  return (
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/appointment") ||
+    pathname.startsWith("/contact") ||
+    pathname.startsWith("/reviews")
+  );
+}
+
 export function middleware(request: NextRequest) {
   if (request.method === "TRACE" || request.method === "TRACK") {
     return new NextResponse(null, { status: 405 });
+  }
+
+  if (request.url.length > 2048 || request.nextUrl.pathname.length > 256 || request.nextUrl.search.length > 1024) {
+    return NextResponse.json({ error: "Request too large" }, { status: 414 });
   }
 
   const isStaticAsset =
@@ -93,19 +108,33 @@ export function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/sitemap.xml");
 
   const requestId = request.headers.get("x-request-id")?.trim() || buildRequestId();
+  const userAgent = request.headers.get("user-agent")?.trim() ?? "";
+
+  if (isSensitiveRequest(request) && userAgent.length < 8) {
+    return NextResponse.json(
+      { error: "Suspicious request rejected" },
+      {
+        status: 403,
+        headers: {
+          "Cache-Control": "no-store",
+          "X-Request-Id": requestId,
+        },
+      }
+    );
+  }
 
   if (!isStaticAsset) {
     const clientKey = buildIpRateLimitKeyFromHeaders(request.headers);
     const policy = getRateLimitPolicy(request);
-    const allowed = enforceRateLimitByKey(policy, clientKey);
+    const decision = getRateLimitDecisionByKey(policy, clientKey);
 
-    if (!allowed) {
+    if (!decision.allowed) {
       return NextResponse.json(
         { error: "Too many requests" },
         {
           status: 429,
           headers: {
-            "Retry-After": "60",
+            "Retry-After": String(decision.retryAfterSec || 60),
             "Cache-Control": "no-store",
             "X-Request-Id": requestId,
           },
@@ -126,8 +155,9 @@ export function middleware(request: NextRequest) {
 
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("Cache-Control", "no-store");
-  response.headers.set("Vary", "x-request-id");
+  response.headers.set("Vary", "Origin, x-request-id");
   response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("X-Robots-Tag", "noindex, nofollow");
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
   response.headers.set("Cross-Origin-Opener-Policy", "same-origin");

@@ -3,8 +3,9 @@ import { z } from "zod";
 import { getAvailableSlotsWithMeta } from "@/lib/slots";
 import { buildApiHeaders, getRequestIdFromHeaders, isAllowedBrowserOrigin } from "@/lib/api-security";
 import { compareDateStrings, getTodayDateInTurkey } from "@/lib/date";
-import { buildRequestFingerprintFromHeaders, enforceRateLimitByKey } from "@/lib/security";
+import { buildRequestFingerprintFromHeaders, getRateLimitDecisionByKey } from "@/lib/security";
 import { getDurationMs, logEvent } from "@/lib/observability";
+import { ResilienceError, runWithCircuitBreaker, runWithConcurrencyLimit, runWithTimeout } from "@/lib/resilience";
 import { methodNotAllowed } from "@/lib/route-methods";
 
 export const dynamic = "force-dynamic";
@@ -90,16 +91,16 @@ export async function GET(request: Request) {
   }
 
   const fingerprint = buildRequestFingerprintFromHeaders(request.headers);
-  const allowed = enforceRateLimitByKey(
+  const decision = getRateLimitDecisionByKey(
     {
       scope: "slots-api",
-      limit: 60,
+      limit: 40,
       windowMs: 60 * 1000,
     },
     fingerprint
   );
 
-  if (!allowed) {
+  if (!decision.allowed) {
     logEvent({
       level: "warn",
       event: "slots_rate_limited",
@@ -115,13 +116,20 @@ export async function GET(request: Request) {
       { error: "Too many requests" },
       {
         status: 429,
-        headers: buildApiHeaders(requestId, { "Retry-After": "60" }),
+        headers: buildApiHeaders(requestId, { "Retry-After": String(decision.retryAfterSec || 60) }),
       }
     );
   }
 
   try {
-    const { slots, cacheHit } = await getAvailableSlotsWithMeta(parsed.data.specialistId, parsed.data.date);
+    const { slots, cacheHit } = await runWithCircuitBreaker(
+      "api-slots",
+      { failureThreshold: 4, cooldownMs: 30_000, halfOpenMaxConcurrent: 1 },
+      () =>
+        runWithConcurrencyLimit("api-slots", 20, () =>
+          runWithTimeout(4_500, () => getAvailableSlotsWithMeta(parsed.data.specialistId, parsed.data.date))
+        )
+    );
     const durationMs = getDurationMs(startedAt);
 
     logEvent({
@@ -145,6 +153,30 @@ export async function GET(request: Request) {
       }),
     });
   } catch (error) {
+    if (error instanceof ResilienceError) {
+      logEvent({
+        level: "warn",
+        event: "slots_backpressure_triggered",
+        requestId,
+        route: "/api/slots",
+        message: error.message,
+        meta: {
+          code: error.code,
+          specialistId: parsed.data.specialistId,
+          date: parsed.data.date,
+          durationMs: getDurationMs(startedAt),
+        },
+      });
+
+      return NextResponse.json(
+        { error: "Service temporarily busy" },
+        {
+          status: 503,
+          headers: buildApiHeaders(requestId, { "Retry-After": "30" }),
+        }
+      );
+    }
+
     logEvent({
       level: "error",
       event: "slots_fetch_failed",
