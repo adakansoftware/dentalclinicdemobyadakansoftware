@@ -166,6 +166,7 @@ run("BackendError helpers preserve typed backend error codes", () => {
   assert.equal(isBackendError(error), true);
   assert.equal(isBackendError(error, "SLOT_UNAVAILABLE"), true);
   assert.equal(isBackendError(error, "APPOINTMENT_NOT_FOUND"), false);
+  assert.equal(isBackendError(new BackendError("CONTACT_REQUEST_NOT_FOUND")), true);
   assert.equal(isBackendError(new Error("plain error")), false);
 });
 

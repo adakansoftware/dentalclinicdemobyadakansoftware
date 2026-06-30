@@ -2,7 +2,8 @@ export type BackendErrorCode =
   | "SLOT_UNAVAILABLE"
   | "APPOINTMENT_NOT_FOUND"
   | "APPOINTMENT_STATUS_CONFLICT"
-  | "APPOINTMENT_CANCEL_CONFLICT";
+  | "APPOINTMENT_CANCEL_CONFLICT"
+  | "CONTACT_REQUEST_NOT_FOUND";
 
 export class BackendError extends Error {
   code: BackendErrorCode;
