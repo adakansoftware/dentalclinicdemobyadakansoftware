@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { buildApiHeaders, getRequestIdFromHeaders, secureCompare } from "@/lib/api-security";
+import { jsonError, jsonOk } from "@/lib/api-response";
 import { buildIpRateLimitKeyFromHeaders } from "@/lib/security-core";
 import { recordSuspiciousActivity } from "@/lib/attack-monitor";
 import { prisma } from "@/lib/prisma";
@@ -29,10 +30,11 @@ export async function GET(request: Request) {
       message: "CRON_SECRET is missing in production",
     });
 
-    return NextResponse.json(
-      { error: "CRON_SECRET is required in production" },
-      { status: 500, headers: buildApiHeaders(requestId) }
-    );
+    return jsonError("CRON_SECRET is required in production", {
+      requestId,
+      status: 500,
+      code: "CRON_MISCONFIGURED",
+    });
   }
 
   const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : null;
@@ -51,7 +53,11 @@ export async function GET(request: Request) {
       },
     });
 
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: buildApiHeaders(requestId) });
+    return jsonError("Unauthorized", {
+      requestId,
+      status: 401,
+      code: "UNAUTHORIZED",
+    });
   }
 
   const tomorrowDate = getTomorrowDateInTurkey();
@@ -91,10 +97,12 @@ export async function GET(request: Request) {
         },
       });
 
-      return NextResponse.json(
-        { error: "Reminder service temporarily unavailable" },
-        { status: 503, headers: buildApiHeaders(requestId, { "Retry-After": "60" }) }
-      );
+      return jsonError("Reminder service temporarily unavailable", {
+        requestId,
+        status: 503,
+        code: error.code,
+        retryAfterSec: 60,
+      });
     }
 
     throw error;
@@ -161,18 +169,18 @@ export async function GET(request: Request) {
     },
   });
 
-  return NextResponse.json(
+  return jsonOk(
     {
       success: true,
       total: appointments.length,
       sent,
       failed,
       date: tomorrowDate,
-      requestId,
       responseTimeMs: durationMs,
     },
     {
-      headers: buildApiHeaders(requestId, { "Server-Timing": `app;dur=${durationMs}` }),
+      requestId,
+      headers: { "Server-Timing": `app;dur=${durationMs}` },
     }
   );
 }

@@ -80,6 +80,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const smsEnabled = env.SMS_ENABLED === "true";
     const dbHardeningConfigured = hardeningRows.length > 0;
     const resilience = getResilienceSnapshot();
+    const resilienceSummary = {
+      openCircuitCount: Object.values(resilience.circuits).filter((c) => c.isOpen).length,
+      activeConcurrencyScopes: Object.keys(resilience.concurrency).length,
+    };
     const summary = buildHealthSummary({
       databaseOk: true,
       envIssues,
@@ -103,7 +107,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         turnstileConfigured,
         cronConfigured,
         dbHardeningConfigured,
-        openCircuitCount: Object.values(resilience.circuits).filter((c) => c.isOpen).length,
+        openCircuitCount: resilienceSummary.openCircuitCount,
         healthStatus: summary.status,
       },
     });
@@ -123,7 +127,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       appUrlConfigured: hasCanonicalUrl,
       turnstileConfigured,
       cronConfigured,
-      resilience,
+      resilience: isProduction ? resilienceSummary : resilience,
       environment: process.env.NODE_ENV ?? "development",
       requestId,
       responseTimeMs: durationMs,

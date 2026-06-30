@@ -12,6 +12,7 @@ import {
 import { buildHealthSummary } from "../src/lib/health.ts";
 import { canTransitionAppointmentStatus, getAllowedAppointmentTransitions } from "../src/lib/appointment-state.ts";
 import { isStatusBlockingSlot, timesOverlap } from "../src/lib/appointment-conflicts.ts";
+import { getRequestIdFromHeaders } from "../src/lib/api-security.ts";
 import { BackendError, isBackendError } from "../src/lib/backend-errors.ts";
 import { clearSuspicion, getSuspicionDecision, recordSuspiciousActivity } from "../src/lib/attack-monitor.ts";
 import { getEnv, resetEnvCacheForTests } from "../src/lib/env.ts";
@@ -135,6 +136,18 @@ await run("buildRequestFingerprintFromHeaders includes IP and user agent", () =>
   });
 
   assert.equal(buildRequestFingerprintFromHeaders(headerStore), "198.51.100.1:SmokeTestAgent/1.0");
+});
+
+await run("getRequestIdFromHeaders rejects invalid request ids", () => {
+  const invalid = new Headers({
+    "x-request-id": "bad value with spaces",
+  });
+  const valid = new Headers({
+    "x-request-id": "req-demo-12345",
+  });
+
+  assert.equal(getRequestIdFromHeaders(valid), "req-demo-12345");
+  assert.equal(/^[a-zA-Z0-9._:-]{8,120}$/.test(getRequestIdFromHeaders(invalid)), true);
 });
 
 await run("getDurationMs never returns negative values", () => {

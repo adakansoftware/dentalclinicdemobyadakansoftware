@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAvailableSlotsWithMeta } from "@/lib/slots";
 import { buildApiHeaders, getRequestIdFromHeaders, isAllowedBrowserOrigin } from "@/lib/api-security";
+import { jsonError, jsonOk } from "@/lib/api-response";
 import { compareDateStrings, getTodayDateInTurkey } from "@/lib/date";
 import { buildRequestFingerprintFromHeaders, getRateLimitDecisionByKey } from "@/lib/security";
 import { buildIpRateLimitKeyFromHeaders } from "@/lib/security-core";
@@ -34,13 +35,11 @@ export async function GET(request: Request) {
       },
     });
 
-    return NextResponse.json(
-      { error: "Origin not allowed" },
-      {
-        status: 403,
-        headers: buildApiHeaders(requestId),
-      }
-    );
+    return jsonError("Origin not allowed", {
+      requestId,
+      status: 403,
+      code: "ORIGIN_NOT_ALLOWED",
+    });
   }
 
   const { searchParams } = new URL(request.url);
@@ -61,23 +60,19 @@ export async function GET(request: Request) {
       },
     });
 
-    return NextResponse.json(
-      { error: parsed.error.errors[0]?.message ?? "specialistId and date required" },
-      {
-        status: 400,
-        headers: buildApiHeaders(requestId),
-      }
-    );
+    return jsonError(parsed.error.errors[0]?.message ?? "specialistId and date required", {
+      requestId,
+      status: 400,
+      code: "INVALID_QUERY",
+    });
   }
 
   if (compareDateStrings(parsed.data.date, getTodayDateInTurkey()) < 0) {
-    return NextResponse.json(
-      { error: "Past dates are not allowed" },
-      {
-        status: 400,
-        headers: buildApiHeaders(requestId),
-      }
-    );
+    return jsonError("Past dates are not allowed", {
+      requestId,
+      status: 400,
+      code: "PAST_DATE",
+    });
   }
 
   const maxAllowedDate = new Date();
@@ -85,13 +80,11 @@ export async function GET(request: Request) {
   const maxAllowedDateString = maxAllowedDate.toISOString().slice(0, 10);
 
   if (compareDateStrings(parsed.data.date, maxAllowedDateString) > 0) {
-    return NextResponse.json(
-      { error: "Date is too far in the future" },
-      {
-        status: 400,
-        headers: buildApiHeaders(requestId),
-      }
-    );
+    return jsonError("Date is too far in the future", {
+      requestId,
+      status: 400,
+      code: "DATE_TOO_FAR",
+    });
   }
 
   const fingerprint = buildRequestFingerprintFromHeaders(request.headers);
@@ -117,13 +110,12 @@ export async function GET(request: Request) {
       },
     });
 
-    return NextResponse.json(
-      { error: "Too many requests" },
-      {
-        status: 429,
-        headers: buildApiHeaders(requestId, { "Retry-After": String(decision.retryAfterSec || 60) }),
-      }
-    );
+    return jsonError("Too many requests", {
+      requestId,
+      status: 429,
+      code: "RATE_LIMITED",
+      retryAfterSec: decision.retryAfterSec || 60,
+    });
   }
 
   try {
@@ -150,12 +142,13 @@ export async function GET(request: Request) {
       },
     });
 
-    return NextResponse.json(slots, {
-      headers: buildApiHeaders(requestId, {
+    return jsonOk(slots, {
+      requestId,
+      headers: {
         Vary: "Origin",
         "Server-Timing": `app;dur=${durationMs}`,
         "X-Slots-Cache": cacheHit ? "HIT" : "MISS",
-      }),
+      },
     });
   } catch (error) {
     if (error instanceof ResilienceError) {
@@ -173,13 +166,12 @@ export async function GET(request: Request) {
         },
       });
 
-      return NextResponse.json(
-        { error: "Service temporarily busy" },
-        {
-          status: 503,
-          headers: buildApiHeaders(requestId, { "Retry-After": "30" }),
-        }
-      );
+      return jsonError("Service temporarily busy", {
+        requestId,
+        status: 503,
+        code: error.code,
+        retryAfterSec: 30,
+      });
     }
 
     logEvent({
@@ -195,13 +187,11 @@ export async function GET(request: Request) {
       },
     });
 
-    return NextResponse.json(
-      { error: "Unable to fetch slots" },
-      {
-        status: 400,
-        headers: buildApiHeaders(requestId),
-      }
-    );
+    return jsonError("Unable to fetch slots", {
+      requestId,
+      status: 400,
+      code: "SLOTS_UNAVAILABLE",
+    });
   }
 }
 
