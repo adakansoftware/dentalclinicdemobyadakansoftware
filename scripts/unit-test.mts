@@ -29,6 +29,7 @@ import { getDurationMs } from "../src/lib/observability.ts";
 import { ResilienceError, getResilienceSnapshot, runWithCircuitBreaker, runWithConcurrencyLimit, runWithTimeout } from "../src/lib/resilience.ts";
 import { headersFromNodeRequest } from "../src/lib/request-headers.ts";
 import { SOCIAL_IMAGE_HEIGHT, SOCIAL_IMAGE_PATH, SOCIAL_IMAGE_WIDTH, TWITTER_IMAGE_PATH } from "../src/lib/social-preview.ts";
+import { toAbsoluteAssetUrl } from "../src/lib/seo.ts";
 import { sanitizeAssetReference } from "../src/lib/upload-assets.ts";
 
 const results: string[] = [];
@@ -441,6 +442,22 @@ await run("sanitizeAssetReference rejects off-origin asset urls", () => {
         "https://clinic.example/images/hero.jpg"
       );
       assert.equal(sanitizeAssetReference("https://evil.example/og.png"), "");
+    }
+  );
+});
+
+await run("toAbsoluteAssetUrl keeps hero image as the canonical social fallback", () => {
+  withEnv(
+    {
+      DATABASE_URL: "postgresql://example",
+      SESSION_SECRET: "12345678901234567890123456789012",
+      NEXT_PUBLIC_APP_URL: "https://clinic.example",
+      SMS_ENABLED: "false",
+      NODE_ENV: "development",
+    },
+    () => {
+      assert.equal(toAbsoluteAssetUrl(SOCIAL_IMAGE_PATH), "https://clinic.example/images/hero.jpg");
+      assert.equal(toAbsoluteAssetUrl(TWITTER_IMAGE_PATH), "https://clinic.example/images/hero.jpg");
     }
   );
 });

@@ -26,12 +26,14 @@ export async function generateMetadata(): Promise<Metadata> {
       description: defaultDescription,
       url: baseUrl.toString(),
       type: "website",
+      siteName: "Adakan Dental Klinik",
       images: [
         {
           url: socialImageUrl,
           width: SOCIAL_IMAGE_WIDTH,
           height: SOCIAL_IMAGE_HEIGHT,
           alt: "Adakan Dental Klinik social preview",
+          type: getSocialImageMimeType(socialImageUrl),
         },
       ],
     },
@@ -39,11 +41,23 @@ export async function generateMetadata(): Promise<Metadata> {
       card: "summary_large_image",
       title: defaultTitle,
       description: defaultDescription,
-      images: [twitterImageUrl],
+      images: [
+        {
+          url: twitterImageUrl,
+          alt: "Adakan Dental Klinik social preview",
+        },
+      ],
     },
     other: {
+      "og:image": socialImageUrl,
+      "og:image:url": socialImageUrl,
       "og:image:secure_url": socialImageUrl,
       "og:image:type": getSocialImageMimeType(socialImageUrl),
+      "og:image:width": String(SOCIAL_IMAGE_WIDTH),
+      "og:image:height": String(SOCIAL_IMAGE_HEIGHT),
+      "og:image:alt": "Adakan Dental Klinik social preview",
+      "twitter:image": twitterImageUrl,
+      "twitter:image:src": twitterImageUrl,
       "twitter:image:alt": "Adakan Dental Klinik social preview",
     },
     verification: {

@@ -39,6 +39,18 @@ export function toAbsoluteAssetUrl(url?: string | null, baseUrl = getBaseUrl()):
   return absoluteUrl(safeUrl.startsWith("/") ? safeUrl : `/${safeUrl}`, baseUrl);
 }
 
+function resolveSocialPreviewImage(
+  baseUrl: URL,
+  preferredImage?: string | null,
+  fallbackImage?: string | null
+): string | undefined {
+  return (
+    toAbsoluteAssetUrl(preferredImage, baseUrl) ||
+    toAbsoluteAssetUrl(DEFAULT_SOCIAL_IMAGE, baseUrl) ||
+    toAbsoluteAssetUrl(fallbackImage, baseUrl)
+  );
+}
+
 interface PublicPageMetadataInput {
   settings: SiteSettings;
   title: string;
@@ -55,10 +67,7 @@ export async function buildPublicPageMetadata({
   imageUrl,
 }: PublicPageMetadataInput): Promise<Metadata> {
   const baseUrl = await getRequestBaseUrl();
-  const resolvedImage = toAbsoluteAssetUrl(
-    imageUrl || settings.logoUrl || settings.faviconUrl || DEFAULT_SOCIAL_IMAGE,
-    baseUrl
-  );
+  const resolvedImage = resolveSocialPreviewImage(baseUrl, imageUrl, settings.logoUrl || settings.faviconUrl);
   const imageMimeType = resolvedImage ? getSocialImageMimeType(resolvedImage) : undefined;
 
   return {
@@ -79,6 +88,7 @@ export async function buildPublicPageMetadata({
               width: SOCIAL_IMAGE_WIDTH,
               height: SOCIAL_IMAGE_HEIGHT,
               alt: settings.clinicName,
+              type: imageMimeType,
             },
           ]
         : undefined,
@@ -88,12 +98,26 @@ export async function buildPublicPageMetadata({
       card: resolvedImage ? "summary_large_image" : "summary",
       title,
       description,
-      images: resolvedImage ? [resolvedImage] : undefined,
+      images: resolvedImage
+        ? [
+            {
+              url: resolvedImage,
+              alt: settings.clinicName,
+            },
+          ]
+        : undefined,
     },
     other: resolvedImage
       ? {
+          "og:image": resolvedImage,
+          "og:image:url": resolvedImage,
           "og:image:secure_url": resolvedImage,
           "og:image:type": imageMimeType ?? "image/jpeg",
+          "og:image:width": String(SOCIAL_IMAGE_WIDTH),
+          "og:image:height": String(SOCIAL_IMAGE_HEIGHT),
+          "og:image:alt": settings.clinicName,
+          "twitter:image": resolvedImage,
+          "twitter:image:src": resolvedImage,
           "twitter:image:alt": settings.clinicName,
         }
       : undefined,
