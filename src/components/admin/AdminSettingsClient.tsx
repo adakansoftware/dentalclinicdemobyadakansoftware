@@ -236,6 +236,20 @@ export default function AdminSettingsClient({ settings }: Props) {
           </div>
         </Section>
 
+        <Section title="Guvenlik Dogrulamasi">
+          <div className="max-w-md">
+            <label className="form-label">Admin Sifresi</label>
+            <input
+              name="stepUpPassword"
+              type="password"
+              className="form-input"
+              autoComplete="current-password"
+              placeholder="Kritik degisiklikleri onaylamak icin"
+            />
+            <p className="mt-2 text-xs text-slate-500">Son 10 dakika icinde dogrulama varsa tekrar istenmez.</p>
+          </div>
+        </Section>
+
         <div className="flex justify-end pb-8">
           <button type="submit" disabled={isPending} className="btn-primary px-10 py-3 text-base">
             {isPending ? "Kaydediliyor..." : "Tüm Ayarları Kaydet"}

@@ -1,4 +1,5 @@
 import { cookies, headers } from "next/headers";
+import { createAdminStepUpProof, getAdminStepUpTtlSec, verifyAdminStepUpProof } from "@/lib/admin-step-up";
 import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/safe-query";
 import { logEvent } from "@/lib/observability";
@@ -15,6 +16,7 @@ import { cache } from "react";
 
 const SESSION_COOKIE = "admin_session";
 const SESSION_GUARD_COOKIE = "admin_session_guard";
+const ADMIN_STEP_UP_COOKIE = "admin_step_up";
 const SESSION_DURATION_DAYS = 7;
 
 function hashSessionToken(token: string): string {
@@ -58,6 +60,7 @@ async function clearSessionCookies() {
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE);
   cookieStore.delete(SESSION_GUARD_COOKIE);
+  cookieStore.delete(ADMIN_STEP_UP_COOKIE);
 }
 
 export async function getSessionToken(): Promise<string | null> {
@@ -68,6 +71,24 @@ export async function getSessionToken(): Promise<string | null> {
 export async function getSessionGuardToken(): Promise<string | null> {
   const cookieStore = await cookies();
   return cookieStore.get(SESSION_GUARD_COOKIE)?.value ?? null;
+}
+
+export async function hasRecentAdminStepUp(adminId: string): Promise<boolean> {
+  const cookieStore = await cookies();
+  return verifyAdminStepUpProof(adminId, cookieStore.get(ADMIN_STEP_UP_COOKIE)?.value ?? null);
+}
+
+export async function grantRecentAdminStepUp(adminId: string) {
+  const cookieStore = await cookies();
+  const value = createAdminStepUpProof(adminId, Math.floor(Date.now() / 1000));
+
+  cookieStore.set(ADMIN_STEP_UP_COOKIE, value, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/",
+    maxAge: getAdminStepUpTtlSec(),
+  });
 }
 
 const getAdminFromSessionCached = cache(async () => {
@@ -179,6 +200,14 @@ export async function destroySession() {
 
 export async function verifyPassword(plain: string, hash: string): Promise<boolean> {
   return bcrypt.compare(plain, hash);
+}
+
+export async function verifyStepUpPassword(plain: string | undefined, hash: string): Promise<boolean> {
+  if (!plain) {
+    return false;
+  }
+
+  return verifyPassword(plain, hash);
 }
 
 export async function hashPassword(plain: string): Promise<string> {

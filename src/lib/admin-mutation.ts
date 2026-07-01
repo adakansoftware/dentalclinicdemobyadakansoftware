@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/auth";
+import { grantRecentAdminStepUp, hasRecentAdminStepUp, requireAdmin, verifyStepUpPassword } from "@/lib/auth";
 import { logAdminEvent } from "@/lib/admin-audit";
 import { getSuspicionDecision, recordSuspiciousActivity } from "@/lib/attack-monitor";
 import { logEvent } from "@/lib/observability";
@@ -28,6 +28,8 @@ interface RunAdminMutationOptions<T = unknown> {
   event: string;
   execute: () => Promise<AdminMutationResult<T>>;
   getErrorMessage?: (error: unknown) => string;
+  requireStepUp?: boolean;
+  stepUpPassword?: string;
 }
 
 function applyRevalidation(targets: RevalidateTarget[]) {
@@ -99,6 +101,19 @@ export async function runAdminMutation<T = unknown>(
   if (!perAdminDecision.allowed) {
     recordSuspiciousActivity(clientIpKey, 1);
     return { success: false, error: "Yonetim islemi gecici olarak yavaslatildi. Lutfen biraz sonra tekrar deneyin." };
+  }
+
+  if (options.requireStepUp) {
+    const alreadyVerified = await hasRecentAdminStepUp(admin.id);
+    if (!alreadyVerified) {
+      const validStepUp = await verifyStepUpPassword(options.stepUpPassword, admin.passwordHash);
+      if (!validStepUp) {
+        recordSuspiciousActivity(clientIpKey, 2);
+        return { success: false, error: "Bu islem icin admin sifresiyle tekrar dogrulama gerekli." };
+      }
+
+      await grantRecentAdminStepUp(admin.id);
+    }
   }
 
   try {

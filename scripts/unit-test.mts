@@ -29,6 +29,7 @@ import { getDurationMs } from "../src/lib/observability.ts";
 import { ResilienceError, getResilienceSnapshot, runWithCircuitBreaker, runWithConcurrencyLimit, runWithTimeout } from "../src/lib/resilience.ts";
 import { headersFromNodeRequest } from "../src/lib/request-headers.ts";
 import { buildRequestUrlFromHeaders, isTrustedMutationOrigin } from "../src/lib/request-origin.ts";
+import { createAdminStepUpProof, getAdminStepUpTtlSec, verifyAdminStepUpProof } from "../src/lib/admin-step-up.ts";
 import {
   buildAdminSessionClientBinding,
   hashAdminSessionGuard,
@@ -223,6 +224,17 @@ await run("admin session guard hash rejects mismatched client binding", () => {
 
   assert.equal(shouldInvalidateAdminSessionGuard("token-1", "binding-1", validGuard, "secret-1"), false);
   assert.equal(shouldInvalidateAdminSessionGuard("token-1", "binding-2", validGuard, "secret-1"), true);
+});
+
+await run("admin step-up proof validates only within ttl", () => {
+  const issuedAtSec = Math.floor(Date.now() / 1000);
+  const proof = createAdminStepUpProof("admin-1", issuedAtSec, "secret-1");
+
+  assert.equal(verifyAdminStepUpProof("admin-1", proof, Date.now(), "secret-1"), true);
+  assert.equal(
+    verifyAdminStepUpProof("admin-1", proof, Date.now() + (getAdminStepUpTtlSec() + 5) * 1000, "secret-1"),
+    false
+  );
 });
 
 await run("shouldRotateAdminSession flags stale sessions", () => {

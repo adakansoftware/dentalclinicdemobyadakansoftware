@@ -107,6 +107,8 @@ export async function updateSettingsAction(_prev: ActionResult, formData: FormDa
   return runAdminMutation({
     route: "action:updateSettings",
     event: "settings_updated",
+    requireStepUp: true,
+    stepUpPassword: String(formData.get("stepUpPassword") ?? ""),
     execute: async () => {
       await Promise.all(
         Object.entries(payload).map(([key, value]) =>

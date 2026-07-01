@@ -10,6 +10,7 @@ import {
 } from "@/lib/appointment-service";
 import { isBackendError } from "@/lib/backend-errors";
 import { getTodayDateInTurkey, compareDateStrings, dateToIsoDate } from "@/lib/date";
+import { runAdminMutation } from "@/lib/admin-mutation";
 import { logEvent } from "@/lib/observability";
 import { runPublicActionGuard } from "@/lib/public-action-guard";
 import { enforceRateLimit } from "@/lib/security";
@@ -173,8 +174,6 @@ const updateStatusSchema = z.object({
 });
 
 export async function updateAppointmentStatusAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
-  await requireAdmin();
-
   const parsed = updateStatusSchema.safeParse({
     id: formData.get("id"),
     status: formData.get("status"),
@@ -186,11 +185,50 @@ export async function updateAppointmentStatusAction(_prev: ActionResult, formDat
   }
 
   try {
-    const { previousAppointment, updatedAppointment } = await updateAppointmentStatusRecord({
-      id: parsed.data.id,
-      status: parsed.data.status,
-      adminNote: parsed.data.adminNote ?? "",
-    });
+    const requiresStepUp = parsed.data.status === "CANCELLED" || parsed.data.status === "COMPLETED";
+    if (!requiresStepUp) {
+      await requireAdmin();
+    }
+
+    const mutationResult = requiresStepUp
+      ? await runAdminMutation({
+          route: "action:updateAppointmentStatus",
+          event: "appointment_status_updated_admin",
+          requireStepUp: true,
+          stepUpPassword: String(formData.get("stepUpPassword") ?? ""),
+          execute: async () => {
+            const result = await updateAppointmentStatusRecord({
+              id: parsed.data.id,
+              status: parsed.data.status,
+              adminNote: parsed.data.adminNote ?? "",
+            });
+
+            return {
+              data: result,
+              meta: {
+                appointmentId: parsed.data.id,
+                previousStatus: result.previousAppointment.status,
+                nextStatus: result.updatedAppointment.status,
+              },
+              revalidate: ["/admin/appointments"],
+            };
+          },
+          getErrorMessage: () => "Randevu guncellenemedi",
+        })
+      : ({
+          success: true,
+          data: await updateAppointmentStatusRecord({
+            id: parsed.data.id,
+            status: parsed.data.status,
+            adminNote: parsed.data.adminNote ?? "",
+          }),
+        } satisfies ActionResult<Awaited<ReturnType<typeof updateAppointmentStatusRecord>>>);
+
+    if (!mutationResult.success || !mutationResult.data) {
+      return mutationResult;
+    }
+
+    const { previousAppointment, updatedAppointment } = mutationResult.data;
 
     if (updatedAppointment.status === "CANCELLED" && previousAppointment.status !== "CANCELLED") {
       void (async () => {
@@ -227,7 +265,9 @@ export async function updateAppointmentStatusAction(_prev: ActionResult, formDat
       },
     });
 
-    revalidatePath("/admin/appointments");
+    if (!requiresStepUp) {
+      revalidatePath("/admin/appointments");
+    }
     return { success: true };
   } catch (error) {
     if (isBackendError(error, "APPOINTMENT_NOT_FOUND")) {

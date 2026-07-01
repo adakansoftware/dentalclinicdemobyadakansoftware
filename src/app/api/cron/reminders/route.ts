@@ -4,7 +4,7 @@ import { jsonError, jsonOk } from "@/lib/api-response";
 import { applyEndpointSuspicion, authorizeBearerSecret, checkEndpointRateLimit, getEndpointBlockDecision } from "@/lib/endpoint-guard";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettings } from "@/lib/settings";
-import { buildReminderMessage, sendSms } from "@/lib/sms";
+import { buildReminderMessage, processSmsOutbox, sendSms } from "@/lib/sms";
 import { getEnv } from "@/lib/env";
 import { dateToIsoDate, getTomorrowDateInTurkey, getUtcRangeForTurkeyDate } from "@/lib/date";
 import { getDurationMs, logEvent } from "@/lib/observability";
@@ -132,8 +132,7 @@ export async function GET(request: Request) {
   }
 
   const settings = await getSiteSettings();
-  let sent = 0;
-  let failed = 0;
+  let enqueued = 0;
 
   for (const apt of appointments) {
     try {
@@ -153,13 +152,7 @@ export async function GET(request: Request) {
         appointmentId: apt.id,
         type: "REMINDER",
       });
-
-      await prisma.appointment.update({
-        where: { id: apt.id },
-        data: { smsSent: true },
-      });
-
-      sent++;
+      enqueued++;
     } catch (err) {
       logEvent({
         level: "error",
@@ -173,9 +166,10 @@ export async function GET(request: Request) {
           serviceId: apt.serviceId,
         },
       });
-      failed++;
     }
   }
+
+  const outboxResult = await processSmsOutbox(Math.max(enqueued, 1));
 
   const durationMs = getDurationMs(startedAt);
 
@@ -185,8 +179,10 @@ export async function GET(request: Request) {
     route: "/api/cron/reminders",
     meta: {
       total: appointments.length,
-      sent,
-      failed,
+      enqueued,
+      sent: outboxResult.sent,
+      failed: outboxResult.failed,
+      skipped: outboxResult.skipped,
       date: tomorrowDate,
       durationMs,
     },
@@ -196,8 +192,10 @@ export async function GET(request: Request) {
     {
       success: true,
       total: appointments.length,
-      sent,
-      failed,
+      enqueued,
+      sent: outboxResult.sent,
+      failed: outboxResult.failed,
+      skipped: outboxResult.skipped,
       date: tomorrowDate,
       responseTimeMs: durationMs,
     },

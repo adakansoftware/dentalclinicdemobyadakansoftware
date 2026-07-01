@@ -130,6 +130,18 @@ function AppointmentModal({ apt, onClose }: { apt: AppointmentItem; onClose: () 
               <textarea name="adminNote" defaultValue={apt.adminNote} className="form-input min-h-[80px]" />
             </div>
 
+            <div>
+              <label className="form-label">Admin Sifresi</label>
+              <input
+                name="stepUpPassword"
+                type="password"
+                className="form-input"
+                autoComplete="current-password"
+                placeholder="Iptal / tamamlandi gecislerinde gerekebilir"
+              />
+              <p className="mt-2 text-xs text-gray-500">Kritik durum degisikliklerinde son 10 dakikalik dogrulama aranir.</p>
+            </div>
+
             <button type="submit" disabled={isPending} className="btn-primary w-full">
               {isPending ? "Kaydediliyor..." : "Kaydet"}
             </button>
