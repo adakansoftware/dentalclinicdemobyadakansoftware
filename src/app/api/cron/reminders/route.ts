@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { buildApiHeaders, getRequestIdFromHeaders, secureCompare } from "@/lib/api-security";
+import { getRequestIdFromHeaders } from "@/lib/api-security";
 import { jsonError, jsonOk } from "@/lib/api-response";
-import { buildIpRateLimitKeyFromHeaders } from "@/lib/security-core";
-import { recordSuspiciousActivity } from "@/lib/attack-monitor";
+import { applyEndpointSuspicion, authorizeBearerSecret, checkEndpointRateLimit, getEndpointBlockDecision } from "@/lib/endpoint-guard";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettings } from "@/lib/settings";
 import { buildReminderMessage, sendSms } from "@/lib/sms";
@@ -17,9 +16,34 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const requestId = getRequestIdFromHeaders(request.headers);
   const startedAt = Date.now();
-  const authHeader = request.headers.get("authorization");
   const env = getEnv();
   const cronSecret = env.CRON_SECRET;
+  const blockDecision = getEndpointBlockDecision(request.headers);
+
+  if (blockDecision.blocked) {
+    return jsonError("Too many suspicious requests", {
+      requestId,
+      status: 429,
+      code: "SUSPICIOUS_TRAFFIC_BLOCKED",
+      retryAfterSec: blockDecision.retryAfterSec,
+    });
+  }
+
+  const rateDecision = checkEndpointRateLimit(request.headers, {
+    scope: "cron-reminders-route",
+    limit: 6,
+    windowMs: 60 * 1000,
+  });
+
+  if (!rateDecision.allowed) {
+    applyEndpointSuspicion(request.headers, 2);
+    return jsonError("Too many requests", {
+      requestId,
+      status: 429,
+      code: "RATE_LIMITED",
+      retryAfterSec: rateDecision.retryAfterSec || 60,
+    });
+  }
 
   if (env.NODE_ENV === "production" && !cronSecret) {
     logEvent({
@@ -37,18 +61,17 @@ export async function GET(request: Request) {
     });
   }
 
-  const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : null;
-  const isAuthorized = secureCompare(cronSecret, bearerToken);
+  const isAuthorized = authorizeBearerSecret(request.headers, cronSecret);
 
   if (!isAuthorized) {
-    recordSuspiciousActivity(buildIpRateLimitKeyFromHeaders(request.headers), 4);
+    applyEndpointSuspicion(request.headers, 4);
     logEvent({
       level: "warn",
       event: "cron_reminders_unauthorized",
       requestId,
       route: "/api/cron/reminders",
       meta: {
-        hasAuthorizationHeader: Boolean(authHeader),
+        hasAuthorizationHeader: Boolean(request.headers.get("authorization")),
         durationMs: getDurationMs(startedAt),
       },
     });

@@ -2,9 +2,11 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 import { getEnvIssues, getOptionalEnv } from "@/lib/env";
 import { getDurationMs, logEvent } from "@/lib/observability";
-import { buildApiHeaders, getBearerTokenFromHeaders, secureCompare } from "@/lib/api-security";
+import { buildApiHeaders } from "@/lib/api-security";
 import { buildHealthSummary } from "@/lib/health";
-import { getResilienceSnapshot } from "@/lib/resilience";
+import { getResilienceSnapshot, ResilienceError, runWithCircuitBreaker, runWithTimeout } from "@/lib/resilience";
+import { applyEndpointSuspicion, authorizeBearerSecret, checkEndpointRateLimit, getEndpointBlockDecision } from "@/lib/endpoint-guard";
+import { headersFromNodeRequest } from "@/lib/request-headers";
 
 function buildRequestId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -28,22 +30,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const env = getOptionalEnv();
   const isProduction = process.env.NODE_ENV === "production";
   const healthcheckSecret = env.HEALTHCHECK_SECRET;
+  const requestHeaders = headersFromNodeRequest(req.headers);
 
   if (req.method !== "GET") {
     applyApiHeaders(res, requestId, { Allow: "GET" });
     return res.status(405).json({ error: "Method Not Allowed", requestId });
   }
 
+  const blockDecision = getEndpointBlockDecision(requestHeaders);
+  if (blockDecision.blocked) {
+    applyApiHeaders(res, requestId, { "Retry-After": String(blockDecision.retryAfterSec) });
+    return res.status(429).json({ error: "Too many suspicious requests", requestId });
+  }
+
+  const rateDecision = checkEndpointRateLimit(requestHeaders, {
+    scope: "health-route",
+    limit: isProduction ? 20 : 60,
+    windowMs: 60 * 1000,
+  });
+
+  if (!rateDecision.allowed) {
+    applyEndpointSuspicion(requestHeaders, 1);
+    applyApiHeaders(res, requestId, { "Retry-After": String(rateDecision.retryAfterSec || 60) });
+    return res.status(429).json({ error: "Too many requests", requestId });
+  }
+
   if (isProduction) {
-    const bearerToken = getBearerTokenFromHeaders({
-      get(name: string) {
-        const value = req.headers[name];
-        return typeof value === "string" ? value : null;
-      },
-    });
-    const isAuthorized = secureCompare(healthcheckSecret, bearerToken);
+    const isAuthorized = authorizeBearerSecret(requestHeaders, healthcheckSecret);
 
     if (!isAuthorized) {
+      applyEndpointSuspicion(requestHeaders, 3);
       logEvent({
         level: "warn",
         event: "health_check_unauthorized",
@@ -61,14 +77,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    await prisma.$queryRaw`SELECT 1`;
-    const hardeningRows = await prisma.$queryRaw<Array<{ indexname: string }>>`
-      SELECT indexname
-      FROM pg_indexes
-      WHERE schemaname = 'public'
-        AND tablename = 'Appointment'
-        AND indexname = 'appointment_active_slot_unique'
-    `;
+    const [_, hardeningRows] = await runWithCircuitBreaker(
+      "health-route",
+      { failureThreshold: 3, cooldownMs: 30_000, halfOpenMaxConcurrent: 1 },
+      () =>
+        runWithTimeout(4_000, () =>
+          Promise.all([
+            prisma.$queryRaw`SELECT 1`,
+            prisma.$queryRaw<Array<{ indexname: string }>>`
+              SELECT indexname
+              FROM pg_indexes
+              WHERE schemaname = 'public'
+                AND tablename = 'Appointment'
+                AND indexname = 'appointment_active_slot_unique'
+            `,
+          ])
+        )
+    );
     const envIssues = getEnvIssues();
     const isEnvReady = envIssues.length === 0;
     const durationMs = getDurationMs(startedAt);
@@ -146,19 +171,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     logEvent({
-      level: "error",
+      level: error instanceof ResilienceError ? "warn" : "error",
       event: "health_check_failed",
       requestId,
       route: "/api/health",
       message: error instanceof Error ? error.message : "Unknown error",
-      meta: { durationMs },
+      meta: {
+        durationMs,
+        code: error instanceof ResilienceError ? error.code : undefined,
+      },
     });
 
     applyApiHeaders(res, requestId, {
       "Server-Timing": `app;dur=${durationMs}`,
       "X-Health-Status": summary.status,
     });
-    return res.status(500).json({
+    return res.status(error instanceof ResilienceError ? 503 : 500).json({
       ok: false,
       database: "down",
       status: summary.status,

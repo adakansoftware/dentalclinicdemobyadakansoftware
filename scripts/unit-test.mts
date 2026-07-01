@@ -15,6 +15,7 @@ import { isStatusBlockingSlot, timesOverlap } from "../src/lib/appointment-confl
 import { getRequestIdFromHeaders } from "../src/lib/api-security.ts";
 import { BackendError, isBackendError } from "../src/lib/backend-errors.ts";
 import { clearSuspicion, getSuspicionDecision, recordSuspiciousActivity } from "../src/lib/attack-monitor.ts";
+import { authorizeBearerSecret } from "../src/lib/endpoint-guard.ts";
 import { getEnv, resetEnvCacheForTests } from "../src/lib/env.ts";
 import {
   buildRequestFingerprintFromHeaders,
@@ -26,6 +27,7 @@ import {
 } from "../src/lib/security-core.ts";
 import { getDurationMs } from "../src/lib/observability.ts";
 import { ResilienceError, getResilienceSnapshot, runWithCircuitBreaker, runWithConcurrencyLimit, runWithTimeout } from "../src/lib/resilience.ts";
+import { headersFromNodeRequest } from "../src/lib/request-headers.ts";
 import { SOCIAL_IMAGE_HEIGHT, SOCIAL_IMAGE_PATH, SOCIAL_IMAGE_WIDTH, TWITTER_IMAGE_PATH } from "../src/lib/social-preview.ts";
 import { sanitizeAssetReference } from "../src/lib/upload-assets.ts";
 
@@ -148,6 +150,29 @@ await run("getRequestIdFromHeaders rejects invalid request ids", () => {
 
   assert.equal(getRequestIdFromHeaders(valid), "req-demo-12345");
   assert.equal(/^[a-zA-Z0-9._:-]{8,120}$/.test(getRequestIdFromHeaders(invalid)), true);
+});
+
+await run("headersFromNodeRequest normalizes string arrays", () => {
+  const headers = headersFromNodeRequest({
+    authorization: ["Bearer one", "Bearer two"],
+    "x-test": "value",
+  });
+
+  assert.equal(headers.get("authorization"), "Bearer one, Bearer two");
+  assert.equal(headers.get("x-test"), "value");
+});
+
+await run("authorizeBearerSecret validates bearer tokens safely", () => {
+  const authorized = new Headers({
+    authorization: "Bearer super-secret",
+  });
+  const unauthorized = new Headers({
+    authorization: "Bearer wrong-secret",
+  });
+
+  assert.equal(authorizeBearerSecret(authorized, "super-secret"), true);
+  assert.equal(authorizeBearerSecret(unauthorized, "super-secret"), false);
+  assert.equal(authorizeBearerSecret(new Headers(), "super-secret"), false);
 });
 
 await run("getDurationMs never returns negative values", () => {
