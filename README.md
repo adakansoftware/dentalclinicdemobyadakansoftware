@@ -149,6 +149,15 @@ Use this order for a real release:
 9. Run smoke tests against the deployed app if you have production-safe test data.
 10. Check admin login, booking flow, appointment lookup, and cancellation manually once.
 
+## Security Operations
+
+Distributed backend protection is active after schema apply.
+
+For production rollout and Cloudflare/WAF steps, see:
+
+- [PRODUCTION_HARDENING.md](./PRODUCTION_HARDENING.md)
+- [cloudflare-waf-rules.md](./cloudflare-waf-rules.md)
+
 ## Notes
 
 - The repository is ready for production-style deployment.
