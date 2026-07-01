@@ -6,7 +6,7 @@ import { jsonError, jsonOk } from "@/lib/api-response";
 import { compareDateStrings, getTodayDateInTurkey } from "@/lib/date";
 import { buildRequestFingerprintFromHeaders, getRateLimitDecisionByKey } from "@/lib/security";
 import { buildIpRateLimitKeyFromHeaders } from "@/lib/security-core";
-import { recordSuspiciousActivity } from "@/lib/attack-monitor";
+import { getSuspicionDecision, recordSuspiciousActivity } from "@/lib/attack-monitor";
 import { getDurationMs, logEvent } from "@/lib/observability";
 import { ResilienceError, runWithCircuitBreaker, runWithConcurrencyLimit, runWithTimeout } from "@/lib/resilience";
 import { methodNotAllowed } from "@/lib/route-methods";
@@ -21,9 +21,20 @@ const slotsQuerySchema = z.object({
 export async function GET(request: Request) {
   const requestId = getRequestIdFromHeaders(request.headers);
   const startedAt = Date.now();
+  const clientIpKey = buildIpRateLimitKeyFromHeaders(request.headers);
+  const suspicionDecision = getSuspicionDecision(clientIpKey);
+
+  if (suspicionDecision.blocked) {
+    return jsonError("Suspicious traffic temporarily blocked", {
+      requestId,
+      status: 429,
+      code: "SUSPICIOUS_TRAFFIC_BLOCKED",
+      retryAfterSec: suspicionDecision.retryAfterSec,
+    });
+  }
 
   if (!isAllowedBrowserOrigin(request.headers, request.url, { requireHeaderInProduction: true })) {
-    recordSuspiciousActivity(buildIpRateLimitKeyFromHeaders(request.headers), 2);
+    recordSuspiciousActivity(clientIpKey, 2);
     logEvent({
       level: "warn",
       event: "slots_origin_rejected",
@@ -49,7 +60,7 @@ export async function GET(request: Request) {
   });
 
   if (!parsed.success) {
-    recordSuspiciousActivity(buildIpRateLimitKeyFromHeaders(request.headers), 1);
+    recordSuspiciousActivity(clientIpKey, 1);
     logEvent({
       level: "warn",
       event: "slots_validation_failed",
@@ -98,7 +109,7 @@ export async function GET(request: Request) {
   );
 
   if (!decision.allowed) {
-    recordSuspiciousActivity(buildIpRateLimitKeyFromHeaders(request.headers), 1);
+    recordSuspiciousActivity(clientIpKey, 1);
     logEvent({
       level: "warn",
       event: "slots_rate_limited",
@@ -115,6 +126,26 @@ export async function GET(request: Request) {
       status: 429,
       code: "RATE_LIMITED",
       retryAfterSec: decision.retryAfterSec || 60,
+    });
+  }
+
+  const hotKeyDecision = getRateLimitDecisionByKey(
+    {
+      scope: "slots-api-target",
+      limit: 12,
+      windowMs: 60 * 1000,
+      keySuffix: `${parsed.data.specialistId}:${parsed.data.date}`,
+    },
+    clientIpKey
+  );
+
+  if (!hotKeyDecision.allowed) {
+    recordSuspiciousActivity(clientIpKey, 2);
+    return jsonError("Too many requests for this schedule", {
+      requestId,
+      status: 429,
+      code: "TARGET_RATE_LIMITED",
+      retryAfterSec: hotKeyDecision.retryAfterSec || 60,
     });
   }
 
@@ -152,6 +183,7 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     if (error instanceof ResilienceError) {
+      recordSuspiciousActivity(clientIpKey, error.code === "CIRCUIT_OPEN" ? 2 : 1);
       logEvent({
         level: "warn",
         event: "slots_backpressure_triggered",

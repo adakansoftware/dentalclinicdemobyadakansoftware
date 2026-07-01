@@ -24,6 +24,11 @@ export async function getRequestFingerprint(): Promise<string> {
   return buildRequestFingerprintFromHeaders(headerStore);
 }
 
+export async function getClientIpRateLimitKey(): Promise<string> {
+  const headerStore = await headers();
+  return getClientIpFromHeadersSync(headerStore);
+}
+
 export async function enforceRateLimit(options: RateLimitOptions): Promise<boolean> {
   const fingerprint = await getRequestFingerprint();
   return enforceRateLimitByKey(options, fingerprint);

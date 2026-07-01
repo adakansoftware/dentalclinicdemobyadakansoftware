@@ -28,6 +28,16 @@ export interface RateLimitDecision {
   retryAfterSec: number;
 }
 
+function normalizeRateLimitKeyPart(value: string) {
+  return value.trim().replace(/\s+/g, " ").slice(0, 160) || "unknown";
+}
+
+function buildRateLimitKey(options: RateLimitOptions, keySuffix: string) {
+  const baseKey = normalizeRateLimitKeyPart(keySuffix);
+  const contextualKey = options.keySuffix ? normalizeRateLimitKeyPart(options.keySuffix) : "";
+  return contextualKey ? `${options.scope}:${baseKey}:${contextualKey}` : `${options.scope}:${baseKey}`;
+}
+
 export function buildRequestFingerprintFromHeaders(headerStore: Headers): string {
   const ip = getClientIpFromHeadersSync(headerStore);
   const userAgent = headerStore.get("user-agent") || "unknown";
@@ -139,7 +149,7 @@ function cleanupRateLimitStore(now: number) {
 }
 
 export function getRateLimitDecisionByKey(options: RateLimitOptions, keySuffix: string): RateLimitDecision {
-  const key = `${options.scope}:${options.keySuffix ?? keySuffix}`;
+  const key = buildRateLimitKey(options, keySuffix);
   const now = Date.now();
   const windowStart = now - options.windowMs;
   const entry = rateLimitStore.get(key);

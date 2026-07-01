@@ -276,6 +276,17 @@ await run("getRateLimitDecisionByKey returns retry information after repeated ab
   assert.equal(blocked.retryAfterSec > 0, true);
 });
 
+await run("getRateLimitDecisionByKey keeps caller key and contextual key together", () => {
+  const scope = `unit-test-composite-${Date.now()}`;
+  const options = { scope, limit: 1, windowMs: 60_000, keySuffix: "shared-context" };
+
+  const firstClient = getRateLimitDecisionByKey(options, "client-a");
+  const secondClient = getRateLimitDecisionByKey(options, "client-b");
+
+  assert.equal(firstClient.allowed, true);
+  assert.equal(secondClient.allowed, true);
+});
+
 await run("runWithTimeout rejects long operations", async () => {
   await assert.rejects(
     () => runWithTimeout(10, () => new Promise((resolve) => setTimeout(resolve, 25))),

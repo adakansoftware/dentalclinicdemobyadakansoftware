@@ -1,5 +1,6 @@
 import { verifyTurnstileToken } from "@/lib/bot-protection";
-import { enforceRateLimit, validateFormAge, validateHoneypot } from "@/lib/security";
+import { getSuspicionDecision, recordSuspiciousActivity } from "@/lib/attack-monitor";
+import { enforceRateLimit, enforceRateLimitByKey, getClientIpRateLimitKey, validateFormAge, validateHoneypot } from "@/lib/security";
 import type { ActionResult } from "@/types";
 
 type PublicRateLimitOptions = {
@@ -28,12 +29,23 @@ export async function runPublicActionGuard<T = unknown>(
     rateLimitErrorMessage = "Cok fazla deneme yapildi. Lutfen biraz sonra tekrar deneyin.",
   } = options;
 
+  const clientIpKey = await getClientIpRateLimitKey();
+  const suspicionDecision = getSuspicionDecision(clientIpKey);
+  if (suspicionDecision.blocked) {
+    return {
+      success: false,
+      error: "Supheli istek trafigi gecici olarak engellendi. Lutfen daha sonra tekrar deneyin.",
+    };
+  }
+
   if (!validateHoneypot(formData) || !validateFormAge(formData)) {
+    recordSuspiciousActivity(clientIpKey, 2);
     return { success: false, error: validationErrorMessage };
   }
 
   const turnstileValid = await verifyTurnstileToken(formData.get("cf-turnstile-response"));
   if (!turnstileValid) {
+    recordSuspiciousActivity(clientIpKey, 3);
     return { success: false, error: turnstileErrorMessage };
   }
 
@@ -43,6 +55,22 @@ export async function runPublicActionGuard<T = unknown>(
 
   const allowed = await enforceRateLimit(rateLimit);
   if (!allowed) {
+    recordSuspiciousActivity(clientIpKey, 1);
+    return { success: false, error: rateLimitErrorMessage };
+  }
+
+  const ipAllowed = enforceRateLimitByKey(
+    {
+      scope: `${rateLimit.scope}-ip`,
+      limit: Math.max(rateLimit.limit * 2, rateLimit.limit + 3),
+      windowMs: rateLimit.windowMs,
+      keySuffix: "ip-only",
+    },
+    clientIpKey
+  );
+
+  if (!ipAllowed) {
+    recordSuspiciousActivity(clientIpKey, 2);
     return { success: false, error: rateLimitErrorMessage };
   }
 

@@ -17,10 +17,14 @@ export interface SlotsResult {
 
 const globalSlotCache = globalThis as typeof globalThis & {
   __adakanSlotsCache?: Map<string, { expiresAt: number; slots: TimeSlot[] }>;
+  __adakanSlotsInFlight?: Map<string, Promise<SlotsResult>>;
 };
 const slotsCache = globalSlotCache.__adakanSlotsCache ?? new Map<string, { expiresAt: number; slots: TimeSlot[] }>();
+const slotsInFlight = globalSlotCache.__adakanSlotsInFlight ?? new Map<string, Promise<SlotsResult>>();
 globalSlotCache.__adakanSlotsCache = slotsCache;
+globalSlotCache.__adakanSlotsInFlight = slotsInFlight;
 const SLOTS_CACHE_TTL_MS = 15_000;
+const SLOTS_CACHE_MAX_KEYS = 500;
 
 function timeToMinutes(time: string): number {
   const [h, m] = time.split(":").map(Number);
@@ -135,15 +139,40 @@ export async function getAvailableSlotsWithMeta(
     return { slots: cached.slots, cacheHit: true };
   }
 
+  const inFlight = slotsInFlight.get(key);
+  if (inFlight) {
+    return inFlight;
+  }
+
   for (const [cacheKey, entry] of slotsCache.entries()) {
     if (entry.expiresAt <= now) {
       slotsCache.delete(cacheKey);
     }
   }
 
-  const slots = await getAvailableSlotsFromDb(prisma, specialistId, dateStr);
-  slotsCache.set(key, { slots, expiresAt: now + SLOTS_CACHE_TTL_MS });
-  return { slots, cacheHit: false };
+  if (slotsCache.size > SLOTS_CACHE_MAX_KEYS) {
+    const oldestEntries = [...slotsCache.entries()]
+      .sort((a, b) => a[1].expiresAt - b[1].expiresAt)
+      .slice(0, slotsCache.size - SLOTS_CACHE_MAX_KEYS);
+
+    for (const [cacheKey] of oldestEntries) {
+      slotsCache.delete(cacheKey);
+    }
+  }
+
+  const pending = (async () => {
+    const slots = await getAvailableSlotsFromDb(prisma, specialistId, dateStr);
+    slotsCache.set(key, { slots, expiresAt: Date.now() + SLOTS_CACHE_TTL_MS });
+    return { slots, cacheHit: false };
+  })();
+
+  slotsInFlight.set(key, pending);
+
+  try {
+    return await pending;
+  } finally {
+    slotsInFlight.delete(key);
+  }
 }
 
 export async function checkSlotAvailabilityWithDb(
