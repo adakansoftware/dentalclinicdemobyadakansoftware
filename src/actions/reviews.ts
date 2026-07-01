@@ -28,6 +28,16 @@ export async function submitReviewAction(_prev: ActionResult, formData: FormData
       windowMs: 30 * 60 * 1000,
       keySuffix: [String(formData.get("patientName") ?? ""), String(formData.get("ratingStars") ?? "")].join(":"),
     },
+    replayProtection: {
+      scope: "review-submit",
+      ttlMs: 45_000,
+      values: [
+        String(formData.get("patientName") ?? ""),
+        String(formData.get("ratingStars") ?? ""),
+        String(formData.get("contentTr") ?? ""),
+      ],
+      duplicateErrorMessage: "Bu yorum kisa sure once gonderildi. Lutfen tekrar denemeyin.",
+    },
     rateLimitErrorMessage: "Cok fazla yorum gonderildi. Lutfen daha sonra tekrar deneyin.",
   });
 

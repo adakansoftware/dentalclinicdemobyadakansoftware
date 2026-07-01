@@ -1,3 +1,4 @@
+import { buildActionReplayKey, claimActionReplay } from "@/lib/action-replay";
 import { verifyTurnstileToken } from "@/lib/bot-protection";
 import { getSuspicionDecision, recordSuspiciousActivity } from "@/lib/attack-monitor";
 import { enforceRateLimit, enforceRateLimitByKey, getClientIpRateLimitKey, validateFormAge, validateHoneypot } from "@/lib/security";
@@ -13,6 +14,12 @@ type PublicRateLimitOptions = {
 type PublicActionGuardOptions = {
   formData: FormData;
   rateLimit?: PublicRateLimitOptions;
+  replayProtection?: {
+    scope: string;
+    ttlMs: number;
+    values: Array<string | number | boolean | null | undefined>;
+    duplicateErrorMessage?: string;
+  };
   validationErrorMessage?: string;
   turnstileErrorMessage?: string;
   rateLimitErrorMessage?: string;
@@ -24,6 +31,7 @@ export async function runPublicActionGuard<T = unknown>(
   const {
     formData,
     rateLimit,
+    replayProtection,
     validationErrorMessage = "Istek dogrulanamadi. Lutfen tekrar deneyin.",
     turnstileErrorMessage = "Bot dogrulamasi basarisiz oldu. Lutfen tekrar deneyin.",
     rateLimitErrorMessage = "Cok fazla deneme yapildi. Lutfen biraz sonra tekrar deneyin.",
@@ -47,6 +55,18 @@ export async function runPublicActionGuard<T = unknown>(
   if (!turnstileValid) {
     recordSuspiciousActivity(clientIpKey, 3);
     return { success: false, error: turnstileErrorMessage };
+  }
+
+  if (replayProtection) {
+    const replayKey = buildActionReplayKey(replayProtection.scope, [clientIpKey, ...replayProtection.values]);
+    const replayClaim = claimActionReplay(replayKey, replayProtection.ttlMs);
+    if (replayClaim.duplicate) {
+      recordSuspiciousActivity(clientIpKey, 1);
+      return {
+        success: false,
+        error: replayProtection.duplicateErrorMessage ?? "Bu istek zaten alindi. Lutfen tekrar denemeden once bekleyin.",
+      };
+    }
   }
 
   if (!rateLimit) {

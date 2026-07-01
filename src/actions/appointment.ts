@@ -9,6 +9,7 @@ import {
   updateAppointmentStatusRecord,
 } from "@/lib/appointment-service";
 import { isBackendError } from "@/lib/backend-errors";
+import { buildActionReplayKey, claimActionReplay } from "@/lib/action-replay";
 import { getTodayDateInTurkey, compareDateStrings, dateToIsoDate } from "@/lib/date";
 import { runAdminMutation } from "@/lib/admin-mutation";
 import { logEvent } from "@/lib/observability";
@@ -50,6 +51,17 @@ export async function createAppointmentAction(_prev: ActionResult, formData: For
         String(formData.get("date") ?? ""),
         String(formData.get("startTime") ?? ""),
       ].join(":"),
+    },
+    replayProtection: {
+      scope: "appointment-create",
+      ttlMs: 20_000,
+      values: [
+        String(formData.get("patientPhone") ?? ""),
+        String(formData.get("date") ?? ""),
+        String(formData.get("startTime") ?? ""),
+        String(formData.get("specialistId") ?? ""),
+      ],
+      duplicateErrorMessage: "Ayni randevu istegi kisa sure once alindi. Lutfen bekleyin.",
     },
     validationErrorMessage: "Istek dogrulanamadi. Lutfen formu tekrar gonderin.",
   });
@@ -190,6 +202,16 @@ export async function updateAppointmentStatusAction(_prev: ActionResult, formDat
       await requireAdmin();
     }
 
+    const replayKey = buildActionReplayKey("admin-appointment-status", [
+      parsed.data.id,
+      parsed.data.status,
+      parsed.data.adminNote ?? "",
+    ]);
+    const replayClaim = claimActionReplay(replayKey, 15_000);
+    if (replayClaim.duplicate) {
+      return { success: false, error: "Bu durum guncellemesi zaten alindi. Lutfen tekrar denemeyin." };
+    }
+
     const mutationResult = requiresStepUp
       ? await runAdminMutation({
           route: "action:updateAppointmentStatus",
@@ -321,6 +343,16 @@ export async function cancelAppointmentByPhoneAction(
       limit: 4,
       windowMs: 15 * 60 * 1000,
       keySuffix: [String(formData.get("patientPhone") ?? ""), String(formData.get("date") ?? "")].join(":"),
+    },
+    replayProtection: {
+      scope: "appointment-cancel",
+      ttlMs: 20_000,
+      values: [
+        String(formData.get("patientPhone") ?? ""),
+        String(formData.get("date") ?? ""),
+        String(formData.get("patientName") ?? ""),
+      ],
+      duplicateErrorMessage: "Bu iptal istegi zaten alindi. Lutfen kisa bir sure bekleyin.",
     },
     validationErrorMessage: "Istek dogrulanamadi. Lutfen formu tekrar gonderin.",
     rateLimitErrorMessage: "Cok fazla iptal denemesi yapildi. Lutfen biraz sonra tekrar deneyin.",
@@ -456,6 +488,12 @@ export async function lookupAppointmentsByPhoneAction(
       limit: 5,
       windowMs: 15 * 60 * 1000,
       keySuffix: String(formData.get("patientPhone") ?? ""),
+    },
+    replayProtection: {
+      scope: "appointment-lookup",
+      ttlMs: 10_000,
+      values: [String(formData.get("patientPhone") ?? ""), String(formData.get("patientName") ?? "")],
+      duplicateErrorMessage: "Ayni sorgu kisa sure once yapildi. Lutfen tekrar deneyin.",
     },
     validationErrorMessage: "Istek dogrulanamadi. Lutfen formu tekrar gonderin.",
     rateLimitErrorMessage: "Cok fazla sorgu yapildi. Lutfen biraz sonra tekrar deneyin.",

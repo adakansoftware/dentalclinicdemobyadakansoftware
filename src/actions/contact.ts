@@ -34,6 +34,16 @@ export async function submitContactAction(_prev: ActionResult, formData: FormDat
       windowMs: 15 * 60 * 1000,
       keySuffix: [String(formData.get("phone") ?? ""), String(formData.get("email") ?? "")].join(":"),
     },
+    replayProtection: {
+      scope: "contact-submit",
+      ttlMs: 30_000,
+      values: [
+        String(formData.get("phone") ?? ""),
+        String(formData.get("email") ?? ""),
+        String(formData.get("subject") ?? ""),
+      ],
+      duplicateErrorMessage: "Bu mesaj istegi zaten alindi. Lutfen tekrar gondermeden once bekleyin.",
+    },
     rateLimitErrorMessage: "Cok fazla mesaj gonderildi. Lutfen biraz sonra tekrar deneyin.",
   });
 

@@ -29,6 +29,7 @@ import { getDurationMs } from "../src/lib/observability.ts";
 import { ResilienceError, getResilienceSnapshot, runWithCircuitBreaker, runWithConcurrencyLimit, runWithTimeout } from "../src/lib/resilience.ts";
 import { headersFromNodeRequest } from "../src/lib/request-headers.ts";
 import { buildRequestUrlFromHeaders, isTrustedMutationOrigin } from "../src/lib/request-origin.ts";
+import { buildActionReplayKey, claimActionReplay } from "../src/lib/action-replay.ts";
 import { createAdminStepUpProof, getAdminStepUpTtlSec, verifyAdminStepUpProof } from "../src/lib/admin-step-up.ts";
 import {
   buildAdminSessionClientBinding,
@@ -235,6 +236,15 @@ await run("admin step-up proof validates only within ttl", () => {
     verifyAdminStepUpProof("admin-1", proof, Date.now() + (getAdminStepUpTtlSec() + 5) * 1000, "secret-1"),
     false
   );
+});
+
+await run("action replay guard rejects immediate duplicate claims", () => {
+  const key = buildActionReplayKey(`unit-replay-${Date.now()}`, ["same", "payload"]);
+  const first = claimActionReplay(key, 60_000);
+  const second = claimActionReplay(key, 60_000);
+
+  assert.equal(first.duplicate, false);
+  assert.equal(second.duplicate, true);
 });
 
 await run("shouldRotateAdminSession flags stale sessions", () => {
