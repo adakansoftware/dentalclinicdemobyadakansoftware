@@ -28,6 +28,7 @@ import {
 import { getDurationMs } from "../src/lib/observability.ts";
 import { ResilienceError, getResilienceSnapshot, runWithCircuitBreaker, runWithConcurrencyLimit, runWithTimeout } from "../src/lib/resilience.ts";
 import { headersFromNodeRequest } from "../src/lib/request-headers.ts";
+import { buildRequestUrlFromHeaders, isTrustedMutationOrigin } from "../src/lib/request-origin.ts";
 import { SOCIAL_IMAGE_HEIGHT, SOCIAL_IMAGE_PATH, SOCIAL_IMAGE_WIDTH, TWITTER_IMAGE_PATH } from "../src/lib/social-preview.ts";
 import { toAbsoluteAssetUrl } from "../src/lib/seo.ts";
 import { sanitizeAssetReference } from "../src/lib/upload-assets.ts";
@@ -161,6 +162,44 @@ await run("headersFromNodeRequest normalizes string arrays", () => {
 
   assert.equal(headers.get("authorization"), "Bearer one, Bearer two");
   assert.equal(headers.get("x-test"), "value");
+});
+
+await run("buildRequestUrlFromHeaders reconstructs forwarded request url safely", () => {
+  const headerStore = new Headers({
+    "x-forwarded-host": "clinic.example",
+    "x-forwarded-proto": "https",
+  });
+
+  assert.equal(buildRequestUrlFromHeaders(headerStore, "/admin"), "https://clinic.example/admin");
+});
+
+await run("isTrustedMutationOrigin rejects cross-site mutation hints", () => {
+  withEnv(
+    {
+      DATABASE_URL: "postgresql://example",
+      SESSION_SECRET: "12345678901234567890123456789012",
+      NEXT_PUBLIC_APP_URL: "https://clinic.example",
+      SMS_ENABLED: "false",
+      NODE_ENV: "production",
+    },
+    () => {
+      const trusted = new Headers({
+        "x-forwarded-host": "clinic.example",
+        "x-forwarded-proto": "https",
+        origin: "https://clinic.example",
+        "sec-fetch-site": "same-origin",
+      });
+      const untrusted = new Headers({
+        "x-forwarded-host": "clinic.example",
+        "x-forwarded-proto": "https",
+        origin: "https://evil.example",
+        "sec-fetch-site": "cross-site",
+      });
+
+      assert.equal(isTrustedMutationOrigin(trusted, "/admin/settings"), true);
+      assert.equal(isTrustedMutationOrigin(untrusted, "/admin/settings"), false);
+    }
+  );
 });
 
 await run("authorizeBearerSecret validates bearer tokens safely", () => {

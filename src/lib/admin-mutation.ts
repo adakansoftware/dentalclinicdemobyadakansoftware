@@ -1,6 +1,12 @@
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { logAdminEvent } from "@/lib/admin-audit";
+import { getSuspicionDecision, recordSuspiciousActivity } from "@/lib/attack-monitor";
+import { logEvent } from "@/lib/observability";
+import { isTrustedMutationOrigin } from "@/lib/request-origin";
+import { ResilienceError, runWithCircuitBreaker, runWithConcurrencyLimit, runWithTimeout } from "@/lib/resilience";
+import { buildIpRateLimitKeyFromHeaders, getRateLimitDecisionByKey } from "@/lib/security";
 import type { ActionResult } from "@/types";
 
 type RevalidateTarget =
@@ -38,10 +44,74 @@ function applyRevalidation(targets: RevalidateTarget[]) {
 export async function runAdminMutation<T = unknown>(
   options: RunAdminMutationOptions<T>
 ): Promise<ActionResult<T>> {
+  const requestHeaders = await headers();
+  const clientIpKey = buildIpRateLimitKeyFromHeaders(requestHeaders);
+
+  if (!isTrustedMutationOrigin(requestHeaders, options.route)) {
+    recordSuspiciousActivity(clientIpKey, 3);
+    logEvent({
+      level: "warn",
+      event: "admin_mutation_origin_rejected",
+      route: options.route,
+      meta: {
+        origin: requestHeaders.get("origin") ?? undefined,
+        referer: requestHeaders.get("referer") ?? undefined,
+      },
+    });
+    return { success: false, error: "Istek kaynagi dogrulanamadi" };
+  }
+
+  const suspicionDecision = getSuspicionDecision(clientIpKey);
+  if (suspicionDecision.blocked) {
+    return { success: false, error: "Supheli yonetim trafigi gecici olarak engellendi" };
+  }
+
+  const contentLength = Number(requestHeaders.get("content-length") ?? "0");
+  if (Number.isFinite(contentLength) && contentLength > 1_500_000) {
+    recordSuspiciousActivity(clientIpKey, 2);
+    return { success: false, error: "Istek boyutu desteklenmiyor" };
+  }
+
   const admin = await requireAdmin();
+  const perIpDecision = getRateLimitDecisionByKey(
+    {
+      scope: "admin-mutation-ip",
+      limit: 20,
+      windowMs: 60 * 1000,
+      keySuffix: options.route,
+    },
+    clientIpKey
+  );
+  if (!perIpDecision.allowed) {
+    recordSuspiciousActivity(clientIpKey, 1);
+    return { success: false, error: "Cok fazla yonetim islemi yapildi. Lutfen biraz sonra tekrar deneyin." };
+  }
+
+  const perAdminDecision = getRateLimitDecisionByKey(
+    {
+      scope: "admin-mutation-admin",
+      limit: 40,
+      windowMs: 60 * 1000,
+      keySuffix: `${admin.id}:${options.route}`,
+    },
+    clientIpKey
+  );
+  if (!perAdminDecision.allowed) {
+    recordSuspiciousActivity(clientIpKey, 1);
+    return { success: false, error: "Yonetim islemi gecici olarak yavaslatildi. Lutfen biraz sonra tekrar deneyin." };
+  }
 
   try {
-    const result = await options.execute();
+    const result = await runWithCircuitBreaker(
+      "admin-mutations",
+      { failureThreshold: 5, cooldownMs: 30_000, halfOpenMaxConcurrent: 1 },
+      () =>
+        runWithConcurrencyLimit("admin-mutations-global", 8, () =>
+          runWithConcurrencyLimit(`admin-mutation-route:${options.route}`, 2, () =>
+            runWithTimeout(12_000, () => options.execute())
+          )
+        )
+    );
 
     logAdminEvent({
       admin,
@@ -60,6 +130,10 @@ export async function runAdminMutation<T = unknown>(
       message: result.message,
     };
   } catch (error) {
+    if (error instanceof ResilienceError) {
+      recordSuspiciousActivity(clientIpKey, error.code === "CIRCUIT_OPEN" ? 2 : 1);
+    }
+
     const message = options.getErrorMessage?.(error) ?? "Islem tamamlanamadi";
 
     logAdminEvent({
@@ -69,12 +143,13 @@ export async function runAdminMutation<T = unknown>(
       message: error instanceof Error ? error.message : "Unknown admin mutation error",
       meta: {
         failureMessage: message,
+        resilienceCode: error instanceof ResilienceError ? error.code : undefined,
       },
     });
 
     return {
       success: false,
-      error: message,
+      error: error instanceof ResilienceError ? "Yonetim servisi gecici olarak yogun. Lutfen tekrar deneyin." : message,
     };
   }
 }
