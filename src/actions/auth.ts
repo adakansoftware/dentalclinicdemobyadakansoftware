@@ -5,9 +5,9 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { createSession, destroySession, setSessionCookie, verifyPassword } from "@/lib/auth";
 import { sanitizeEmailInput } from "@/lib/input";
-import { verifyTurnstileToken } from "@/lib/bot-protection";
 import { logEvent } from "@/lib/observability";
-import { enforceRateLimit, getRequestFingerprint, validateFormAge, validateHoneypot } from "@/lib/security";
+import { runPublicActionGuard } from "@/lib/public-action-guard";
+import { getRequestFingerprint } from "@/lib/security";
 import { redirect } from "next/navigation";
 import type { ActionResult } from "@/types";
 
@@ -21,15 +21,6 @@ function fingerprintIdentifier(value: string) {
 }
 
 export async function loginAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
-  if (!validateHoneypot(formData) || !validateFormAge(formData)) {
-    return { success: false, error: "Istek dogrulanamadi. Lutfen tekrar deneyin." };
-  }
-
-  const turnstileValid = await verifyTurnstileToken(formData.get("cf-turnstile-response"));
-  if (!turnstileValid) {
-    return { success: false, error: "Bot dogrulamasi basarisiz oldu. Lutfen tekrar deneyin." };
-  }
-
   const parsed = loginSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
@@ -42,14 +33,17 @@ export async function loginAction(_prev: ActionResult, formData: FormData): Prom
   const fingerprint = await getRequestFingerprint();
   const loginKey = `${parsed.data.email}:${fingerprint}`;
   const emailHash = fingerprintIdentifier(parsed.data.email);
-  const allowed = await enforceRateLimit({
-    scope: "admin-login",
-    limit: 5,
-    windowMs: 15 * 60 * 1000,
-    keySuffix: loginKey,
+  const guardResult = await runPublicActionGuard({
+    formData,
+    rateLimit: {
+      scope: "admin-login",
+      limit: 5,
+      windowMs: 15 * 60 * 1000,
+      keySuffix: loginKey,
+    },
+    rateLimitErrorMessage: "Cok fazla giris denemesi yapildi. Lutfen biraz sonra tekrar deneyin.",
   });
-
-  if (!allowed) {
+  if (guardResult) {
     logEvent({
       level: "warn",
       event: "admin_login_rate_limited",
@@ -60,7 +54,7 @@ export async function loginAction(_prev: ActionResult, formData: FormData): Prom
       },
     });
 
-    return { success: false, error: "Cok fazla giris denemesi yapildi. Lutfen biraz sonra tekrar deneyin." };
+    return guardResult;
   }
 
   const admin = await prisma.adminUser.findUnique({

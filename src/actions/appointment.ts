@@ -9,10 +9,10 @@ import {
   updateAppointmentStatusRecord,
 } from "@/lib/appointment-service";
 import { isBackendError } from "@/lib/backend-errors";
-import { verifyTurnstileToken } from "@/lib/bot-protection";
 import { getTodayDateInTurkey, compareDateStrings, dateToIsoDate } from "@/lib/date";
 import { logEvent } from "@/lib/observability";
-import { enforceRateLimit, validateFormAge, validateHoneypot } from "@/lib/security";
+import { runPublicActionGuard } from "@/lib/public-action-guard";
+import { enforceRateLimit } from "@/lib/security";
 import { getSiteSettings } from "@/lib/settings";
 import { getAvailableSlots } from "@/lib/slots";
 import { buildCancellationMessage, buildConfirmationMessage, sendSms } from "@/lib/sms";
@@ -38,23 +38,23 @@ const createAppointmentSchema = z
   });
 
 export async function createAppointmentAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
-  if (!validateHoneypot(formData) || !validateFormAge(formData)) {
-    return { success: false, error: "Istek dogrulanamadi. Lutfen formu tekrar gonderin." };
-  }
-
-  const turnstileValid = await verifyTurnstileToken(formData.get("cf-turnstile-response"));
-  if (!turnstileValid) {
-    return { success: false, error: "Bot dogrulamasi basarisiz oldu. Lutfen tekrar deneyin." };
-  }
-
-  const allowed = await enforceRateLimit({
-    scope: "appointment-create",
-    limit: 6,
-    windowMs: 15 * 60 * 1000,
+  const guardResult = await runPublicActionGuard({
+    formData,
+    rateLimit: {
+      scope: "appointment-create",
+      limit: 6,
+      windowMs: 15 * 60 * 1000,
+      keySuffix: [
+        String(formData.get("patientPhone") ?? ""),
+        String(formData.get("date") ?? ""),
+        String(formData.get("startTime") ?? ""),
+      ].join(":"),
+    },
+    validationErrorMessage: "Istek dogrulanamadi. Lutfen formu tekrar gonderin.",
   });
 
-  if (!allowed) {
-    return { success: false, error: "Cok fazla deneme yapildi. Lutfen biraz sonra tekrar deneyin." };
+  if (guardResult) {
+    return guardResult;
   }
 
   const parsed = createAppointmentSchema.safeParse({
@@ -274,23 +274,20 @@ export async function cancelAppointmentByPhoneAction(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult<{ cancelledId: string }>> {
-  if (!validateHoneypot(formData) || !validateFormAge(formData)) {
-    return { success: false, error: "Istek dogrulanamadi. Lutfen formu tekrar gonderin." };
-  }
-
-  const turnstileValid = await verifyTurnstileToken(formData.get("cf-turnstile-response"));
-  if (!turnstileValid) {
-    return { success: false, error: "Bot dogrulamasi basarisiz oldu. Lutfen tekrar deneyin." };
-  }
-
-  const allowed = await enforceRateLimit({
-    scope: "appointment-cancel",
-    limit: 4,
-    windowMs: 15 * 60 * 1000,
+  const guardResult = await runPublicActionGuard<{ cancelledId: string }>({
+    formData,
+    rateLimit: {
+      scope: "appointment-cancel",
+      limit: 4,
+      windowMs: 15 * 60 * 1000,
+      keySuffix: [String(formData.get("patientPhone") ?? ""), String(formData.get("date") ?? "")].join(":"),
+    },
+    validationErrorMessage: "Istek dogrulanamadi. Lutfen formu tekrar gonderin.",
+    rateLimitErrorMessage: "Cok fazla iptal denemesi yapildi. Lutfen biraz sonra tekrar deneyin.",
   });
 
-  if (!allowed) {
-    return { success: false, error: "Cok fazla iptal denemesi yapildi. Lutfen biraz sonra tekrar deneyin." };
+  if (guardResult) {
+    return guardResult;
   }
 
   const parsed = cancelAppointmentSchema.safeParse({
@@ -412,23 +409,20 @@ export async function lookupAppointmentsByPhoneAction(
   _prev: ActionResult<PublicAppointmentLookupItem[]>,
   formData: FormData
 ): Promise<ActionResult<PublicAppointmentLookupItem[]>> {
-  if (!validateHoneypot(formData) || !validateFormAge(formData)) {
-    return { success: false, error: "Istek dogrulanamadi. Lutfen formu tekrar gonderin." };
-  }
-
-  const turnstileValid = await verifyTurnstileToken(formData.get("cf-turnstile-response"));
-  if (!turnstileValid) {
-    return { success: false, error: "Bot dogrulamasi basarisiz oldu. Lutfen tekrar deneyin." };
-  }
-
-  const allowed = await enforceRateLimit({
-    scope: "appointment-lookup",
-    limit: 5,
-    windowMs: 15 * 60 * 1000,
+  const guardResult = await runPublicActionGuard<PublicAppointmentLookupItem[]>({
+    formData,
+    rateLimit: {
+      scope: "appointment-lookup",
+      limit: 5,
+      windowMs: 15 * 60 * 1000,
+      keySuffix: String(formData.get("patientPhone") ?? ""),
+    },
+    validationErrorMessage: "Istek dogrulanamadi. Lutfen formu tekrar gonderin.",
+    rateLimitErrorMessage: "Cok fazla sorgu yapildi. Lutfen biraz sonra tekrar deneyin.",
   });
 
-  if (!allowed) {
-    return { success: false, error: "Cok fazla sorgu yapildi. Lutfen biraz sonra tekrar deneyin." };
+  if (guardResult) {
+    return guardResult;
   }
 
   const parsed = lookupAppointmentsSchema.safeParse({

@@ -4,9 +4,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { runAdminMutation } from "@/lib/admin-mutation";
 import { recordIdSchema, sanitizeTextInput, sanitizeTextareaInput } from "@/lib/input";
-import { verifyTurnstileToken } from "@/lib/bot-protection";
-import { enforceRateLimit, validateFormAge, validateHoneypot } from "@/lib/security";
 import { logEvent } from "@/lib/observability";
+import { runPublicActionGuard } from "@/lib/public-action-guard";
 import type { ActionResult } from "@/types";
 
 const reviewSchema = z.object({
@@ -21,23 +20,19 @@ const reviewIdSchema = z.object({
 });
 
 export async function submitReviewAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
-  if (!validateHoneypot(formData) || !validateFormAge(formData)) {
-    return { success: false, error: "Istek dogrulanamadi. Lutfen tekrar deneyin." };
-  }
-
-  const turnstileValid = await verifyTurnstileToken(formData.get("cf-turnstile-response"));
-  if (!turnstileValid) {
-    return { success: false, error: "Bot dogrulamasi basarisiz oldu. Lutfen tekrar deneyin." };
-  }
-
-  const allowed = await enforceRateLimit({
-    scope: "review-submit",
-    limit: 4,
-    windowMs: 30 * 60 * 1000,
+  const guardResult = await runPublicActionGuard({
+    formData,
+    rateLimit: {
+      scope: "review-submit",
+      limit: 4,
+      windowMs: 30 * 60 * 1000,
+      keySuffix: [String(formData.get("patientName") ?? ""), String(formData.get("ratingStars") ?? "")].join(":"),
+    },
+    rateLimitErrorMessage: "Cok fazla yorum gonderildi. Lutfen daha sonra tekrar deneyin.",
   });
 
-  if (!allowed) {
-    return { success: false, error: "Cok fazla yorum gonderildi. Lutfen daha sonra tekrar deneyin." };
+  if (guardResult) {
+    return guardResult;
   }
 
   const parsed = reviewSchema.safeParse({

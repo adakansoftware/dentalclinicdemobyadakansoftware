@@ -9,9 +9,8 @@ import {
   markContactRequestReadRecord,
 } from "@/lib/contact-service";
 import { recordIdSchema, sanitizeEmailInput, sanitizePhoneInput, sanitizeTextInput, sanitizeTextareaInput } from "@/lib/input";
-import { verifyTurnstileToken } from "@/lib/bot-protection";
-import { enforceRateLimit, validateFormAge, validateHoneypot } from "@/lib/security";
 import { logEvent } from "@/lib/observability";
+import { runPublicActionGuard } from "@/lib/public-action-guard";
 import type { ActionResult } from "@/types";
 
 const contactSchema = z.object({
@@ -27,23 +26,19 @@ const contactRequestIdSchema = z.object({
 });
 
 export async function submitContactAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
-  if (!validateHoneypot(formData) || !validateFormAge(formData)) {
-    return { success: false, error: "Istek dogrulanamadi. Lutfen tekrar deneyin." };
-  }
-
-  const turnstileValid = await verifyTurnstileToken(formData.get("cf-turnstile-response"));
-  if (!turnstileValid) {
-    return { success: false, error: "Bot dogrulamasi basarisiz oldu. Lutfen tekrar deneyin." };
-  }
-
-  const allowed = await enforceRateLimit({
-    scope: "contact-submit",
-    limit: 5,
-    windowMs: 15 * 60 * 1000,
+  const guardResult = await runPublicActionGuard({
+    formData,
+    rateLimit: {
+      scope: "contact-submit",
+      limit: 5,
+      windowMs: 15 * 60 * 1000,
+      keySuffix: [String(formData.get("phone") ?? ""), String(formData.get("email") ?? "")].join(":"),
+    },
+    rateLimitErrorMessage: "Cok fazla mesaj gonderildi. Lutfen biraz sonra tekrar deneyin.",
   });
 
-  if (!allowed) {
-    return { success: false, error: "Cok fazla mesaj gonderildi. Lutfen biraz sonra tekrar deneyin." };
+  if (guardResult) {
+    return guardResult;
   }
 
   const parsed = contactSchema.safeParse({
