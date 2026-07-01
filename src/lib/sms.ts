@@ -3,6 +3,11 @@ import { getEnv } from "@/lib/env";
 import { logEvent } from "@/lib/observability";
 
 const SMS_ENABLED = getEnv().SMS_ENABLED === "true";
+const SMS_PROCESSING_PREFIX = "processing:";
+const SMS_RETRY_PREFIX = "retry:";
+const SMS_PROCESSING_LEASE_MS = 2 * 60 * 1000;
+const SMS_RETRY_COOLDOWN_MS = 5 * 60 * 1000;
+const SMS_MAX_RETRY_ATTEMPTS = 3;
 
 interface SmsOptions {
   phone: string;
@@ -17,6 +22,10 @@ interface SmsOutboxResult {
   failed: number;
   skipped: number;
 }
+
+type SmsRetryState =
+  | { kind: "idle"; attempts: number; timestamp: number | null }
+  | { kind: "processing"; attempts: number; timestamp: number | null };
 
 export function buildConfirmationMessage(
   lang: "TR" | "EN",
@@ -94,6 +103,77 @@ const smsOutboxRuntime = globalThis as typeof globalThis & {
   __adakanSmsOutboxPromise?: Promise<SmsOutboxResult> | null;
 };
 
+function buildProcessingMarker(now = Date.now()) {
+  return `${SMS_PROCESSING_PREFIX}${now}`;
+}
+
+function buildRetryMarker(attempts: number, now = Date.now()) {
+  return `${SMS_RETRY_PREFIX}${attempts}:${now}`;
+}
+
+export function getSmsRetryState(providerRef: string | null | undefined): SmsRetryState {
+  const value = (providerRef ?? "").trim();
+  if (!value) {
+    return { kind: "idle", attempts: 0, timestamp: null };
+  }
+
+  if (value.startsWith(SMS_PROCESSING_PREFIX)) {
+    const timestamp = Number(value.slice(SMS_PROCESSING_PREFIX.length));
+    return {
+      kind: "processing",
+      attempts: 0,
+      timestamp: Number.isFinite(timestamp) ? timestamp : null,
+    };
+  }
+
+  if (value.startsWith(SMS_RETRY_PREFIX)) {
+    const [attemptsRaw, timestampRaw] = value.slice(SMS_RETRY_PREFIX.length).split(":");
+    const attempts = Number(attemptsRaw);
+    const timestamp = Number(timestampRaw);
+    return {
+      kind: "idle",
+      attempts: Number.isFinite(attempts) ? attempts : 0,
+      timestamp: Number.isFinite(timestamp) ? timestamp : null,
+    };
+  }
+
+  return { kind: "idle", attempts: 0, timestamp: null };
+}
+
+function shouldRetrySmsLog(providerRef: string | null | undefined, now = Date.now()) {
+  const state = getSmsRetryState(providerRef);
+
+  if (state.kind === "processing") {
+    return state.timestamp !== null && now - state.timestamp >= SMS_PROCESSING_LEASE_MS;
+  }
+
+  if (state.attempts <= 0) {
+    return true;
+  }
+
+  if (state.attempts >= SMS_MAX_RETRY_ATTEMPTS) {
+    return false;
+  }
+
+  return state.timestamp !== null && now - state.timestamp >= SMS_RETRY_COOLDOWN_MS;
+}
+
+async function claimSmsLog(log: { id: string; status: "PENDING" | "FAILED"; providerRef: string }, now = Date.now()) {
+  const nextMarker = buildProcessingMarker(now);
+  const claimed = await prisma.smsLog.updateMany({
+    where: {
+      id: log.id,
+      status: log.status,
+      providerRef: log.providerRef,
+    },
+    data: {
+      providerRef: nextMarker,
+    },
+  });
+
+  return claimed.count === 1 ? nextMarker : null;
+}
+
 async function finalizeSmsLogSuccess(logId: string, providerRef: string) {
   const log = await prisma.smsLog.update({
     where: { id: logId },
@@ -109,9 +189,20 @@ async function finalizeSmsLogSuccess(logId: string, providerRef: string) {
 }
 
 async function finalizeSmsLogFailure(logId: string, errorMessage: string) {
+  const existing = await prisma.smsLog.findUnique({
+    where: { id: logId },
+    select: { providerRef: true },
+  });
+  const previous = getSmsRetryState(existing?.providerRef);
+  const attempts = previous.kind === "processing" ? Math.max(previous.attempts, 0) + 1 : previous.attempts + 1;
+
   await prisma.smsLog.update({
     where: { id: logId },
-    data: { status: "FAILED", errorMessage },
+    data: {
+      status: "FAILED",
+      errorMessage,
+      providerRef: buildRetryMarker(attempts),
+    },
   });
 }
 
@@ -143,10 +234,10 @@ export async function sendSms(options: SmsOptions): Promise<void> {
 }
 
 export async function processSmsOutbox(limit = 10): Promise<SmsOutboxResult> {
-  const pendingLogs = await prisma.smsLog.findMany({
-    where: { status: "PENDING" },
+  const candidateLogs = await prisma.smsLog.findMany({
+    where: { status: { in: ["PENDING", "FAILED"] } },
     orderBy: { createdAt: "asc" },
-    take: limit,
+    take: Math.max(limit * 3, limit),
   });
 
   const result: SmsOutboxResult = {
@@ -156,7 +247,28 @@ export async function processSmsOutbox(limit = 10): Promise<SmsOutboxResult> {
     skipped: 0,
   };
 
-  for (const log of pendingLogs) {
+  const now = Date.now();
+  const runnableLogs = candidateLogs
+    .filter(
+      (log): log is typeof log & { status: "PENDING" | "FAILED" } =>
+        (log.status === "PENDING" || log.status === "FAILED") && shouldRetrySmsLog(log.providerRef, now)
+    )
+    .slice(0, limit);
+
+  for (const log of runnableLogs) {
+    const claimMarker = await claimSmsLog(
+      {
+        id: log.id,
+        status: log.status,
+        providerRef: log.providerRef,
+      },
+      now
+    );
+
+    if (!claimMarker) {
+      continue;
+    }
+
     result.processed++;
 
     if (!SMS_ENABLED) {
