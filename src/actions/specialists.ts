@@ -1,10 +1,9 @@
 "use server";
 
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { runAdminMutation } from "@/lib/admin-mutation";
 import { IMAGE_INPUT_SCHEMA_MESSAGE, isValidAssetInput, persistImageAsset } from "@/lib/upload-assets";
-import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/types";
 
 const SPECIALIST_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
@@ -47,8 +46,6 @@ async function resolveSpecialistPhoto(value: string | undefined, existingValue?:
 }
 
 export async function createSpecialistAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
-  await requireAdmin();
-
   const parsed = specialistSchema.safeParse({
     slug: formData.get("slug"),
     nameTr: formData.get("nameTr"),
@@ -66,8 +63,13 @@ export async function createSpecialistAction(_prev: ActionResult, formData: Form
     return { success: false, error: parsed.error.errors[0]?.message ?? "Hata" };
   }
 
-  const exists = await prisma.specialist.findUnique({ where: { slug: parsed.data.slug } });
-  if (exists) return { success: false, error: "Bu slug zaten kullanımda" };
+  const exists = await prisma.specialist.findUnique({
+    where: { slug: parsed.data.slug },
+  });
+
+  if (exists) {
+    return { success: false, error: "Bu slug zaten kullanimda" };
+  }
 
   let photoUrl = "";
   try {
@@ -75,28 +77,39 @@ export async function createSpecialistAction(_prev: ActionResult, formData: Form
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Fotoğraf kaydedilemedi.",
+      error: error instanceof Error ? error.message : "Fotograf kaydedilemedi.",
     };
   }
 
-  await prisma.specialist.create({
-    data: {
-      ...parsed.data,
-      photoUrl,
-    },
-  });
+  return runAdminMutation({
+    route: "action:createSpecialist",
+    event: "specialist_created",
+    execute: async () => {
+      await prisma.specialist.create({
+        data: {
+          ...parsed.data,
+          photoUrl,
+        },
+      });
 
-  revalidatePath("/admin/specialists");
-  revalidatePath("/specialists");
-  revalidatePath("/");
-  return { success: true };
+      return {
+        meta: {
+          slug: parsed.data.slug,
+          isActive: parsed.data.isActive,
+          hasPhoto: Boolean(photoUrl),
+        },
+        revalidate: ["/admin/specialists", "/specialists", "/"],
+      };
+    },
+    getErrorMessage: () => "Uzman olusturulamadi",
+  });
 }
 
 export async function updateSpecialistAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
-  await requireAdmin();
-
   const id = formData.get("id") as string;
-  if (!id) return { success: false, error: "ID gerekli" };
+  if (!id) {
+    return { success: false, error: "ID gerekli" };
+  }
 
   const parsed = specialistSchema.safeParse({
     slug: formData.get("slug"),
@@ -115,8 +128,13 @@ export async function updateSpecialistAction(_prev: ActionResult, formData: Form
     return { success: false, error: parsed.error.errors[0]?.message ?? "Hata" };
   }
 
-  const conflict = await prisma.specialist.findFirst({ where: { slug: parsed.data.slug, NOT: { id } } });
-  if (conflict) return { success: false, error: "Bu slug zaten kullanımda" };
+  const conflict = await prisma.specialist.findFirst({
+    where: { slug: parsed.data.slug, NOT: { id } },
+  });
+
+  if (conflict) {
+    return { success: false, error: "Bu slug zaten kullanimda" };
+  }
 
   const existing = await prisma.specialist.findUnique({
     where: { id },
@@ -129,33 +147,45 @@ export async function updateSpecialistAction(_prev: ActionResult, formData: Form
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Fotoğraf kaydedilemedi.",
+      error: error instanceof Error ? error.message : "Fotograf kaydedilemedi.",
     };
   }
 
-  await prisma.specialist.update({
-    where: { id },
-    data: {
-      ...parsed.data,
-      photoUrl,
-    },
-  });
+  return runAdminMutation({
+    route: "action:updateSpecialist",
+    event: "specialist_updated",
+    execute: async () => {
+      await prisma.specialist.update({
+        where: { id },
+        data: {
+          ...parsed.data,
+          photoUrl,
+        },
+      });
 
-  revalidatePath("/admin/specialists");
-  revalidatePath("/specialists");
-  revalidatePath("/");
-  return { success: true };
+      return {
+        meta: {
+          specialistId: id,
+          slug: parsed.data.slug,
+          isActive: parsed.data.isActive,
+          hasPhoto: Boolean(photoUrl),
+        },
+        revalidate: ["/admin/specialists", "/specialists", "/"],
+      };
+    },
+    getErrorMessage: () => "Uzman guncellenemedi",
+  });
 }
 
 export async function deleteSpecialistAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
-  await requireAdmin();
-
   const id = formData.get("id") as string;
-  if (!id) return { success: false, error: "ID gerekli" };
+  if (!id) {
+    return { success: false, error: "ID gerekli" };
+  }
 
   const existing = await prisma.specialist.findUnique({
     where: { id },
-    select: { photoUrl: true },
+    select: { photoUrl: true, slug: true },
   });
 
   if (existing?.photoUrl) {
@@ -168,40 +198,71 @@ export async function deleteSpecialistAction(_prev: ActionResult, formData: Form
     });
   }
 
-  await prisma.specialist.delete({ where: { id } });
-  revalidatePath("/admin/specialists");
-  revalidatePath("/specialists");
-  revalidatePath("/");
-  return { success: true };
+  return runAdminMutation({
+    route: "action:deleteSpecialist",
+    event: "specialist_deleted",
+    execute: async () => {
+      await prisma.specialist.delete({ where: { id } });
+      return {
+        meta: {
+          specialistId: id,
+          slug: existing?.slug,
+        },
+        revalidate: ["/admin/specialists", "/specialists", "/"],
+      };
+    },
+    getErrorMessage: () => "Uzman silinemedi",
+  });
 }
 
 export async function assignServiceAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
-  await requireAdmin();
-
   const specialistId = formData.get("specialistId") as string;
   const serviceId = formData.get("serviceId") as string;
 
   if (!specialistId || !serviceId) {
-    return { success: false, error: "Uzman ve hizmet seçimi gerekli" };
+    return { success: false, error: "Uzman ve hizmet secimi gerekli" };
   }
 
-  await prisma.specialistService.upsert({
-    where: { specialistId_serviceId: { specialistId, serviceId } },
-    update: {},
-    create: { specialistId, serviceId },
-  });
+  return runAdminMutation({
+    route: "action:assignService",
+    event: "specialist_service_assigned",
+    execute: async () => {
+      await prisma.specialistService.upsert({
+        where: { specialistId_serviceId: { specialistId, serviceId } },
+        update: {},
+        create: { specialistId, serviceId },
+      });
 
-  revalidatePath("/admin/specialists");
-  return { success: true };
+      return {
+        meta: {
+          specialistId,
+          serviceId,
+        },
+        revalidate: ["/admin/specialists"],
+      };
+    },
+    getErrorMessage: () => "Hizmet atamasi yapilamadi",
+  });
 }
 
 export async function removeServiceAssignmentAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
-  await requireAdmin();
-
   const id = formData.get("id") as string;
-  if (!id) return { success: false, error: "ID gerekli" };
+  if (!id) {
+    return { success: false, error: "ID gerekli" };
+  }
 
-  await prisma.specialistService.delete({ where: { id } });
-  revalidatePath("/admin/specialists");
-  return { success: true };
+  return runAdminMutation({
+    route: "action:removeServiceAssignment",
+    event: "specialist_service_removed",
+    execute: async () => {
+      await prisma.specialistService.delete({ where: { id } });
+      return {
+        meta: {
+          assignmentId: id,
+        },
+        revalidate: ["/admin/specialists"],
+      };
+    },
+    getErrorMessage: () => "Hizmet atamasi kaldirilamadi",
+  });
 }

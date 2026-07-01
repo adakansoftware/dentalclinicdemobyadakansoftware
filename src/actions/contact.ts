@@ -1,9 +1,8 @@
 "use server";
 
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth";
+import { runAdminMutation } from "@/lib/admin-mutation";
 import { isBackendError } from "@/lib/backend-errors";
-import { logAdminEvent } from "@/lib/admin-audit";
 import {
   createContactRequestRecord,
   deleteContactRequestRecord,
@@ -13,7 +12,6 @@ import { recordIdSchema, sanitizeEmailInput, sanitizePhoneInput, sanitizeTextInp
 import { verifyTurnstileToken } from "@/lib/bot-protection";
 import { enforceRateLimit, validateFormAge, validateHoneypot } from "@/lib/security";
 import { logEvent } from "@/lib/observability";
-import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/types";
 
 const contactSchema = z.object({
@@ -73,68 +71,53 @@ export async function submitContactAction(_prev: ActionResult, formData: FormDat
     },
   });
 
-  revalidatePath("/admin/contact-requests");
   return { success: true };
 }
 
 export async function markContactReadAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
-  const admin = await requireAdmin();
   const parsed = contactRequestIdSchema.safeParse({ id: formData.get("id") });
   if (!parsed.success) {
     return { success: false, error: parsed.error.errors[0]?.message ?? "ID gerekli" };
   }
 
-  try {
-    const updatedRequest = await markContactRequestReadRecord(parsed.data.id);
-
-    logAdminEvent({
-      admin,
-      event: "contact_request_marked_read",
-      route: "action:markContactRead",
-      meta: {
-        contactRequestId: updatedRequest.id,
-        alreadyRead: updatedRequest.isRead,
-      },
-    });
-
-    revalidatePath("/admin/contact-requests");
-    return { success: true };
-  } catch (error) {
-    if (isBackendError(error, "CONTACT_REQUEST_NOT_FOUND")) {
-      return { success: false, error: "Iletisim talebi bulunamadi" };
-    }
-
-    throw error;
-  }
+  return runAdminMutation({
+    route: "action:markContactRead",
+    event: "contact_request_marked_read",
+    execute: async () => {
+      const updatedRequest = await markContactRequestReadRecord(parsed.data.id);
+      return {
+        meta: {
+          contactRequestId: updatedRequest.id,
+          alreadyRead: updatedRequest.isRead,
+        },
+        revalidate: ["/admin/contact-requests"],
+      };
+    },
+    getErrorMessage: (error) =>
+      isBackendError(error, "CONTACT_REQUEST_NOT_FOUND") ? "Iletisim talebi bulunamadi" : "Iletisim talebi guncellenemedi",
+  });
 }
 
 export async function deleteContactRequestAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
-  const admin = await requireAdmin();
   const parsed = contactRequestIdSchema.safeParse({ id: formData.get("id") });
   if (!parsed.success) {
     return { success: false, error: parsed.error.errors[0]?.message ?? "ID gerekli" };
   }
 
-  try {
-    const deletedRequest = await deleteContactRequestRecord(parsed.data.id);
-
-    logAdminEvent({
-      admin,
-      event: "contact_request_deleted",
-      route: "action:deleteContactRequest",
-      meta: {
-        contactRequestId: deletedRequest.id,
-        wasRead: deletedRequest.isRead,
-      },
-    });
-
-    revalidatePath("/admin/contact-requests");
-    return { success: true };
-  } catch (error) {
-    if (isBackendError(error, "CONTACT_REQUEST_NOT_FOUND")) {
-      return { success: false, error: "Iletisim talebi bulunamadi" };
-    }
-
-    throw error;
-  }
+  return runAdminMutation({
+    route: "action:deleteContactRequest",
+    event: "contact_request_deleted",
+    execute: async () => {
+      const deletedRequest = await deleteContactRequestRecord(parsed.data.id);
+      return {
+        meta: {
+          contactRequestId: deletedRequest.id,
+          wasRead: deletedRequest.isRead,
+        },
+        revalidate: ["/admin/contact-requests"],
+      };
+    },
+    getErrorMessage: (error) =>
+      isBackendError(error, "CONTACT_REQUEST_NOT_FOUND") ? "Iletisim talebi bulunamadi" : "Iletisim talebi silinemedi",
+  });
 }

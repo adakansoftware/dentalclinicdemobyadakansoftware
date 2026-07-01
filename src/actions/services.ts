@@ -1,26 +1,22 @@
 "use server";
 
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { runAdminMutation } from "@/lib/admin-mutation";
 import { IMAGE_INPUT_SCHEMA_MESSAGE, isValidAssetInput, persistImageAsset } from "@/lib/upload-assets";
-import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/types";
 
 const SERVICE_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 const SERVICE_IMAGE_MAX_BYTES = 4 * 1024 * 1024;
 
 const serviceSchema = z.object({
-  slug: z
-    .string()
-    .min(2)
-    .regex(/^[a-z0-9-]+$/, "Slug sadece küçük harf, rakam ve tire içerebilir"),
-  nameTr: z.string().min(2, "Türkçe ad gerekli"),
-  nameEn: z.string().min(2, "İngilizce ad gerekli"),
-  shortDescTr: z.string().min(5, "Türkçe kısa açıklama gerekli"),
-  shortDescEn: z.string().min(5, "İngilizce kısa açıklama gerekli"),
-  descriptionTr: z.string().min(10, "Türkçe açıklama gerekli"),
-  descriptionEn: z.string().min(10, "İngilizce açıklama gerekli"),
+  slug: z.string().min(2).regex(/^[a-z0-9-]+$/, "Slug sadece kucuk harf, rakam ve tire icerebilir"),
+  nameTr: z.string().min(2, "Turkce ad gerekli"),
+  nameEn: z.string().min(2, "Ingilizce ad gerekli"),
+  shortDescTr: z.string().min(5, "Turkce kisa aciklama gerekli"),
+  shortDescEn: z.string().min(5, "Ingilizce kisa aciklama gerekli"),
+  descriptionTr: z.string().min(10, "Turkce aciklama gerekli"),
+  descriptionEn: z.string().min(10, "Ingilizce aciklama gerekli"),
   iconName: z.string().default("tooth"),
   durationMinutes: z.coerce.number().min(15).max(480),
   order: z.coerce.number().default(0),
@@ -51,12 +47,7 @@ async function resolveServiceImage(value: string | undefined, existingValue?: st
   });
 }
 
-export async function createServiceAction(
-  _prev: ActionResult,
-  formData: FormData
-): Promise<ActionResult> {
-  await requireAdmin();
-
+export async function createServiceAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
   const parsed = serviceSchema.safeParse({
     slug: formData.get("slug"),
     nameTr: formData.get("nameTr"),
@@ -73,10 +64,7 @@ export async function createServiceAction(
   });
 
   if (!parsed.success) {
-    return {
-      success: false,
-      error: parsed.error.errors[0]?.message ?? "Hata",
-    };
+    return { success: false, error: parsed.error.errors[0]?.message ?? "Hata" };
   }
 
   const exists = await prisma.service.findUnique({
@@ -84,7 +72,7 @@ export async function createServiceAction(
   });
 
   if (exists) {
-    return { success: false, error: "Bu slug zaten kullanımda" };
+    return { success: false, error: "Bu slug zaten kullanimda" };
   }
 
   let imageUrl: string | null = null;
@@ -93,32 +81,39 @@ export async function createServiceAction(
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Görsel kaydedilemedi.",
+      error: error instanceof Error ? error.message : "Gorsel kaydedilemedi.",
     };
   }
 
-  await prisma.service.create({
-    data: {
-      ...parsed.data,
-      imageUrl,
+  return runAdminMutation({
+    route: "action:createService",
+    event: "service_created",
+    execute: async () => {
+      await prisma.service.create({
+        data: {
+          ...parsed.data,
+          imageUrl,
+        },
+      });
+
+      return {
+        meta: {
+          slug: parsed.data.slug,
+          isActive: parsed.data.isActive,
+          hasImage: Boolean(imageUrl),
+        },
+        revalidate: ["/admin/services", "/", "/services"],
+      };
     },
+    getErrorMessage: () => "Hizmet olusturulamadi",
   });
-
-  revalidatePath("/admin/services");
-  revalidatePath("/");
-  revalidatePath("/services");
-
-  return { success: true };
 }
 
-export async function updateServiceAction(
-  _prev: ActionResult,
-  formData: FormData
-): Promise<ActionResult> {
-  await requireAdmin();
-
+export async function updateServiceAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
   const id = formData.get("id") as string;
-  if (!id) return { success: false, error: "ID gerekli" };
+  if (!id) {
+    return { success: false, error: "ID gerekli" };
+  }
 
   const parsed = serviceSchema.safeParse({
     slug: formData.get("slug"),
@@ -136,10 +131,7 @@ export async function updateServiceAction(
   });
 
   if (!parsed.success) {
-    return {
-      success: false,
-      error: parsed.error.errors[0]?.message ?? "Hata",
-    };
+    return { success: false, error: parsed.error.errors[0]?.message ?? "Hata" };
   }
 
   const conflict = await prisma.service.findFirst({
@@ -147,7 +139,7 @@ export async function updateServiceAction(
   });
 
   if (conflict) {
-    return { success: false, error: "Bu slug zaten kullanımda" };
+    return { success: false, error: "Bu slug zaten kullanimda" };
   }
 
   const existing = await prisma.service.findUnique({
@@ -161,38 +153,45 @@ export async function updateServiceAction(
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Görsel kaydedilemedi.",
+      error: error instanceof Error ? error.message : "Gorsel kaydedilemedi.",
     };
   }
 
-  await prisma.service.update({
-    where: { id },
-    data: {
-      ...parsed.data,
-      imageUrl,
+  return runAdminMutation({
+    route: "action:updateService",
+    event: "service_updated",
+    execute: async () => {
+      await prisma.service.update({
+        where: { id },
+        data: {
+          ...parsed.data,
+          imageUrl,
+        },
+      });
+
+      return {
+        meta: {
+          serviceId: id,
+          slug: parsed.data.slug,
+          isActive: parsed.data.isActive,
+          hasImage: Boolean(imageUrl),
+        },
+        revalidate: ["/admin/services", "/", "/services", `/services/${parsed.data.slug}`],
+      };
     },
+    getErrorMessage: () => "Hizmet guncellenemedi",
   });
-
-  revalidatePath("/admin/services");
-  revalidatePath("/");
-  revalidatePath("/services");
-  revalidatePath(`/services/${parsed.data.slug}`);
-
-  return { success: true };
 }
 
-export async function deleteServiceAction(
-  _prev: ActionResult,
-  formData: FormData
-): Promise<ActionResult> {
-  await requireAdmin();
-
+export async function deleteServiceAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
   const id = formData.get("id") as string;
-  if (!id) return { success: false, error: "ID gerekli" };
+  if (!id) {
+    return { success: false, error: "ID gerekli" };
+  }
 
   const existing = await prisma.service.findUnique({
     where: { id },
-    select: { imageUrl: true },
+    select: { imageUrl: true, slug: true },
   });
 
   if (existing?.imageUrl) {
@@ -205,11 +204,20 @@ export async function deleteServiceAction(
     });
   }
 
-  await prisma.service.delete({ where: { id } });
+  return runAdminMutation({
+    route: "action:deleteService",
+    event: "service_deleted",
+    execute: async () => {
+      await prisma.service.delete({ where: { id } });
 
-  revalidatePath("/admin/services");
-  revalidatePath("/");
-  revalidatePath("/services");
-
-  return { success: true };
+      return {
+        meta: {
+          serviceId: id,
+          slug: existing?.slug,
+        },
+        revalidate: ["/admin/services", "/", "/services"],
+      };
+    },
+    getErrorMessage: () => "Hizmet silinemedi",
+  });
 }
