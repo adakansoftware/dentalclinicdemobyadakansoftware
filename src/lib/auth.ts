@@ -1,12 +1,20 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/safe-query";
+import { logEvent } from "@/lib/observability";
+import {
+  buildAdminSessionClientBinding,
+  hashAdminSessionGuard,
+  shouldInvalidateAdminSessionGuard,
+  shouldRotateAdminSession,
+} from "@/lib/session-guard";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { createHash, randomBytes } from "crypto";
 import { cache } from "react";
 
 const SESSION_COOKIE = "admin_session";
+const SESSION_GUARD_COOKIE = "admin_session_guard";
 const SESSION_DURATION_DAYS = 7;
 
 function hashSessionToken(token: string): string {
@@ -27,7 +35,17 @@ export async function createSession(adminId: string): Promise<string> {
 
 export async function setSessionCookie(token: string) {
   const cookieStore = await cookies();
+  const headerStore = await headers();
+  const clientBinding = buildAdminSessionClientBinding(headerStore);
+  const sessionGuard = hashAdminSessionGuard(token, clientBinding);
   cookieStore.set(SESSION_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/",
+    maxAge: SESSION_DURATION_DAYS * 24 * 60 * 60,
+  });
+  cookieStore.set(SESSION_GUARD_COOKIE, sessionGuard, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
@@ -41,9 +59,17 @@ export async function getSessionToken(): Promise<string | null> {
   return cookieStore.get(SESSION_COOKIE)?.value ?? null;
 }
 
+export async function getSessionGuardToken(): Promise<string | null> {
+  const cookieStore = await cookies();
+  return cookieStore.get(SESSION_GUARD_COOKIE)?.value ?? null;
+}
+
 const getAdminFromSessionCached = cache(async () => {
   const token = await getSessionToken();
   if (!token) return null;
+  const sessionGuard = await getSessionGuardToken();
+  const headerStore = await headers();
+  const clientBinding = buildAdminSessionClientBinding(headerStore);
 
   const hashedToken = hashSessionToken(token);
   const session = await safeQuery(
@@ -68,6 +94,21 @@ const getAdminFromSessionCached = cache(async () => {
     return null;
   }
 
+  if (shouldInvalidateAdminSessionGuard(token, clientBinding, sessionGuard)) {
+    await safeQuery("invalidate admin session guard mismatch", () => prisma.adminSession.delete({ where: { id: session.id } }), null, {
+      shouldLog: false,
+    });
+    logEvent({
+      level: "warn",
+      event: "admin_session_guard_rejected",
+      route: "lib:auth",
+      meta: {
+        adminId: session.adminId,
+      },
+    });
+    return null;
+  }
+
   if (session.token === token) {
     await safeQuery(
       "upgrade legacy admin session token",
@@ -78,6 +119,24 @@ const getAdminFromSessionCached = cache(async () => {
         }),
       null
     );
+  }
+
+  if (shouldRotateAdminSession(session.createdAt)) {
+    const rotatedToken = randomBytes(32).toString("hex");
+    await safeQuery(
+      "rotate admin session token",
+      () =>
+        prisma.adminSession.update({
+          where: { id: session.id },
+          data: {
+            token: hashSessionToken(rotatedToken),
+            createdAt: new Date(),
+          },
+        }),
+      null,
+      { shouldLog: false }
+    );
+    await setSessionCookie(rotatedToken);
   }
 
   return session.admin;
@@ -113,6 +172,7 @@ export async function destroySession() {
   }
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE);
+  cookieStore.delete(SESSION_GUARD_COOKIE);
 }
 
 export async function verifyPassword(plain: string, hash: string): Promise<boolean> {

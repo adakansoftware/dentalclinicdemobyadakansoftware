@@ -29,6 +29,12 @@ import { getDurationMs } from "../src/lib/observability.ts";
 import { ResilienceError, getResilienceSnapshot, runWithCircuitBreaker, runWithConcurrencyLimit, runWithTimeout } from "../src/lib/resilience.ts";
 import { headersFromNodeRequest } from "../src/lib/request-headers.ts";
 import { buildRequestUrlFromHeaders, isTrustedMutationOrigin } from "../src/lib/request-origin.ts";
+import {
+  buildAdminSessionClientBinding,
+  hashAdminSessionGuard,
+  shouldInvalidateAdminSessionGuard,
+  shouldRotateAdminSession,
+} from "../src/lib/session-guard.ts";
 import { SOCIAL_IMAGE_HEIGHT, SOCIAL_IMAGE_PATH, SOCIAL_IMAGE_WIDTH, TWITTER_IMAGE_PATH } from "../src/lib/social-preview.ts";
 import { toAbsoluteAssetUrl } from "../src/lib/seo.ts";
 import { sanitizeAssetReference } from "../src/lib/upload-assets.ts";
@@ -200,6 +206,33 @@ await run("isTrustedMutationOrigin rejects cross-site mutation hints", () => {
       assert.equal(isTrustedMutationOrigin(untrusted, "/admin/settings"), false);
     }
   );
+});
+
+await run("buildAdminSessionClientBinding combines stable browser hints", () => {
+  const headerStore = new Headers({
+    "user-agent": "Mozilla/5.0",
+    "accept-language": "tr-TR,tr;q=0.9",
+    "sec-ch-ua-platform": "\"Windows\"",
+    "sec-ch-ua-mobile": "?0",
+  });
+
+  assert.equal(
+    buildAdminSessionClientBinding(headerStore),
+    'Mozilla/5.0|tr-TR,tr;q=0.9|"Windows"|?0'
+  );
+});
+
+await run("admin session guard hash rejects mismatched client binding", () => {
+  const validGuard = hashAdminSessionGuard("token-1", "binding-1", "secret-1");
+
+  assert.equal(shouldInvalidateAdminSessionGuard("token-1", "binding-1", validGuard, "secret-1"), false);
+  assert.equal(shouldInvalidateAdminSessionGuard("token-1", "binding-2", validGuard, "secret-1"), true);
+});
+
+await run("shouldRotateAdminSession flags stale sessions", () => {
+  const createdAt = new Date(Date.now() - 25 * 60 * 60 * 1000);
+  assert.equal(shouldRotateAdminSession(createdAt, Date.now()), true);
+  assert.equal(shouldRotateAdminSession(new Date(), Date.now()), false);
 });
 
 await run("authorizeBearerSecret validates bearer tokens safely", () => {
