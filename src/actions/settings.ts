@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { buildActionReplayKey, claimActionReplay } from "@/lib/action-replay";
+import { buildActionReplayKey, claimActionReplayAsync } from "@/lib/action-replay";
 import { prisma } from "@/lib/prisma";
 import { runAdminMutation } from "@/lib/admin-mutation";
 import { getGoogleMapsEmbedError } from "@/lib/maps";
@@ -106,7 +106,7 @@ export async function updateSettingsAction(_prev: ActionResult, formData: FormDa
   };
 
   const replayKey = buildActionReplayKey("admin-settings-update", Object.entries(payload).flatMap(([key, value]) => [key, value]));
-  const replayClaim = claimActionReplay(replayKey, 15_000);
+  const replayClaim = await claimActionReplayAsync(replayKey, 15_000);
   if (replayClaim.duplicate) {
     return { success: false, error: "Ayni ayar guncellemesi zaten alindi. Lutfen tekrar denemeyin." };
   }

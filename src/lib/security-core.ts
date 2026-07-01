@@ -197,8 +197,120 @@ export function getRateLimitDecisionByKey(options: RateLimitOptions, keySuffix: 
   return { allowed: true, blocked: false, retryAfterSec: 0 };
 }
 
+export async function getRateLimitDecisionByKeyAsync(options: RateLimitOptions, keySuffix: string): Promise<RateLimitDecision> {
+  const key = buildRateLimitKey(options, keySuffix);
+  const now = Date.now();
+  const storageKey = `ratelimit:${key}`;
+  const { withDistributedSecurityState } = await import("./distributed-security-store.ts");
+  const dbResult = await withDistributedSecurityState(storageKey, "ratelimit", async ({ entry, tx }) => {
+    const windowStart = now - options.windowMs;
+    const current = entry
+      ? (JSON.parse(entry.value) as {
+          attempts: number[];
+          lastSeen: number;
+          blockedUntil?: number;
+          strikeCount: number;
+        })
+      : undefined;
+    const blockedUntil = current?.blockedUntil ?? 0;
+
+    if (blockedUntil > now) {
+      const next = {
+        attempts: current?.attempts ?? [],
+        lastSeen: now,
+        blockedUntil,
+        strikeCount: current?.strikeCount ?? 1,
+      };
+      await tx.securityState.upsert({
+        where: { key: storageKey },
+        create: {
+          key: storageKey,
+          kind: "ratelimit",
+          value: JSON.stringify(next),
+          expiresAt: new Date(now + RATE_LIMIT_ENTRY_TTL_MS),
+        },
+        update: {
+          kind: "ratelimit",
+          value: JSON.stringify(next),
+          expiresAt: new Date(now + RATE_LIMIT_ENTRY_TTL_MS),
+        },
+      });
+      return {
+        allowed: false,
+        blocked: true,
+        retryAfterSec: Math.max(1, Math.ceil((blockedUntil - now) / 1000)),
+      };
+    }
+
+    const attempts = (current?.attempts ?? []).filter((ts) => ts >= windowStart);
+
+    if (attempts.length >= options.limit) {
+      const strikeCount = Math.min((current?.strikeCount ?? 0) + 1, 6);
+      const penaltyMs = Math.min(options.windowMs * 2 ** Math.max(0, strikeCount - 1), 30 * 60 * 1000);
+      const next = {
+        attempts,
+        lastSeen: now,
+        blockedUntil: now + penaltyMs,
+        strikeCount,
+      };
+      await tx.securityState.upsert({
+        where: { key: storageKey },
+        create: {
+          key: storageKey,
+          kind: "ratelimit",
+          value: JSON.stringify(next),
+          expiresAt: new Date(now + RATE_LIMIT_ENTRY_TTL_MS),
+        },
+        update: {
+          kind: "ratelimit",
+          value: JSON.stringify(next),
+          expiresAt: new Date(now + RATE_LIMIT_ENTRY_TTL_MS),
+        },
+      });
+      return {
+        allowed: false,
+        blocked: true,
+        retryAfterSec: Math.max(1, Math.ceil(penaltyMs / 1000)),
+      };
+    }
+
+    attempts.push(now);
+    const next = {
+      attempts,
+      lastSeen: now,
+      blockedUntil: undefined,
+      strikeCount: attempts.length === 1 ? 0 : current?.strikeCount ?? 0,
+    };
+    await tx.securityState.upsert({
+      where: { key: storageKey },
+      create: {
+        key: storageKey,
+        kind: "ratelimit",
+        value: JSON.stringify(next),
+        expiresAt: new Date(now + RATE_LIMIT_ENTRY_TTL_MS),
+      },
+      update: {
+        kind: "ratelimit",
+        value: JSON.stringify(next),
+        expiresAt: new Date(now + RATE_LIMIT_ENTRY_TTL_MS),
+      },
+    });
+    return { allowed: true, blocked: false, retryAfterSec: 0 };
+  });
+
+  if (dbResult) {
+    return dbResult;
+  }
+
+  return getRateLimitDecisionByKey(options, keySuffix);
+}
+
 export function enforceRateLimitByKey(options: RateLimitOptions, keySuffix: string): boolean {
   return getRateLimitDecisionByKey(options, keySuffix).allowed;
+}
+
+export async function enforceRateLimitByKeyAsync(options: RateLimitOptions, keySuffix: string): Promise<boolean> {
+  return (await getRateLimitDecisionByKeyAsync(options, keySuffix)).allowed;
 }
 
 export function validateHoneypot(formData: FormData, fieldName = "website"): boolean {

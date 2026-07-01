@@ -2,11 +2,11 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { grantRecentAdminStepUp, hasRecentAdminStepUp, requireAdmin, verifyStepUpPassword } from "@/lib/auth";
 import { logAdminEvent } from "@/lib/admin-audit";
-import { getSuspicionDecision, recordSuspiciousActivity } from "@/lib/attack-monitor";
+import { getSuspicionDecisionAsync, recordSuspiciousActivityAsync } from "@/lib/attack-monitor";
 import { logEvent } from "@/lib/observability";
 import { isTrustedMutationOrigin } from "@/lib/request-origin";
 import { ResilienceError, runWithCircuitBreaker, runWithConcurrencyLimit, runWithTimeout } from "@/lib/resilience";
-import { buildIpRateLimitKeyFromHeaders, getRateLimitDecisionByKey } from "@/lib/security";
+import { buildIpRateLimitKeyFromHeaders, getRateLimitDecisionByKeyAsync } from "@/lib/security";
 import type { ActionResult } from "@/types";
 
 type RevalidateTarget =
@@ -50,7 +50,7 @@ export async function runAdminMutation<T = unknown>(
   const clientIpKey = buildIpRateLimitKeyFromHeaders(requestHeaders);
 
   if (!isTrustedMutationOrigin(requestHeaders, options.route)) {
-    recordSuspiciousActivity(clientIpKey, 3);
+    await recordSuspiciousActivityAsync(clientIpKey, 3);
     logEvent({
       level: "warn",
       event: "admin_mutation_origin_rejected",
@@ -63,19 +63,19 @@ export async function runAdminMutation<T = unknown>(
     return { success: false, error: "Istek kaynagi dogrulanamadi" };
   }
 
-  const suspicionDecision = getSuspicionDecision(clientIpKey);
+  const suspicionDecision = await getSuspicionDecisionAsync(clientIpKey);
   if (suspicionDecision.blocked) {
     return { success: false, error: "Supheli yonetim trafigi gecici olarak engellendi" };
   }
 
   const contentLength = Number(requestHeaders.get("content-length") ?? "0");
   if (Number.isFinite(contentLength) && contentLength > 1_500_000) {
-    recordSuspiciousActivity(clientIpKey, 2);
+    await recordSuspiciousActivityAsync(clientIpKey, 2);
     return { success: false, error: "Istek boyutu desteklenmiyor" };
   }
 
   const admin = await requireAdmin();
-  const perIpDecision = getRateLimitDecisionByKey(
+  const perIpDecision = await getRateLimitDecisionByKeyAsync(
     {
       scope: "admin-mutation-ip",
       limit: 20,
@@ -85,11 +85,11 @@ export async function runAdminMutation<T = unknown>(
     clientIpKey
   );
   if (!perIpDecision.allowed) {
-    recordSuspiciousActivity(clientIpKey, 1);
+    await recordSuspiciousActivityAsync(clientIpKey, 1);
     return { success: false, error: "Cok fazla yonetim islemi yapildi. Lutfen biraz sonra tekrar deneyin." };
   }
 
-  const perAdminDecision = getRateLimitDecisionByKey(
+  const perAdminDecision = await getRateLimitDecisionByKeyAsync(
     {
       scope: "admin-mutation-admin",
       limit: 40,
@@ -99,7 +99,7 @@ export async function runAdminMutation<T = unknown>(
     clientIpKey
   );
   if (!perAdminDecision.allowed) {
-    recordSuspiciousActivity(clientIpKey, 1);
+    await recordSuspiciousActivityAsync(clientIpKey, 1);
     return { success: false, error: "Yonetim islemi gecici olarak yavaslatildi. Lutfen biraz sonra tekrar deneyin." };
   }
 
@@ -108,7 +108,7 @@ export async function runAdminMutation<T = unknown>(
     if (!alreadyVerified) {
       const validStepUp = await verifyStepUpPassword(options.stepUpPassword, admin.passwordHash);
       if (!validStepUp) {
-        recordSuspiciousActivity(clientIpKey, 2);
+        await recordSuspiciousActivityAsync(clientIpKey, 2);
         return { success: false, error: "Bu islem icin admin sifresiyle tekrar dogrulama gerekli." };
       }
 
@@ -146,7 +146,7 @@ export async function runAdminMutation<T = unknown>(
     };
   } catch (error) {
     if (error instanceof ResilienceError) {
-      recordSuspiciousActivity(clientIpKey, error.code === "CIRCUIT_OPEN" ? 2 : 1);
+      await recordSuspiciousActivityAsync(clientIpKey, error.code === "CIRCUIT_OPEN" ? 2 : 1);
     }
 
     const message = options.getErrorMessage?.(error) ?? "Islem tamamlanamadi";

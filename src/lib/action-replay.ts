@@ -41,3 +41,46 @@ export function claimActionReplay(key: string, ttlMs: number) {
 
   return { duplicate: false, hits: 1 };
 }
+
+export async function claimActionReplayAsync(key: string, ttlMs: number) {
+  const storageKey = `replay:${key}`;
+  const now = Date.now();
+  const { withDistributedSecurityState } = await import("./distributed-security-store.ts");
+  const dbResult = await withDistributedSecurityState(storageKey, "replay", async ({ entry, tx }) => {
+    if (entry && entry.expiresAt.getTime() > now) {
+      const currentState = JSON.parse(entry.value) as { hits?: number };
+      const hits = (currentState.hits ?? 1) + 1;
+      await tx.securityState.update({
+        where: { key: storageKey },
+        data: {
+          value: JSON.stringify({ hits }),
+          expiresAt: entry.expiresAt,
+        },
+      });
+      return { duplicate: true, hits };
+    }
+
+    const expiresAt = new Date(now + ttlMs);
+    await tx.securityState.upsert({
+      where: { key: storageKey },
+      create: {
+        key: storageKey,
+        kind: "replay",
+        value: JSON.stringify({ hits: 1 }),
+        expiresAt,
+      },
+      update: {
+        kind: "replay",
+        value: JSON.stringify({ hits: 1 }),
+        expiresAt,
+      },
+    });
+    return { duplicate: false, hits: 1 };
+  });
+
+  if (dbResult) {
+    return dbResult;
+  }
+
+  return claimActionReplay(key, ttlMs);
+}

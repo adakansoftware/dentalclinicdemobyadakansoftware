@@ -1,7 +1,7 @@
-import { buildActionReplayKey, claimActionReplay } from "@/lib/action-replay";
+import { buildActionReplayKey, claimActionReplayAsync } from "@/lib/action-replay";
 import { verifyTurnstileToken } from "@/lib/bot-protection";
-import { getSuspicionDecision, recordSuspiciousActivity } from "@/lib/attack-monitor";
-import { enforceRateLimit, enforceRateLimitByKey, getClientIpRateLimitKey, validateFormAge, validateHoneypot } from "@/lib/security";
+import { getSuspicionDecisionAsync, recordSuspiciousActivityAsync } from "@/lib/attack-monitor";
+import { enforceRateLimit, enforceRateLimitByKeyAsync, getClientIpRateLimitKey, validateFormAge, validateHoneypot } from "@/lib/security";
 import type { ActionResult } from "@/types";
 
 type PublicRateLimitOptions = {
@@ -38,7 +38,7 @@ export async function runPublicActionGuard<T = unknown>(
   } = options;
 
   const clientIpKey = await getClientIpRateLimitKey();
-  const suspicionDecision = getSuspicionDecision(clientIpKey);
+  const suspicionDecision = await getSuspicionDecisionAsync(clientIpKey);
   if (suspicionDecision.blocked) {
     return {
       success: false,
@@ -47,21 +47,21 @@ export async function runPublicActionGuard<T = unknown>(
   }
 
   if (!validateHoneypot(formData) || !validateFormAge(formData)) {
-    recordSuspiciousActivity(clientIpKey, 2);
+    await recordSuspiciousActivityAsync(clientIpKey, 2);
     return { success: false, error: validationErrorMessage };
   }
 
   const turnstileValid = await verifyTurnstileToken(formData.get("cf-turnstile-response"));
   if (!turnstileValid) {
-    recordSuspiciousActivity(clientIpKey, 3);
+    await recordSuspiciousActivityAsync(clientIpKey, 3);
     return { success: false, error: turnstileErrorMessage };
   }
 
   if (replayProtection) {
     const replayKey = buildActionReplayKey(replayProtection.scope, [clientIpKey, ...replayProtection.values]);
-    const replayClaim = claimActionReplay(replayKey, replayProtection.ttlMs);
+    const replayClaim = await claimActionReplayAsync(replayKey, replayProtection.ttlMs);
     if (replayClaim.duplicate) {
-      recordSuspiciousActivity(clientIpKey, 1);
+      await recordSuspiciousActivityAsync(clientIpKey, 1);
       return {
         success: false,
         error: replayProtection.duplicateErrorMessage ?? "Bu istek zaten alindi. Lutfen tekrar denemeden once bekleyin.",
@@ -75,11 +75,11 @@ export async function runPublicActionGuard<T = unknown>(
 
   const allowed = await enforceRateLimit(rateLimit);
   if (!allowed) {
-    recordSuspiciousActivity(clientIpKey, 1);
+    await recordSuspiciousActivityAsync(clientIpKey, 1);
     return { success: false, error: rateLimitErrorMessage };
   }
 
-  const ipAllowed = enforceRateLimitByKey(
+  const ipAllowed = await enforceRateLimitByKeyAsync(
     {
       scope: `${rateLimit.scope}-ip`,
       limit: Math.max(rateLimit.limit * 2, rateLimit.limit + 3),
@@ -90,7 +90,7 @@ export async function runPublicActionGuard<T = unknown>(
   );
 
   if (!ipAllowed) {
-    recordSuspiciousActivity(clientIpKey, 2);
+    await recordSuspiciousActivityAsync(clientIpKey, 2);
     return { success: false, error: rateLimitErrorMessage };
   }
 

@@ -36,19 +36,72 @@ export function recordSuspiciousActivity(key: string, weight = 1) {
   const entry = suspicionStore.get(key);
   const score = Math.min((entry?.score ?? 0) + weight, 20);
   const blockedUntil = score >= 6 ? now + Math.min((score - 5) * 5 * 60 * 1000, 60 * 60 * 1000) : entry?.blockedUntil;
-
-  suspicionStore.set(key, {
+  const result = {
     score,
     lastSeen: now,
     blockedUntil,
-  });
+  };
+  suspicionStore.set(key, result);
 
   cleanupSuspicionStore(now);
-  return { score, blockedUntil };
+  return result;
+}
+
+export async function recordSuspiciousActivityAsync(key: string, weight = 1) {
+  const now = Date.now();
+  const storageKey = `suspicion:${key}`;
+  const { withDistributedSecurityState } = await import("./distributed-security-store.ts");
+  const dbResult = await withDistributedSecurityState(storageKey, "suspicion", async ({ entry, tx }) => {
+    const current = entry ? (JSON.parse(entry.value) as { score: number; lastSeen: number; blockedUntil?: number }) : undefined;
+    const score = Math.min((current?.score ?? 0) + weight, 20);
+    const blockedUntil = score >= 6 ? now + Math.min((score - 5) * 5 * 60 * 1000, 60 * 60 * 1000) : current?.blockedUntil;
+    const next = {
+      score,
+      lastSeen: now,
+      blockedUntil,
+    };
+
+    await tx.securityState.upsert({
+      where: { key: storageKey },
+      create: {
+        key: storageKey,
+        kind: "suspicion",
+        value: JSON.stringify(next),
+        expiresAt: new Date(now + SUSPICION_TTL_MS),
+      },
+      update: {
+        kind: "suspicion",
+        value: JSON.stringify(next),
+        expiresAt: new Date(now + SUSPICION_TTL_MS),
+      },
+    });
+
+    return next;
+  });
+
+  if (dbResult) {
+    return dbResult;
+  }
+
+  return recordSuspiciousActivity(key, weight);
 }
 
 export function clearSuspicion(key: string) {
   suspicionStore.delete(key);
+}
+
+export async function clearSuspicionAsync(key: string) {
+  const storageKey = `suspicion:${key}`;
+  const { withDistributedSecurityState } = await import("./distributed-security-store.ts");
+  const dbResult = await withDistributedSecurityState(storageKey, "suspicion", async ({ tx }) => {
+    await tx.securityState.deleteMany({
+      where: { key: storageKey },
+    });
+    return true;
+  });
+
+  clearSuspicion(key);
+  return dbResult ?? true;
 }
 
 export function getSuspicionDecision(key: string) {
@@ -78,3 +131,50 @@ export function getSuspicionDecision(key: string) {
   return { blocked: false, retryAfterSec: 0, score: entry.score };
 }
 
+export async function getSuspicionDecisionAsync(key: string) {
+  const now = Date.now();
+  const storageKey = `suspicion:${key}`;
+  const { withDistributedSecurityState } = await import("./distributed-security-store.ts");
+  const dbResult = await withDistributedSecurityState(storageKey, "suspicion", async ({ entry, tx }) => {
+    if (!entry || entry.expiresAt.getTime() <= now) {
+      if (entry) {
+        await tx.securityState.deleteMany({ where: { key: storageKey } });
+      }
+      return { blocked: false, retryAfterSec: 0, score: 0 };
+    }
+
+    const current = JSON.parse(entry.value) as { score: number; lastSeen: number; blockedUntil?: number };
+
+    if (current.blockedUntil && current.blockedUntil > now) {
+      return {
+        blocked: true,
+        retryAfterSec: Math.max(1, Math.ceil((current.blockedUntil - now) / 1000)),
+        score: current.score,
+      };
+    }
+
+    if (current.blockedUntil && current.blockedUntil <= now) {
+      const next = {
+        score: Math.max(0, current.score - 3),
+        lastSeen: now,
+        blockedUntil: undefined,
+      };
+      await tx.securityState.update({
+        where: { key: storageKey },
+        data: {
+          value: JSON.stringify(next),
+          expiresAt: new Date(now + SUSPICION_TTL_MS),
+        },
+      });
+      return { blocked: false, retryAfterSec: 0, score: next.score };
+    }
+
+    return { blocked: false, retryAfterSec: 0, score: current.score };
+  });
+
+  if (dbResult) {
+    return dbResult;
+  }
+
+  return getSuspicionDecision(key);
+}

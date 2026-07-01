@@ -2,7 +2,9 @@ import { headers } from "next/headers";
 import {
   buildRequestFingerprintFromHeaders,
   enforceRateLimitByKey,
+  enforceRateLimitByKeyAsync,
   getRateLimitDecisionByKey,
+  getRateLimitDecisionByKeyAsync,
   getClientIpFromHeadersSync,
   type RateLimitOptions,
   validateFormAge,
@@ -13,7 +15,9 @@ export {
   buildRequestFingerprintFromHeaders,
   buildIpRateLimitKeyFromHeaders,
   enforceRateLimitByKey,
+  enforceRateLimitByKeyAsync,
   getRateLimitDecisionByKey,
+  getRateLimitDecisionByKeyAsync,
   getClientIpFromHeadersSync,
   validateFormAge,
   validateHoneypot,
@@ -31,5 +35,5 @@ export async function getClientIpRateLimitKey(): Promise<string> {
 
 export async function enforceRateLimit(options: RateLimitOptions): Promise<boolean> {
   const fingerprint = await getRequestFingerprint();
-  return enforceRateLimitByKey(options, fingerprint);
+  return enforceRateLimitByKeyAsync(options, fingerprint);
 }

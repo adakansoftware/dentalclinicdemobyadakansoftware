@@ -201,3 +201,14 @@ model SmsLog {
   errorMessage  String      @default("")
   createdAt     DateTime    @default(now())
 }
+
+model SecurityState {
+  key       String   @id
+  kind      String
+  value     String   @db.Text
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([kind, expiresAt])
+}

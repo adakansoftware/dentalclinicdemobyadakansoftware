@@ -9,7 +9,7 @@ import {
   updateAppointmentStatusRecord,
 } from "@/lib/appointment-service";
 import { isBackendError } from "@/lib/backend-errors";
-import { buildActionReplayKey, claimActionReplay } from "@/lib/action-replay";
+import { buildActionReplayKey, claimActionReplayAsync } from "@/lib/action-replay";
 import { getTodayDateInTurkey, compareDateStrings, dateToIsoDate } from "@/lib/date";
 import { runAdminMutation } from "@/lib/admin-mutation";
 import { logEvent } from "@/lib/observability";
@@ -207,7 +207,7 @@ export async function updateAppointmentStatusAction(_prev: ActionResult, formDat
       parsed.data.status,
       parsed.data.adminNote ?? "",
     ]);
-    const replayClaim = claimActionReplay(replayKey, 15_000);
+    const replayClaim = await claimActionReplayAsync(replayKey, 15_000);
     if (replayClaim.duplicate) {
       return { success: false, error: "Bu durum guncellemesi zaten alindi. Lutfen tekrar denemeyin." };
     }

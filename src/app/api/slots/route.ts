@@ -4,9 +4,9 @@ import { getAvailableSlotsWithMeta } from "@/lib/slots";
 import { buildApiHeaders, getRequestIdFromHeaders, isAllowedBrowserOrigin } from "@/lib/api-security";
 import { jsonError, jsonOk } from "@/lib/api-response";
 import { compareDateStrings, getTodayDateInTurkey } from "@/lib/date";
-import { buildRequestFingerprintFromHeaders, getRateLimitDecisionByKey } from "@/lib/security";
+import { buildRequestFingerprintFromHeaders, getRateLimitDecisionByKeyAsync } from "@/lib/security";
 import { buildIpRateLimitKeyFromHeaders } from "@/lib/security-core";
-import { getSuspicionDecision, recordSuspiciousActivity } from "@/lib/attack-monitor";
+import { getSuspicionDecisionAsync, recordSuspiciousActivityAsync } from "@/lib/attack-monitor";
 import { getDurationMs, logEvent } from "@/lib/observability";
 import { ResilienceError, runWithCircuitBreaker, runWithConcurrencyLimit, runWithTimeout } from "@/lib/resilience";
 import { methodNotAllowed } from "@/lib/route-methods";
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   const requestId = getRequestIdFromHeaders(request.headers);
   const startedAt = Date.now();
   const clientIpKey = buildIpRateLimitKeyFromHeaders(request.headers);
-  const suspicionDecision = getSuspicionDecision(clientIpKey);
+  const suspicionDecision = await getSuspicionDecisionAsync(clientIpKey);
 
   if (suspicionDecision.blocked) {
     return jsonError("Suspicious traffic temporarily blocked", {
@@ -34,7 +34,7 @@ export async function GET(request: Request) {
   }
 
   if (!isAllowedBrowserOrigin(request.headers, request.url, { requireHeaderInProduction: true })) {
-    recordSuspiciousActivity(clientIpKey, 2);
+    await recordSuspiciousActivityAsync(clientIpKey, 2);
     logEvent({
       level: "warn",
       event: "slots_origin_rejected",
@@ -60,7 +60,7 @@ export async function GET(request: Request) {
   });
 
   if (!parsed.success) {
-    recordSuspiciousActivity(clientIpKey, 1);
+    await recordSuspiciousActivityAsync(clientIpKey, 1);
     logEvent({
       level: "warn",
       event: "slots_validation_failed",
@@ -99,7 +99,7 @@ export async function GET(request: Request) {
   }
 
   const fingerprint = buildRequestFingerprintFromHeaders(request.headers);
-  const decision = getRateLimitDecisionByKey(
+  const decision = await getRateLimitDecisionByKeyAsync(
     {
       scope: "slots-api",
       limit: 40,
@@ -109,7 +109,7 @@ export async function GET(request: Request) {
   );
 
   if (!decision.allowed) {
-    recordSuspiciousActivity(clientIpKey, 1);
+    await recordSuspiciousActivityAsync(clientIpKey, 1);
     logEvent({
       level: "warn",
       event: "slots_rate_limited",
@@ -129,7 +129,7 @@ export async function GET(request: Request) {
     });
   }
 
-  const hotKeyDecision = getRateLimitDecisionByKey(
+  const hotKeyDecision = await getRateLimitDecisionByKeyAsync(
     {
       scope: "slots-api-target",
       limit: 12,
@@ -140,7 +140,7 @@ export async function GET(request: Request) {
   );
 
   if (!hotKeyDecision.allowed) {
-    recordSuspiciousActivity(clientIpKey, 2);
+    await recordSuspiciousActivityAsync(clientIpKey, 2);
     return jsonError("Too many requests for this schedule", {
       requestId,
       status: 429,
@@ -183,7 +183,7 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     if (error instanceof ResilienceError) {
-      recordSuspiciousActivity(clientIpKey, error.code === "CIRCUIT_OPEN" ? 2 : 1);
+      await recordSuspiciousActivityAsync(clientIpKey, error.code === "CIRCUIT_OPEN" ? 2 : 1);
       logEvent({
         level: "warn",
         event: "slots_backpressure_triggered",

@@ -14,13 +14,22 @@ import { canTransitionAppointmentStatus, getAllowedAppointmentTransitions } from
 import { isStatusBlockingSlot, timesOverlap } from "../src/lib/appointment-conflicts.ts";
 import { getRequestIdFromHeaders } from "../src/lib/api-security.ts";
 import { BackendError, isBackendError } from "../src/lib/backend-errors.ts";
-import { clearSuspicion, getSuspicionDecision, recordSuspiciousActivity } from "../src/lib/attack-monitor.ts";
+import {
+  clearSuspicion,
+  clearSuspicionAsync,
+  getSuspicionDecision,
+  getSuspicionDecisionAsync,
+  recordSuspiciousActivity,
+  recordSuspiciousActivityAsync,
+} from "../src/lib/attack-monitor.ts";
 import { authorizeBearerSecret } from "../src/lib/endpoint-guard.ts";
 import { getEnv, resetEnvCacheForTests } from "../src/lib/env.ts";
 import {
   buildRequestFingerprintFromHeaders,
   enforceRateLimitByKey,
+  enforceRateLimitByKeyAsync,
   getRateLimitDecisionByKey,
+  getRateLimitDecisionByKeyAsync,
   getClientIpFromHeadersSync,
   validateFormAge,
   validateHoneypot,
@@ -29,7 +38,7 @@ import { getDurationMs } from "../src/lib/observability.ts";
 import { ResilienceError, getResilienceSnapshot, runWithCircuitBreaker, runWithConcurrencyLimit, runWithTimeout } from "../src/lib/resilience.ts";
 import { headersFromNodeRequest } from "../src/lib/request-headers.ts";
 import { buildRequestUrlFromHeaders, isTrustedMutationOrigin } from "../src/lib/request-origin.ts";
-import { buildActionReplayKey, claimActionReplay } from "../src/lib/action-replay.ts";
+import { buildActionReplayKey, claimActionReplay, claimActionReplayAsync } from "../src/lib/action-replay.ts";
 import { createAdminStepUpProof, getAdminStepUpTtlSec, verifyAdminStepUpProof } from "../src/lib/admin-step-up.ts";
 import {
   buildAdminSessionClientBinding,
@@ -247,6 +256,15 @@ await run("action replay guard rejects immediate duplicate claims", () => {
   assert.equal(second.duplicate, true);
 });
 
+await run("async action replay guard preserves duplicate detection with fallback store", async () => {
+  const key = buildActionReplayKey(`unit-replay-async-${Date.now()}`, ["same", "payload"]);
+  const first = await claimActionReplayAsync(key, 60_000);
+  const second = await claimActionReplayAsync(key, 60_000);
+
+  assert.equal(first.duplicate, false);
+  assert.equal(second.duplicate, true);
+});
+
 
 await run("shouldRotateAdminSession flags stale sessions", () => {
   const createdAt = new Date(Date.now() - 25 * 60 * 60 * 1000);
@@ -378,6 +396,18 @@ await run("getRateLimitDecisionByKey keeps caller key and contextual key togethe
   assert.equal(secondClient.allowed, true);
 });
 
+await run("async rate limit guard preserves retry metadata with fallback store", async () => {
+  const scope = `unit-test-adaptive-async-${Date.now()}`;
+  const options = { scope, limit: 1, windowMs: 60_000 };
+
+  assert.equal((await getRateLimitDecisionByKeyAsync(options, "same-user")).allowed, true);
+  const blocked = await getRateLimitDecisionByKeyAsync(options, "same-user");
+  assert.equal(blocked.allowed, false);
+  assert.equal(blocked.blocked, true);
+  assert.equal(blocked.retryAfterSec > 0, true);
+  assert.equal(await enforceRateLimitByKeyAsync({ scope: `${scope}-other`, limit: 1, windowMs: 60_000 }, "ok"), true);
+});
+
 await run("runWithTimeout rejects long operations", async () => {
   await assert.rejects(
     () => runWithTimeout(10, () => new Promise((resolve) => setTimeout(resolve, 25))),
@@ -424,6 +454,19 @@ await run("attack monitor temporarily blocks repeated suspicious clients", () =>
   const blocked = getSuspicionDecision(key);
   assert.equal(blocked.blocked, true);
   assert.equal(blocked.retryAfterSec > 0, true);
+});
+
+await run("async attack monitor shares suspicion semantics with fallback store", async () => {
+  const key = `suspicious-async-${Date.now()}`;
+  await clearSuspicionAsync(key);
+  await recordSuspiciousActivityAsync(key, 3);
+  const decision = await getSuspicionDecisionAsync(key);
+  assert.equal(decision.blocked, false);
+  await recordSuspiciousActivityAsync(key, 3);
+  const blocked = await getSuspicionDecisionAsync(key);
+  assert.equal(blocked.blocked, true);
+  assert.equal(blocked.retryAfterSec > 0, true);
+  await clearSuspicionAsync(key);
 });
 
 await run("resilience snapshot exposes circuit state", async () => {

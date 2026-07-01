@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { getRequestIdFromHeaders } from "@/lib/api-security";
 import { jsonError, jsonOk } from "@/lib/api-response";
-import { applyEndpointSuspicion, authorizeBearerSecret, checkEndpointRateLimit, getEndpointBlockDecision } from "@/lib/endpoint-guard";
+import {
+  applyEndpointSuspicionAsync,
+  authorizeBearerSecret,
+  checkEndpointRateLimitAsync,
+  getEndpointBlockDecisionAsync,
+} from "@/lib/endpoint-guard";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettings } from "@/lib/settings";
 import { buildReminderMessage, processSmsOutbox, sendSms } from "@/lib/sms";
@@ -18,7 +23,7 @@ export async function GET(request: Request) {
   const startedAt = Date.now();
   const env = getEnv();
   const cronSecret = env.CRON_SECRET;
-  const blockDecision = getEndpointBlockDecision(request.headers);
+  const blockDecision = await getEndpointBlockDecisionAsync(request.headers);
 
   if (blockDecision.blocked) {
     return jsonError("Too many suspicious requests", {
@@ -29,14 +34,14 @@ export async function GET(request: Request) {
     });
   }
 
-  const rateDecision = checkEndpointRateLimit(request.headers, {
+  const rateDecision = await checkEndpointRateLimitAsync(request.headers, {
     scope: "cron-reminders-route",
     limit: 6,
     windowMs: 60 * 1000,
   });
 
   if (!rateDecision.allowed) {
-    applyEndpointSuspicion(request.headers, 2);
+    await applyEndpointSuspicionAsync(request.headers, 2);
     return jsonError("Too many requests", {
       requestId,
       status: 429,
@@ -64,7 +69,7 @@ export async function GET(request: Request) {
   const isAuthorized = authorizeBearerSecret(request.headers, cronSecret);
 
   if (!isAuthorized) {
-    applyEndpointSuspicion(request.headers, 4);
+    await applyEndpointSuspicionAsync(request.headers, 4);
     logEvent({
       level: "warn",
       event: "cron_reminders_unauthorized",

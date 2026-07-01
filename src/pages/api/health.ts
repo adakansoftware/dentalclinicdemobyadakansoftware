@@ -5,7 +5,12 @@ import { getDurationMs, logEvent } from "@/lib/observability";
 import { buildApiHeaders } from "@/lib/api-security";
 import { buildHealthSummary } from "@/lib/health";
 import { getResilienceSnapshot, ResilienceError, runWithCircuitBreaker, runWithTimeout } from "@/lib/resilience";
-import { applyEndpointSuspicion, authorizeBearerSecret, checkEndpointRateLimit, getEndpointBlockDecision } from "@/lib/endpoint-guard";
+import {
+  applyEndpointSuspicionAsync,
+  authorizeBearerSecret,
+  checkEndpointRateLimitAsync,
+  getEndpointBlockDecisionAsync,
+} from "@/lib/endpoint-guard";
 import { headersFromNodeRequest } from "@/lib/request-headers";
 
 function buildRequestId() {
@@ -37,20 +42,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Method Not Allowed", requestId });
   }
 
-  const blockDecision = getEndpointBlockDecision(requestHeaders);
+  const blockDecision = await getEndpointBlockDecisionAsync(requestHeaders);
   if (blockDecision.blocked) {
     applyApiHeaders(res, requestId, { "Retry-After": String(blockDecision.retryAfterSec) });
     return res.status(429).json({ error: "Too many suspicious requests", requestId });
   }
 
-  const rateDecision = checkEndpointRateLimit(requestHeaders, {
+  const rateDecision = await checkEndpointRateLimitAsync(requestHeaders, {
     scope: "health-route",
     limit: isProduction ? 20 : 60,
     windowMs: 60 * 1000,
   });
 
   if (!rateDecision.allowed) {
-    applyEndpointSuspicion(requestHeaders, 1);
+    await applyEndpointSuspicionAsync(requestHeaders, 1);
     applyApiHeaders(res, requestId, { "Retry-After": String(rateDecision.retryAfterSec || 60) });
     return res.status(429).json({ error: "Too many requests", requestId });
   }
@@ -59,7 +64,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const isAuthorized = authorizeBearerSecret(requestHeaders, healthcheckSecret);
 
     if (!isAuthorized) {
-      applyEndpointSuspicion(requestHeaders, 3);
+      await applyEndpointSuspicionAsync(requestHeaders, 3);
       logEvent({
         level: "warn",
         event: "health_check_unauthorized",
