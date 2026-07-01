@@ -172,8 +172,7 @@ await run("headersFromNodeRequest normalizes string arrays", () => {
 
 await run("buildRequestUrlFromHeaders reconstructs forwarded request url safely", () => {
   const headerStore = new Headers({
-    "x-forwarded-host": "clinic.example",
-    "x-forwarded-proto": "https",
+    origin: "https://clinic.example",
   });
 
   assert.equal(buildRequestUrlFromHeaders(headerStore, "/admin"), "https://clinic.example/admin");
@@ -190,20 +189,22 @@ await run("isTrustedMutationOrigin rejects cross-site mutation hints", () => {
     },
     () => {
       const trusted = new Headers({
-        "x-forwarded-host": "clinic.example",
-        "x-forwarded-proto": "https",
         origin: "https://clinic.example",
         "sec-fetch-site": "same-origin",
       });
       const untrusted = new Headers({
-        "x-forwarded-host": "clinic.example",
-        "x-forwarded-proto": "https",
         origin: "https://evil.example",
         "sec-fetch-site": "cross-site",
+      });
+      const spoofedHost = new Headers({
+        origin: "https://evil.example",
+        referer: "https://evil.example/admin",
+        "sec-fetch-site": "same-origin",
       });
 
       assert.equal(isTrustedMutationOrigin(trusted, "/admin/settings"), true);
       assert.equal(isTrustedMutationOrigin(untrusted, "/admin/settings"), false);
+      assert.equal(isTrustedMutationOrigin(spoofedHost, "/admin/settings"), false);
     }
   );
 });
@@ -212,14 +213,9 @@ await run("buildAdminSessionClientBinding combines stable browser hints", () => 
   const headerStore = new Headers({
     "user-agent": "Mozilla/5.0",
     "accept-language": "tr-TR,tr;q=0.9",
-    "sec-ch-ua-platform": "\"Windows\"",
-    "sec-ch-ua-mobile": "?0",
   });
 
-  assert.equal(
-    buildAdminSessionClientBinding(headerStore),
-    'Mozilla/5.0|tr-TR,tr;q=0.9|"Windows"|?0'
-  );
+  assert.equal(buildAdminSessionClientBinding(headerStore), "Mozilla/5.0|tr-TR,tr;q=0.9");
 });
 
 await run("admin session guard hash rejects mismatched client binding", () => {

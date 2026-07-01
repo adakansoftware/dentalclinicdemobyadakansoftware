@@ -54,6 +54,12 @@ export async function setSessionCookie(token: string) {
   });
 }
 
+async function clearSessionCookies() {
+  const cookieStore = await cookies();
+  cookieStore.delete(SESSION_COOKIE);
+  cookieStore.delete(SESSION_GUARD_COOKIE);
+}
+
 export async function getSessionToken(): Promise<string | null> {
   const cookieStore = await cookies();
   return cookieStore.get(SESSION_COOKIE)?.value ?? null;
@@ -95,9 +101,7 @@ const getAdminFromSessionCached = cache(async () => {
   }
 
   if (shouldInvalidateAdminSessionGuard(token, clientBinding, sessionGuard)) {
-    await safeQuery("invalidate admin session guard mismatch", () => prisma.adminSession.delete({ where: { id: session.id } }), null, {
-      shouldLog: false,
-    });
+    await clearSessionCookies();
     logEvent({
       level: "warn",
       event: "admin_session_guard_rejected",
@@ -170,9 +174,7 @@ export async function destroySession() {
       { shouldLog: false }
     );
   }
-  const cookieStore = await cookies();
-  cookieStore.delete(SESSION_COOKIE);
-  cookieStore.delete(SESSION_GUARD_COOKIE);
+  await clearSessionCookies();
 }
 
 export async function verifyPassword(plain: string, hash: string): Promise<boolean> {

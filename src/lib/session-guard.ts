@@ -12,8 +12,6 @@ export function buildAdminSessionClientBinding(headers: Headers) {
   return [
     normalizeHeaderValue(headers.get("user-agent")),
     normalizeHeaderValue(headers.get("accept-language")),
-    normalizeHeaderValue(headers.get("sec-ch-ua-platform")),
-    normalizeHeaderValue(headers.get("sec-ch-ua-mobile")),
   ].join("|");
 }
 
