@@ -1,11 +1,10 @@
 "use server";
 
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { runAdminMutation } from "@/lib/admin-mutation";
 import { getGoogleMapsEmbedError } from "@/lib/maps";
 import { IMAGE_INPUT_SCHEMA_MESSAGE, isValidAssetInput, persistImageAsset } from "@/lib/upload-assets";
-import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/types";
 
 const BRANDING_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/x-icon", "image/vnd.microsoft.icon"] as const;
@@ -57,8 +56,6 @@ async function getExistingSettings(keys: string[]) {
 }
 
 export async function updateSettingsAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
-  await requireAdmin();
-
   const raw = Object.fromEntries(
     Array.from(formData.entries()).filter((entry): entry is [string, string] => typeof entry[1] === "string")
   );
@@ -107,17 +104,29 @@ export async function updateSettingsAction(_prev: ActionResult, formData: FormDa
     faviconUrl,
   };
 
-  await Promise.all(
-    Object.entries(payload).map(([key, value]) =>
-      prisma.siteSetting.upsert({
-        where: { key },
-        update: { value },
-        create: { key, value },
-      })
-    )
-  );
+  return runAdminMutation({
+    route: "action:updateSettings",
+    event: "settings_updated",
+    execute: async () => {
+      await Promise.all(
+        Object.entries(payload).map(([key, value]) =>
+          prisma.siteSetting.upsert({
+            where: { key },
+            update: { value },
+            create: { key, value },
+          })
+        )
+      );
 
-  revalidatePath("/", "layout");
-  revalidatePath("/admin/settings");
-  return { success: true };
+      return {
+        meta: {
+          hasLogo: Boolean(payload.logoUrl),
+          hasFavicon: Boolean(payload.faviconUrl),
+          hasMapEmbed: Boolean(payload.mapEmbedUrl),
+        },
+        revalidate: [{ path: "/", type: "layout" }, "/admin/settings"],
+      };
+    },
+    getErrorMessage: () => "Ayarlar kaydedilemedi",
+  });
 }

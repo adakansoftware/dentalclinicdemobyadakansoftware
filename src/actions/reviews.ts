@@ -2,11 +2,11 @@
 
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { runAdminMutation } from "@/lib/admin-mutation";
 import { recordIdSchema, sanitizeTextInput, sanitizeTextareaInput } from "@/lib/input";
 import { verifyTurnstileToken } from "@/lib/bot-protection";
 import { enforceRateLimit, validateFormAge, validateHoneypot } from "@/lib/security";
-import { revalidatePath } from "next/cache";
+import { logEvent } from "@/lib/observability";
 import type { ActionResult } from "@/types";
 
 const reviewSchema = z.object({
@@ -22,12 +22,12 @@ const reviewIdSchema = z.object({
 
 export async function submitReviewAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
   if (!validateHoneypot(formData) || !validateFormAge(formData)) {
-    return { success: false, error: "İstek doğrulanamadı. Lütfen tekrar deneyin." };
+    return { success: false, error: "Istek dogrulanamadi. Lutfen tekrar deneyin." };
   }
 
   const turnstileValid = await verifyTurnstileToken(formData.get("cf-turnstile-response"));
   if (!turnstileValid) {
-    return { success: false, error: "Bot doğrulaması başarısız oldu. Lütfen tekrar deneyin." };
+    return { success: false, error: "Bot dogrulamasi basarisiz oldu. Lutfen tekrar deneyin." };
   }
 
   const allowed = await enforceRateLimit({
@@ -37,7 +37,7 @@ export async function submitReviewAction(_prev: ActionResult, formData: FormData
   });
 
   if (!allowed) {
-    return { success: false, error: "Çok fazla yorum gönderildi. Lütfen daha sonra tekrar deneyin." };
+    return { success: false, error: "Cok fazla yorum gonderildi. Lutfen daha sonra tekrar deneyin." };
   }
 
   const parsed = reviewSchema.safeParse({
@@ -47,7 +47,9 @@ export async function submitReviewAction(_prev: ActionResult, formData: FormData
     contentEn: formData.get("contentEn") || formData.get("contentTr"),
   });
 
-  if (!parsed.success) return { success: false, error: parsed.error.errors[0]?.message ?? "Hata" };
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.errors[0]?.message ?? "Hata" };
+  }
 
   await prisma.review.create({
     data: {
@@ -60,26 +62,62 @@ export async function submitReviewAction(_prev: ActionResult, formData: FormData
     },
   });
 
-  revalidatePath("/admin/reviews");
+  logEvent({
+    event: "review_submitted",
+    route: "action:submitReview",
+    meta: {
+      ratingStars: parsed.data.ratingStars,
+      hasTranslatedContent: Boolean(parsed.data.contentEn),
+    },
+  });
+
   return { success: true };
 }
 
 export async function approveReviewAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
-  await requireAdmin();
   const parsed = reviewIdSchema.safeParse({ id: formData.get("id") });
-  if (!parsed.success) return { success: false, error: parsed.error.errors[0]?.message ?? "ID gerekli" };
-  await prisma.review.update({ where: { id: parsed.data.id }, data: { isApproved: true } });
-  revalidatePath("/admin/reviews");
-  revalidatePath("/reviews");
-  return { success: true };
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.errors[0]?.message ?? "ID gerekli" };
+  }
+
+  return runAdminMutation({
+    route: "action:approveReview",
+    event: "review_approved",
+    execute: async () => {
+      await prisma.review.update({
+        where: { id: parsed.data.id },
+        data: { isApproved: true },
+      });
+
+      return {
+        meta: {
+          reviewId: parsed.data.id,
+        },
+        revalidate: ["/admin/reviews", "/reviews"],
+      };
+    },
+    getErrorMessage: () => "Yorum onaylanamadi",
+  });
 }
 
 export async function deleteReviewAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
-  await requireAdmin();
   const parsed = reviewIdSchema.safeParse({ id: formData.get("id") });
-  if (!parsed.success) return { success: false, error: parsed.error.errors[0]?.message ?? "ID gerekli" };
-  await prisma.review.delete({ where: { id: parsed.data.id } });
-  revalidatePath("/admin/reviews");
-  revalidatePath("/reviews");
-  return { success: true };
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.errors[0]?.message ?? "ID gerekli" };
+  }
+
+  return runAdminMutation({
+    route: "action:deleteReview",
+    event: "review_deleted",
+    execute: async () => {
+      await prisma.review.delete({ where: { id: parsed.data.id } });
+      return {
+        meta: {
+          reviewId: parsed.data.id,
+        },
+        revalidate: ["/admin/reviews", "/reviews"],
+      };
+    },
+    getErrorMessage: () => "Yorum silinemedi",
+  });
 }
