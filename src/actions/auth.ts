@@ -3,7 +3,7 @@
 import { createHash } from "crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { createSession, destroySession, setSessionCookie, verifyPassword } from "@/lib/auth";
+import { createSession, destroySession, isAdminRequestAllowed, setSessionCookie, verifyPassword } from "@/lib/auth";
 import { sanitizeEmailInput } from "@/lib/input";
 import { logEvent } from "@/lib/observability";
 import { runPublicActionGuard } from "@/lib/public-action-guard";
@@ -21,6 +21,15 @@ function fingerprintIdentifier(value: string) {
 }
 
 export async function loginAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
+  if (!(await isAdminRequestAllowed())) {
+    logEvent({
+      level: "warn",
+      event: "admin_login_ip_rejected",
+      route: "action:login",
+    });
+    return { success: false, error: "Bu agdan yonetim girisine izin verilmiyor" };
+  }
+
   const parsed = loginSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),

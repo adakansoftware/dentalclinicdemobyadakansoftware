@@ -25,6 +25,11 @@ If forms are public in production, also set:
 - `TURNSTILE_SECRET_KEY`
 - `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
 
+For stricter network isolation, configure one or both:
+
+- `ADMIN_IP_ALLOWLIST`
+- `INTERNAL_API_IP_ALLOWLIST`
+
 ## 3. Edge protection
 
 Apply the Cloudflare steps from [cloudflare-waf-rules.md](./cloudflare-waf-rules.md).
@@ -37,6 +42,7 @@ Minimum expectation:
 - admin and `/api/*` challenge rules on
 - rate limits for `/admin/login`, `/api/slots`, and form-heavy pages
 - direct-to-origin access blocked where hosting allows
+- internal cron and health endpoints restricted to trusted source IP ranges when possible
 
 ## 4. Deployment checks
 

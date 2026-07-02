@@ -49,6 +49,7 @@ import {
 import { SOCIAL_IMAGE_HEIGHT, SOCIAL_IMAGE_PATH, SOCIAL_IMAGE_WIDTH, TWITTER_IMAGE_PATH } from "../src/lib/social-preview.ts";
 import { toAbsoluteAssetUrl } from "../src/lib/seo.ts";
 import { sanitizeAssetReference } from "../src/lib/upload-assets.ts";
+import { isIpAllowedByPolicy, parseIpAllowlist } from "../src/lib/ip-policy.ts";
 
 const results: string[] = [];
 
@@ -157,6 +158,24 @@ await run("buildRequestFingerprintFromHeaders includes IP and user agent", () =>
   });
 
   assert.equal(buildRequestFingerprintFromHeaders(headerStore), "198.51.100.1:SmokeTestAgent/1.0");
+});
+
+await run("parseIpAllowlist normalizes comma and newline separated entries", () => {
+  assert.deepEqual(parseIpAllowlist("203.0.113.10, 198.51.100.0/24\n2001:db8::/32"), [
+    "203.0.113.10",
+    "198.51.100.0/24",
+    "2001:db8::/32",
+  ]);
+});
+
+await run("isIpAllowedByPolicy supports exact ip and cidr matching", () => {
+  const allowlist = ["203.0.113.10", "198.51.100.0/24", "2001:db8::/32"];
+
+  assert.equal(isIpAllowedByPolicy("203.0.113.10", allowlist), true);
+  assert.equal(isIpAllowedByPolicy("198.51.100.77", allowlist), true);
+  assert.equal(isIpAllowedByPolicy("2001:db8::5", allowlist), true);
+  assert.equal(isIpAllowedByPolicy("203.0.113.11", allowlist), false);
+  assert.equal(isIpAllowedByPolicy("2001:db9::1", allowlist), false);
 });
 
 await run("getRequestIdFromHeaders rejects invalid request ids", () => {
@@ -560,6 +579,25 @@ await run("getEnv accepts valid minimal configuration", () => {
       assert.equal(env.DATABASE_URL, "postgresql://example");
       assert.equal(env.SMS_ENABLED, "false");
       assert.equal(env.NEXT_PUBLIC_APP_URL, "https://adakan.example");
+    }
+  );
+});
+
+await run("getEnv accepts optional ip allowlists", () => {
+  withEnv(
+    {
+      DATABASE_URL: "postgresql://example",
+      SESSION_SECRET: "12345678901234567890123456789012",
+      SMS_ENABLED: "false",
+      NEXT_PUBLIC_APP_URL: "https://clinic.example",
+      ADMIN_IP_ALLOWLIST: "203.0.113.10,198.51.100.0/24",
+      INTERNAL_API_IP_ALLOWLIST: "10.0.0.0/8",
+      NODE_ENV: "development",
+    },
+    () => {
+      const env = getEnv();
+      assert.equal(env.ADMIN_IP_ALLOWLIST, "203.0.113.10,198.51.100.0/24");
+      assert.equal(env.INTERNAL_API_IP_ALLOWLIST, "10.0.0.0/8");
     }
   );
 });

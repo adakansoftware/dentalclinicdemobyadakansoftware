@@ -13,6 +13,7 @@ import { buildReminderMessage, processSmsOutbox, sendSms } from "@/lib/sms";
 import { getEnv } from "@/lib/env";
 import { dateToIsoDate, getTomorrowDateInTurkey, getUtcRangeForTurkeyDate } from "@/lib/date";
 import { getDurationMs, logEvent } from "@/lib/observability";
+import { isRequestIpAllowed, parseIpAllowlist } from "@/lib/ip-policy";
 import { ResilienceError, runWithCircuitBreaker, runWithConcurrencyLimit, runWithTimeout } from "@/lib/resilience";
 import { methodNotAllowed } from "@/lib/route-methods";
 
@@ -23,6 +24,7 @@ export async function GET(request: Request) {
   const startedAt = Date.now();
   const env = getEnv();
   const cronSecret = env.CRON_SECRET;
+  const internalApiAllowlist = parseIpAllowlist(env.INTERNAL_API_IP_ALLOWLIST);
   const blockDecision = await getEndpointBlockDecisionAsync(request.headers);
 
   if (blockDecision.blocked) {
@@ -31,6 +33,15 @@ export async function GET(request: Request) {
       status: 429,
       code: "SUSPICIOUS_TRAFFIC_BLOCKED",
       retryAfterSec: blockDecision.retryAfterSec,
+    });
+  }
+
+  if (internalApiAllowlist.length > 0 && !isRequestIpAllowed(request.headers, internalApiAllowlist)) {
+    await applyEndpointSuspicionAsync(request.headers, 2);
+    return jsonError("Not Found", {
+      requestId,
+      status: 404,
+      code: "NOT_FOUND",
     });
   }
 

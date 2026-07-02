@@ -4,6 +4,7 @@ import { getEnvIssues, getOptionalEnv } from "@/lib/env";
 import { getDurationMs, logEvent } from "@/lib/observability";
 import { buildApiHeaders } from "@/lib/api-security";
 import { buildHealthSummary } from "@/lib/health";
+import { isRequestIpAllowed, parseIpAllowlist } from "@/lib/ip-policy";
 import { getResilienceSnapshot, ResilienceError, runWithCircuitBreaker, runWithTimeout } from "@/lib/resilience";
 import {
   applyEndpointSuspicionAsync,
@@ -36,6 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const isProduction = process.env.NODE_ENV === "production";
   const healthcheckSecret = env.HEALTHCHECK_SECRET;
   const requestHeaders = headersFromNodeRequest(req.headers);
+  const internalApiAllowlist = parseIpAllowlist(env.INTERNAL_API_IP_ALLOWLIST);
 
   if (req.method !== "GET") {
     applyApiHeaders(res, requestId, { Allow: "GET" });
@@ -46,6 +48,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (blockDecision.blocked) {
     applyApiHeaders(res, requestId, { "Retry-After": String(blockDecision.retryAfterSec) });
     return res.status(429).json({ error: "Too many suspicious requests", requestId });
+  }
+
+  if (internalApiAllowlist.length > 0 && !isRequestIpAllowed(requestHeaders, internalApiAllowlist)) {
+    await applyEndpointSuspicionAsync(requestHeaders, 2);
+    applyApiHeaders(res, requestId);
+    return res.status(404).json({ error: "Not Found", requestId });
   }
 
   const rateDecision = await checkEndpointRateLimitAsync(requestHeaders, {

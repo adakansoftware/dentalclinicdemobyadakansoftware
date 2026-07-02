@@ -25,6 +25,8 @@ const envSchema = z.object({
   NETGSM_HEADER: optionalTrimmedString,
   CRON_SECRET: optionalTrimmedString,
   HEALTHCHECK_SECRET: optionalTrimmedString,
+  ADMIN_IP_ALLOWLIST: optionalTrimmedString,
+  INTERNAL_API_IP_ALLOWLIST: optionalTrimmedString,
   NEXT_PUBLIC_APP_URL: optionalUrlString,
   NEXT_PUBLIC_SITE_URL: optionalUrlString,
   NEXTAUTH_URL: optionalUrlString,
@@ -57,6 +59,17 @@ function collectEnvIssues(env: AppEnv) {
 
   if (env.HEALTHCHECK_SECRET && env.HEALTHCHECK_SECRET.length < 16) {
     issues.push("HEALTHCHECK_SECRET must be at least 16 characters");
+  }
+
+  const allowlistFields = [
+    ["ADMIN_IP_ALLOWLIST", env.ADMIN_IP_ALLOWLIST],
+    ["INTERNAL_API_IP_ALLOWLIST", env.INTERNAL_API_IP_ALLOWLIST],
+  ] as const;
+
+  for (const [label, value] of allowlistFields) {
+    if (value && value.length < 3) {
+      issues.push(`${label} must contain at least one IP or CIDR entry`);
+    }
   }
 
   if (env.NODE_ENV === "production") {

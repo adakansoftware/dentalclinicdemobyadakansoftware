@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { parseIpAllowlist, isRequestIpAllowed } from "@/lib/ip-policy";
 import { buildIpRateLimitKeyFromHeaders, getRateLimitDecisionByKey } from "@/lib/security";
 import { getSuspicionDecision, recordSuspiciousActivity } from "@/lib/attack-monitor";
 
@@ -92,8 +93,32 @@ function isSensitiveRequest(request: NextRequest) {
   );
 }
 
+function isAdminPath(pathname: string) {
+  return pathname === "/admin" || pathname.startsWith("/admin/");
+}
+
+function isInternalProtectedPath(pathname: string) {
+  return pathname.startsWith("/api/cron/reminders") || pathname.startsWith("/api/health");
+}
+
 export function middleware(request: NextRequest) {
   const clientKey = buildIpRateLimitKeyFromHeaders(request.headers);
+  const adminAllowlist = parseIpAllowlist(process.env.ADMIN_IP_ALLOWLIST);
+  const internalApiAllowlist = parseIpAllowlist(process.env.INTERNAL_API_IP_ALLOWLIST);
+
+  if (adminAllowlist.length > 0 && isAdminPath(request.nextUrl.pathname) && !isRequestIpAllowed(request.headers, adminAllowlist)) {
+    recordSuspiciousActivity(clientKey, 2);
+    return NextResponse.json({ error: "Forbidden" }, { status: 403, headers: { "Cache-Control": "no-store" } });
+  }
+
+  if (
+    internalApiAllowlist.length > 0 &&
+    isInternalProtectedPath(request.nextUrl.pathname) &&
+    !isRequestIpAllowed(request.headers, internalApiAllowlist)
+  ) {
+    recordSuspiciousActivity(clientKey, 2);
+    return NextResponse.json({ error: "Not Found" }, { status: 404, headers: { "Cache-Control": "no-store" } });
+  }
 
   const suspicionDecision = getSuspicionDecision(clientKey);
   if (suspicionDecision.blocked) {

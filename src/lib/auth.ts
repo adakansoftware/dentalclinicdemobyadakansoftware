@@ -3,6 +3,7 @@ import { createAdminStepUpProof, getAdminStepUpTtlSec, verifyAdminStepUpProof } 
 import { prisma } from "@/lib/prisma";
 import { safeQuery } from "@/lib/safe-query";
 import { logEvent } from "@/lib/observability";
+import { isRequestIpAllowed, parseIpAllowlist } from "@/lib/ip-policy";
 import {
   buildAdminSessionClientBinding,
   hashAdminSessionGuard,
@@ -18,6 +19,17 @@ const SESSION_COOKIE = "admin_session";
 const SESSION_GUARD_COOKIE = "admin_session_guard";
 const ADMIN_STEP_UP_COOKIE = "admin_step_up";
 const SESSION_DURATION_DAYS = 7;
+
+export async function isAdminRequestAllowed() {
+  const env = (await import("@/lib/env")).getOptionalEnv();
+  const allowlist = parseIpAllowlist(env.ADMIN_IP_ALLOWLIST);
+  if (allowlist.length === 0) {
+    return true;
+  }
+
+  const headerStore = await headers();
+  return isRequestIpAllowed(headerStore, allowlist);
+}
 
 function hashSessionToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
@@ -172,6 +184,11 @@ export async function getAdminFromSession() {
 }
 
 export async function requireAdmin() {
+  const allowed = await isAdminRequestAllowed();
+  if (!allowed) {
+    redirect("/admin/login");
+  }
+
   const admin = await getAdminFromSession();
   if (!admin) {
     redirect("/admin/login");
