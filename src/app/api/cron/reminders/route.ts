@@ -12,6 +12,7 @@ import { getSiteSettings } from "@/lib/settings";
 import { buildReminderMessage, processSmsOutbox, sendSms } from "@/lib/sms";
 import { getEnv } from "@/lib/env";
 import { dateToIsoDate, getTomorrowDateInTurkey, getUtcRangeForTurkeyDate } from "@/lib/date";
+import { claimDistributedLease, releaseDistributedLease } from "@/lib/distributed-security-store";
 import { getDurationMs, logEvent } from "@/lib/observability";
 import { isRequestIpAllowed, parseIpAllowlist } from "@/lib/ip-policy";
 import { ResilienceError, runWithCircuitBreaker, runWithConcurrencyLimit, runWithTimeout } from "@/lib/resilience";
@@ -101,10 +102,33 @@ export async function GET(request: Request) {
 
   const tomorrowDate = getTomorrowDateInTurkey();
   const { startUtc: tomorrow, endUtc: tomorrowEnd } = getUtcRangeForTurkeyDate(tomorrowDate);
+  const leaseOwner = requestId;
+  const leaseKey = `cron-reminders:${tomorrowDate}`;
+  const lease = await claimDistributedLease(leaseKey, 10 * 60 * 1000, leaseOwner, "cron-reminders");
 
-  let appointments;
+  if (!lease.claimed) {
+    logEvent({
+      level: "warn",
+      event: "cron_reminders_already_running",
+      requestId,
+      route: "/api/cron/reminders",
+      meta: {
+        date: tomorrowDate,
+        leaseOwner: lease.owner ?? undefined,
+        leaseExpiresAt: new Date(lease.expiresAt).toISOString(),
+      },
+    });
+
+    return jsonError("Reminder run already in progress", {
+      requestId,
+      status: 409,
+      code: "CRON_ALREADY_RUNNING",
+      retryAfterSec: Math.max(1, Math.ceil((lease.expiresAt - Date.now()) / 1000)),
+    });
+  }
 
   try {
+    let appointments;
     appointments = await runWithCircuitBreaker(
       "cron-reminders",
       { failureThreshold: 3, cooldownMs: 60_000, halfOpenMaxConcurrent: 1 },
@@ -121,6 +145,79 @@ export async function GET(request: Request) {
             })
           )
         )
+    );
+    const settings = await getSiteSettings();
+    let enqueued = 0;
+
+    for (const apt of appointments) {
+      try {
+        const dateStr = dateToIsoDate(apt.date);
+        const message = buildReminderMessage(
+          apt.patientLanguage,
+          apt.patientName,
+          dateStr,
+          apt.startTime,
+          settings.clinicName,
+          settings.phone
+        );
+
+        await sendSms({
+          phone: apt.patientPhone,
+          message,
+          appointmentId: apt.id,
+          type: "REMINDER",
+        });
+        enqueued++;
+      } catch (err) {
+        logEvent({
+          level: "error",
+          event: "cron_reminder_send_failed",
+          requestId,
+          route: "/api/cron/reminders",
+          message: err instanceof Error ? err.message : "Unknown SMS error",
+          meta: {
+            appointmentId: apt.id,
+            specialistId: apt.specialistId,
+            serviceId: apt.serviceId,
+          },
+        });
+      }
+    }
+
+    const outboxResult = await processSmsOutbox(Math.max(enqueued, 1));
+
+    const durationMs = getDurationMs(startedAt);
+
+    logEvent({
+      event: "cron_reminders_completed",
+      requestId,
+      route: "/api/cron/reminders",
+      meta: {
+        total: appointments.length,
+        enqueued,
+        sent: outboxResult.sent,
+        failed: outboxResult.failed,
+        skipped: outboxResult.skipped,
+        date: tomorrowDate,
+        durationMs,
+      },
+    });
+
+    return jsonOk(
+      {
+        success: true,
+        total: appointments.length,
+        enqueued,
+        sent: outboxResult.sent,
+        failed: outboxResult.failed,
+        skipped: outboxResult.skipped,
+        date: tomorrowDate,
+        responseTimeMs: durationMs,
+      },
+      {
+        requestId,
+        headers: { "Server-Timing": `app;dur=${durationMs}` },
+      }
     );
   } catch (error) {
     if (error instanceof ResilienceError) {
@@ -145,81 +242,9 @@ export async function GET(request: Request) {
     }
 
     throw error;
+  } finally {
+    await releaseDistributedLease(leaseKey, leaseOwner, "cron-reminders");
   }
-
-  const settings = await getSiteSettings();
-  let enqueued = 0;
-
-  for (const apt of appointments) {
-    try {
-      const dateStr = dateToIsoDate(apt.date);
-      const message = buildReminderMessage(
-        apt.patientLanguage,
-        apt.patientName,
-        dateStr,
-        apt.startTime,
-        settings.clinicName,
-        settings.phone
-      );
-
-      await sendSms({
-        phone: apt.patientPhone,
-        message,
-        appointmentId: apt.id,
-        type: "REMINDER",
-      });
-      enqueued++;
-    } catch (err) {
-      logEvent({
-        level: "error",
-        event: "cron_reminder_send_failed",
-        requestId,
-        route: "/api/cron/reminders",
-        message: err instanceof Error ? err.message : "Unknown SMS error",
-        meta: {
-          appointmentId: apt.id,
-          specialistId: apt.specialistId,
-          serviceId: apt.serviceId,
-        },
-      });
-    }
-  }
-
-  const outboxResult = await processSmsOutbox(Math.max(enqueued, 1));
-
-  const durationMs = getDurationMs(startedAt);
-
-  logEvent({
-    event: "cron_reminders_completed",
-    requestId,
-    route: "/api/cron/reminders",
-    meta: {
-      total: appointments.length,
-      enqueued,
-      sent: outboxResult.sent,
-      failed: outboxResult.failed,
-      skipped: outboxResult.skipped,
-      date: tomorrowDate,
-      durationMs,
-    },
-  });
-
-  return jsonOk(
-    {
-      success: true,
-      total: appointments.length,
-      enqueued,
-      sent: outboxResult.sent,
-      failed: outboxResult.failed,
-      skipped: outboxResult.skipped,
-      date: tomorrowDate,
-      responseTimeMs: durationMs,
-    },
-    {
-      requestId,
-      headers: { "Server-Timing": `app;dur=${durationMs}` },
-    }
-  );
 }
 
 export function POST(request: Request) {

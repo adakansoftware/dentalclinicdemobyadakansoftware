@@ -1,5 +1,6 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { withDistributedSecurityState } from "@/lib/distributed-security-store";
 import {
   compareDateStrings,
   getCurrentMinutesInTurkey,
@@ -132,6 +133,7 @@ export async function getAvailableSlotsWithMeta(
   dateStr: string
 ): Promise<SlotsResult> {
   const key = `${specialistId}:${dateStr}`;
+  const distributedKey = `slots:${key}`;
   const now = Date.now();
   const cached = slotsCache.get(key);
 
@@ -161,6 +163,41 @@ export async function getAvailableSlotsWithMeta(
   }
 
   const pending = (async () => {
+    const distributedResult = await withDistributedSecurityState(distributedKey, "slots-cache", async ({ entry, tx }) => {
+      const currentNow = Date.now();
+
+      if (entry && entry.expiresAt.getTime() > currentNow) {
+        const parsed = JSON.parse(entry.value) as { slots?: TimeSlot[] };
+        const sharedSlots = Array.isArray(parsed.slots) ? parsed.slots : [];
+        slotsCache.set(key, { slots: sharedSlots, expiresAt: entry.expiresAt.getTime() });
+        return { slots: sharedSlots, cacheHit: true };
+      }
+
+      const slots = await getAvailableSlotsFromDb(prisma, specialistId, dateStr);
+      const expiresAt = new Date(currentNow + SLOTS_CACHE_TTL_MS);
+      await tx.securityState.upsert({
+        where: { key: distributedKey },
+        create: {
+          key: distributedKey,
+          kind: "slots-cache",
+          value: JSON.stringify({ slots }),
+          expiresAt,
+        },
+        update: {
+          kind: "slots-cache",
+          value: JSON.stringify({ slots }),
+          expiresAt,
+        },
+      });
+
+      slotsCache.set(key, { slots, expiresAt: expiresAt.getTime() });
+      return { slots, cacheHit: false };
+    });
+
+    if (distributedResult) {
+      return distributedResult;
+    }
+
     const slots = await getAvailableSlotsFromDb(prisma, specialistId, dateStr);
     slotsCache.set(key, { slots, expiresAt: Date.now() + SLOTS_CACHE_TTL_MS });
     return { slots, cacheHit: false };

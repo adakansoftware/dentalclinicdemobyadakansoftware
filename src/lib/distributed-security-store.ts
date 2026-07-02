@@ -133,3 +133,80 @@ export async function withDistributedSecurityState<T>(
     return null;
   }
 }
+
+export async function claimDistributedLease(
+  key: string,
+  leaseMs: number,
+  owner: string,
+  kind = "lease"
+): Promise<{ claimed: boolean; expiresAt: number; owner: string | null }> {
+  const now = Date.now();
+  const result = await withDistributedSecurityState(`lease:${key}`, kind, async ({ entry, tx }) => {
+    const current =
+      entry && entry.expiresAt.getTime() > now
+        ? (JSON.parse(entry.value) as { owner?: string })
+        : null;
+
+    if (entry && entry.expiresAt.getTime() > now && current?.owner && current.owner !== owner) {
+      return {
+        claimed: false,
+        expiresAt: entry.expiresAt.getTime(),
+        owner: current.owner,
+      };
+    }
+
+    const expiresAt = new Date(now + leaseMs);
+    await tx.securityState.upsert({
+      where: { key: `lease:${key}` },
+      create: {
+        key: `lease:${key}`,
+        kind,
+        value: JSON.stringify({ owner }),
+        expiresAt,
+      },
+      update: {
+        kind,
+        value: JSON.stringify({ owner }),
+        expiresAt,
+      },
+    });
+
+    return {
+      claimed: true,
+      expiresAt: expiresAt.getTime(),
+      owner,
+    };
+  });
+
+  if (result) {
+    return result;
+  }
+
+  return {
+    claimed: true,
+    expiresAt: now + leaseMs,
+    owner,
+  };
+}
+
+export async function releaseDistributedLease(key: string, owner: string, kind = "lease") {
+  await withDistributedSecurityState(`lease:${key}`, kind, async ({ entry, tx }) => {
+    if (!entry) {
+      return false;
+    }
+
+    const current = JSON.parse(entry.value) as { owner?: string };
+    if (current.owner !== owner) {
+      return false;
+    }
+
+    await tx.securityState.deleteMany({
+      where: {
+        key: `lease:${key}`,
+        kind,
+      },
+    });
+
+    return true;
+  });
+}

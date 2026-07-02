@@ -50,6 +50,7 @@ import { SOCIAL_IMAGE_HEIGHT, SOCIAL_IMAGE_PATH, SOCIAL_IMAGE_WIDTH, TWITTER_IMA
 import { toAbsoluteAssetUrl } from "../src/lib/seo.ts";
 import { sanitizeAssetReference } from "../src/lib/upload-assets.ts";
 import { isIpAllowedByPolicy, parseIpAllowlist } from "../src/lib/ip-policy.ts";
+import { claimDistributedLease, releaseDistributedLease } from "../src/lib/distributed-security-store.ts";
 
 const results: string[] = [];
 
@@ -486,6 +487,17 @@ await run("async attack monitor shares suspicion semantics with fallback store",
   assert.equal(blocked.blocked, true);
   assert.equal(blocked.retryAfterSec > 0, true);
   await clearSuspicionAsync(key);
+});
+
+await run("distributed lease fallback allows acquire and release semantics", async () => {
+  const key = `lease-${Date.now()}`;
+  const first = await claimDistributedLease(key, 60_000, "owner-a", "unit-lease");
+  const second = await claimDistributedLease(key, 60_000, "owner-b", "unit-lease");
+
+  assert.equal(first.claimed, true);
+  assert.equal(second.claimed, true);
+
+  await releaseDistributedLease(key, "owner-a", "unit-lease");
 });
 
 await run("resilience snapshot exposes circuit state", async () => {
