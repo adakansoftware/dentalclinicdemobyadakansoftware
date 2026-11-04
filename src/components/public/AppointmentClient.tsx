@@ -205,16 +205,16 @@ export default function AppointmentClient({
               return (
                 <div
                   key={label}
-                  className={`flex items-center gap-3 rounded-2xl px-4 py-3 ${
+                  className={`flex items-center gap-3 rounded-xl px-4 py-3 ${
                     active
-                      ? "bg-[rgba(227,235,230,0.9)] text-[color:var(--text-primary)]"
+                      ? "bg-[rgba(85,145,183,0.12)] text-[color:var(--text-primary)]"
                       : done
-                        ? "bg-[rgba(241,245,243,0.9)] text-[color:var(--text-primary)]"
-                        : "bg-[rgba(249,251,250,0.7)] text-[color:var(--text-secondary)]"
+                        ? "bg-[color:var(--surface-muted)] text-[color:var(--text-primary)]"
+                        : "bg-[color:var(--surface-muted)] text-[color:var(--text-secondary)] opacity-70"
                   }`}
                 >
                   <span className="step-badge">{String(index + 1).padStart(2, "0")}</span>
-                  <span className="text-sm font-medium">{label}</span>
+                  <span className={`text-sm ${active ? "font-bold" : "font-medium"}`}>{label}</span>
                 </div>
               );
             })}
@@ -493,7 +493,7 @@ export default function AppointmentClient({
                   </p>
                 </div>
 
-                <div className="mt-5 space-y-3 rounded-[1.5rem] border border-[rgba(207,216,211,0.82)] bg-[rgba(241,245,243,0.72)] p-4">
+                <div className="mt-5 space-y-3 rounded-[1.25rem] border border-[color:var(--border)] bg-[color:var(--surface-muted)] p-4">
                   {assurancePoints.map((item) => (
                     <div key={item} className="flex items-start gap-3 text-sm leading-relaxed text-[color:var(--text-secondary)]">
                       <span className="mt-1 inline-flex h-2.5 w-2.5 rounded-full bg-[color:var(--accent-main)]" />
