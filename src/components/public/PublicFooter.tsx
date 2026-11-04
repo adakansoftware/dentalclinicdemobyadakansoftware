@@ -30,28 +30,29 @@ export default function PublicFooter({ settings }: Props) {
   ].filter(Boolean) as { href: string; label: string }[];
 
   return (
-    <footer className="border-t border-[rgba(207,216,211,0.84)] bg-[rgba(241,245,243,0.92)]">
-      <div className="section-shell py-12 md:py-16">
-        <div className="quiet-cta-band mb-10 px-6 py-7 md:px-8">
-          <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
-            <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[color:var(--accent-main)]">
-                {lang === "tr" ? "Planlı iletişim" : "Planned contact"}
-              </div>
-              <h2 className="mt-3 text-2xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)] md:text-[2rem]">
-                {lang === "tr"
-                  ? "Tedaviye dair ilk sorularınız için sakin ve net bir iletişim alanı"
-                  : "A calm and clear contact space for your first treatment questions"}
-              </h2>
+    <footer className="footer-band">
+      <div className="section-shell py-14 md:py-20">
+        <div className="mb-12 grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8db4cd]">
+              {lang === "tr" ? "Planlı iletişim" : "Planned contact"}
             </div>
-            <div className="flex flex-wrap gap-3 lg:justify-end">
-              <Link href="/appointment" className="btn-primary">
-                {lang === "tr" ? "Online Randevu Al" : "Book Appointment"}
-              </Link>
-              <Link href="/contact" className="btn-ghost">
-                {lang === "tr" ? "İletişime Geçin" : "Contact Us"}
-              </Link>
-            </div>
+            <h2 className="mt-3 max-w-2xl text-2xl font-bold tracking-[-0.01em] text-white md:text-[2rem]">
+              {lang === "tr"
+                ? "Tedaviye dair ilk sorularınız için sakin ve net bir iletişim alanı"
+                : "A calm and clear contact space for your first treatment questions"}
+            </h2>
+          </div>
+          <div className="flex flex-wrap gap-3 lg:justify-end">
+            <Link href="/appointment" className="btn-primary">
+              {lang === "tr" ? "Online Randevu Al" : "Book Appointment"}
+            </Link>
+            <a
+              href={`tel:${settings.phone.replace(/\s/g, "")}`}
+              className="inline-flex items-center justify-center rounded-xl border border-[rgba(232,241,247,0.28)] px-6 py-3 text-sm font-bold text-[#e8f1f7] transition-colors hover:border-[rgba(232,241,247,0.5)]"
+            >
+              {settings.phone}
+            </a>
           </div>
         </div>
 
@@ -65,18 +66,16 @@ export default function PublicFooter({ settings }: Props) {
                   width={44}
                   height={44}
                   sizes="44px"
-                  className="h-11 w-auto rounded-2xl object-contain"
+                  className="h-11 w-auto rounded-xl object-contain"
                   unoptimized={settings.logoUrl.startsWith("data:")}
                 />
               ) : (
-                <div className="grid h-11 w-11 place-items-center rounded-2xl border border-[rgba(207,216,211,0.9)] bg-[rgba(227,235,230,0.82)] text-sm font-semibold text-[color:var(--accent-main)]">
-                  AD
-                </div>
+                <div className="grid h-11 w-11 place-items-center rounded-xl bg-white/10 text-sm font-bold text-white">AD</div>
               )}
-              <div className="text-lg font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">{clinicName}</div>
+              <div className="text-lg font-bold tracking-[-0.01em] text-white">{clinicName}</div>
             </div>
 
-            <p className="text-sm leading-relaxed text-[color:var(--text-secondary)]">
+            <p className="text-sm leading-relaxed text-[rgba(232,241,247,0.72)]">
               {lang === "tr"
                 ? "Sakin, açık ve güven veren bir klinik deneyimi sunmak için çalışıyoruz."
                 : "We focus on a calm, clear, and reassuring clinical experience."}
@@ -84,12 +83,12 @@ export default function PublicFooter({ settings }: Props) {
           </div>
 
           <div>
-            <h3 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-[color:var(--accent-main)]">
+            <h3 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8db4cd]">
               {t("footer", "quickLinks", lang)}
             </h3>
-            <div className="space-y-3 text-sm text-[color:var(--text-secondary)]">
+            <div className="space-y-3 text-sm text-[rgba(232,241,247,0.72)]">
               {navLinks.map((link) => (
-                <Link key={link.href} href={link.href} className="block transition-colors hover:text-[color:var(--text-primary)]">
+                <Link key={link.href} href={link.href} className="block transition-colors hover:text-white">
                   {link.label}
                 </Link>
               ))}
@@ -97,14 +96,14 @@ export default function PublicFooter({ settings }: Props) {
           </div>
 
           <div>
-            <h3 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-[color:var(--accent-main)]">
+            <h3 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8db4cd]">
               {lang === "tr" ? "İletişim" : "Contact"}
             </h3>
-            <div className="space-y-3 text-sm text-[color:var(--text-secondary)]">
-              <a href={`tel:${settings.phone.replace(/\s/g, "")}`} className="block transition-colors hover:text-[color:var(--text-primary)]">
+            <div className="space-y-3 text-sm text-[rgba(232,241,247,0.72)]">
+              <a href={`tel:${settings.phone.replace(/\s/g, "")}`} className="block transition-colors hover:text-white">
                 {settings.phone}
               </a>
-              <a href={`mailto:${settings.email}`} className="block break-all transition-colors hover:text-[color:var(--text-primary)]">
+              <a href={`mailto:${settings.email}`} className="block break-all transition-colors hover:text-white">
                 {settings.email}
               </a>
               <div>{address}</div>
@@ -112,10 +111,10 @@ export default function PublicFooter({ settings }: Props) {
           </div>
 
           <div>
-            <h3 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-[color:var(--accent-main)]">
+            <h3 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8db4cd]">
               {lang === "tr" ? "Sosyal" : "Social"}
             </h3>
-            <div className="space-y-3 text-sm text-[color:var(--text-secondary)]">
+            <div className="space-y-3 text-sm text-[rgba(232,241,247,0.72)]">
               {socials.length > 0 ? (
                 socials.map((social) => (
                   <a
@@ -123,7 +122,7 @@ export default function PublicFooter({ settings }: Props) {
                     href={social.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block transition-colors hover:text-[color:var(--text-primary)]"
+                    className="block transition-colors hover:text-white"
                   >
                     {social.label}
                   </a>
@@ -135,7 +134,7 @@ export default function PublicFooter({ settings }: Props) {
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col gap-2 border-t border-[rgba(207,216,211,0.84)] pt-6 text-xs text-[color:var(--text-secondary)] md:flex-row md:items-center md:justify-between">
+        <div className="mt-12 flex flex-col gap-2 border-t border-[rgba(232,241,247,0.16)] pt-6 text-xs text-[rgba(232,241,247,0.6)] md:flex-row md:items-center md:justify-between">
           <div>
             &copy; {new Date().getFullYear()} {clinicName}. {t("footer", "rights", lang)}
           </div>
@@ -145,7 +144,7 @@ export default function PublicFooter({ settings }: Props) {
               href="https://www.instagram.com/adakansoftware"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[color:var(--text-primary)] transition-colors hover:text-[color:var(--accent-main)]"
+              className="text-white transition-colors hover:text-[#8db4cd]"
             >
               Adakan Software
             </a>

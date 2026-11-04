@@ -77,8 +77,8 @@ export default function PublicNavbar({ settings, hoursLabel }: Props) {
 
   return (
     <header
-      className={`sticky top-0 z-40 border-b border-[rgba(207,216,211,0.7)] bg-[rgba(251,252,251,0.94)] backdrop-blur-md transition-all duration-300 ${
-        scrolled ? "shadow-[0_10px_30px_rgba(23,34,30,0.06)]" : ""
+      className={`sticky top-0 z-40 border-b border-[color:var(--border)] bg-[rgba(255,255,255,0.94)] backdrop-blur-md transition-all duration-300 ${
+        scrolled ? "shadow-[0_10px_30px_rgba(16,38,56,0.08)]" : ""
       } ${mobileNavHidden ? "-translate-y-full lg:translate-y-0" : "translate-y-0"}`}
     >
       <nav className="section-shell flex min-h-[76px] items-center justify-between gap-4">
@@ -90,16 +90,16 @@ export default function PublicNavbar({ settings, hoursLabel }: Props) {
               width={42}
               height={42}
               sizes="42px"
-              className="h-10 w-auto rounded-2xl object-contain"
+              className="h-10 w-auto rounded-xl object-contain"
               unoptimized={settings.logoUrl.startsWith("data:")}
             />
           ) : (
-            <div className="grid h-10 w-10 place-items-center rounded-2xl border border-[rgba(207,216,211,0.9)] bg-[rgba(227,235,230,0.82)] text-sm font-semibold text-[color:var(--accent-main)]">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-[color:var(--cta-dark)] text-sm font-bold text-[color:var(--cta-light)]">
               AD
             </div>
           )}
           <div className="min-w-0">
-            <div className="truncate text-[1.05rem] font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
+            <div className="truncate text-[1.05rem] font-bold tracking-[-0.01em] text-[color:var(--text-primary)]">
               {clinicName}
             </div>
           </div>
@@ -112,9 +112,9 @@ export default function PublicNavbar({ settings, hoursLabel }: Props) {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`rounded-full px-4 py-2.5 text-sm font-medium transition-colors ${
+                className={`rounded-full px-4 py-2.5 text-sm font-semibold transition-colors ${
                   active
-                    ? "bg-[rgba(227,235,230,0.9)] text-[color:var(--text-primary)]"
+                    ? "bg-[rgba(85,145,183,0.12)] text-[color:var(--accent-main)]"
                     : "text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
                 }`}
               >
@@ -125,9 +125,21 @@ export default function PublicNavbar({ settings, hoursLabel }: Props) {
         </div>
 
         <div className="flex items-center gap-2">
+          <a
+            href={phoneHref}
+            className="hidden items-center gap-2 text-sm font-bold text-[color:var(--text-primary)] transition-colors hover:text-[color:var(--accent-main)] xl:inline-flex"
+          >
+            <span className="grid h-8 w-8 place-items-center rounded-full bg-[rgba(85,145,183,0.12)] text-[color:var(--accent-main)]">
+              <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" className="h-4 w-4">
+                <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+              </svg>
+            </span>
+            {settings.phone}
+          </a>
+
           <button
             onClick={toggleLang}
-            className="hidden rounded-full border border-[rgba(207,216,211,0.9)] bg-[rgba(249,251,250,0.7)] px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-[color:var(--text-secondary)] transition-colors hover:text-[color:var(--text-primary)] sm:inline-flex"
+            className="hidden rounded-full border border-[color:var(--border-strong)] bg-white px-3 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-[color:var(--text-secondary)] transition-colors hover:text-[color:var(--text-primary)] sm:inline-flex"
           >
             {lang === "tr" ? "TR / EN" : "EN / TR"}
           </button>
@@ -148,7 +160,7 @@ export default function PublicNavbar({ settings, hoursLabel }: Props) {
           </Link>
 
           <button
-            className="rounded-full border border-[rgba(207,216,211,0.9)] p-2.5 text-[color:var(--text-primary)] lg:hidden"
+            className="rounded-xl border border-[color:var(--border-strong)] p-2.5 text-[color:var(--text-primary)] lg:hidden"
             onClick={() => setOpen((value) => !value)}
             aria-label="Menu"
             aria-expanded={open}
@@ -166,13 +178,13 @@ export default function PublicNavbar({ settings, hoursLabel }: Props) {
       </nav>
 
       {open ? (
-        <div id="mobile-nav-panel" className="premium-surface section-shell mb-4 p-4 lg:hidden">
-          <div className="mb-4 grid gap-3 rounded-2xl bg-[rgba(241,245,243,0.88)] p-4 text-sm text-[color:var(--text-secondary)]">
+        <div id="mobile-nav-panel" className="section-shell mb-4 rounded-2xl border border-[color:var(--border)] bg-white p-4 shadow-[var(--shadow-soft)] lg:hidden">
+          <div className="mb-4 grid gap-3 rounded-xl bg-[color:var(--surface-muted)] p-4 text-sm text-[color:var(--text-secondary)]">
             {infoItems.map((item) => (
               <div key={item.label}>
-                <div className="text-[11px] uppercase tracking-[0.18em] text-[color:var(--accent-main)]">{item.label}</div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-main)]">{item.label}</div>
                 {item.href ? (
-                  <a href={item.href} className="mt-1 block text-[color:var(--text-primary)]">
+                  <a href={item.href} className="mt-1 block font-semibold text-[color:var(--text-primary)]">
                     {item.value}
                   </a>
                 ) : (
@@ -189,9 +201,9 @@ export default function PublicNavbar({ settings, hoursLabel }: Props) {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`block rounded-2xl px-4 py-3 text-sm ${
+                  className={`block rounded-xl px-4 py-3 text-sm font-semibold ${
                     active
-                      ? "bg-[rgba(227,235,230,0.96)] text-[color:var(--text-primary)]"
+                      ? "bg-[rgba(85,145,183,0.12)] text-[color:var(--accent-main)]"
                       : "text-[color:var(--text-secondary)]"
                   }`}
                 >
