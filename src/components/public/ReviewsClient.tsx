@@ -5,27 +5,11 @@ import SectionIntro from "@/components/shared/SectionIntro";
 import { t } from "@/lib/translations";
 import PageHero from "@/components/shared/PageHero";
 import StarRating from "@/components/shared/StarRating";
+import ReviewCard from "@/components/shared/ReviewCard";
 import type { PublicReviewsData } from "@/types";
 
 interface Props {
   data: PublicReviewsData;
-}
-
-function formatReviewDate(date: string, lang: "tr" | "en") {
-  return new Intl.DateTimeFormat(lang === "tr" ? "tr-TR" : "en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  }).format(new Date(date));
-}
-
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
 }
 
 export default function ReviewsClient({ data }: Props) {
@@ -45,13 +29,29 @@ export default function ReviewsClient({ data }: Props) {
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-main)]">
               {lang === "tr" ? "Genel puan" : "Overall rating"}
             </div>
-            <div className="mt-3 text-3xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
-              {averageRating ? averageRating.toFixed(1) : reviews.length}
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="text-4xl font-bold tracking-[-0.02em] text-[color:var(--text-primary)]">
+                {averageRating ? averageRating.toFixed(1) : reviews.length}
+              </span>
+              <span className="text-lg text-[color:var(--text-secondary)]">/ 5</span>
             </div>
-            <div className="mt-2 text-sm text-[color:var(--text-secondary)]">
+            <div className="mt-3">
+              <StarRating stars={averageRating ? Math.round(averageRating) : 5} />
+            </div>
+            <div className="mt-3 text-sm text-[color:var(--text-secondary)]">
               {averageRating ? (totalReviews ? `${totalReviews} ${lang === "tr" ? "değerlendirme" : "reviews"}` : "") : lang === "tr" ? "yorum" : "reviews"}
               {source === "google" ? " · Google" : ""}
             </div>
+            {placeUrl ? (
+              <a
+                href={placeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 inline-flex text-sm font-bold text-[color:var(--accent-main)] hover:underline"
+              >
+                {lang === "tr" ? "Google'da gör" : "View on Google"}
+              </a>
+            ) : null}
           </div>
         </div>
       </PageHero>
@@ -84,37 +84,7 @@ export default function ReviewsClient({ data }: Props) {
               />
               <div className="grid gap-6 lg:grid-cols-3">
                 {reviews.map((review) => (
-                  <article key={review.id} className="card flex h-full flex-col p-7">
-                    <div className="flex items-center justify-between gap-3">
-                      <StarRating stars={review.ratingStars} />
-                      <span className="text-xs uppercase tracking-[0.14em] text-[color:var(--accent-main)]">
-                        {formatReviewDate(review.createdAt, lang)}
-                      </span>
-                    </div>
-                    <p className="mt-5 flex-1 text-base leading-relaxed text-[color:var(--text-secondary)]">
-                      &quot;{lang === "tr" ? review.contentTr : review.contentEn}&quot;
-                    </p>
-                    <div className="mt-6 border-t border-[rgba(207,216,211,0.84)] pt-4">
-                      <div className="flex items-center gap-3">
-                        <div className="relative h-10 w-10 overflow-hidden rounded-full bg-[rgba(227,235,230,0.9)]">
-                          {review.authorPhotoUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={review.authorPhotoUrl} alt={review.patientName} className="h-full w-full object-cover" />
-                          ) : (
-                            <div className="grid h-full w-full place-items-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[color:var(--accent-main)]">
-                              {getInitials(review.patientName)}
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <div className="text-sm font-semibold text-[color:var(--text-primary)]">{review.patientName}</div>
-                          <div className="mt-1 text-xs uppercase tracking-[0.14em] text-[color:var(--accent-main)]">
-                            {review.sourceLabel ?? "Google"}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </article>
+                  <ReviewCard key={review.id} review={review} lang={lang} />
                 ))}
               </div>
             </>

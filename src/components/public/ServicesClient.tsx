@@ -56,7 +56,7 @@ export default function ServicesClient({ services }: Props) {
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-main)]">
                 {lang === "tr" ? "Hizmet sayısı" : "Service count"}
               </div>
-              <div className="mt-3 text-3xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">{services.length}</div>
+              <div className="mt-3 text-3xl font-bold tracking-[-0.01em] text-[color:var(--text-primary)]">{services.length}</div>
             </div>
             <div className="metric-card p-5 text-sm leading-relaxed text-[color:var(--text-secondary)]">
               {lang === "tr"
@@ -154,7 +154,7 @@ export default function ServicesClient({ services }: Props) {
                     alt={lang === "tr" ? service.nameTr : service.nameEn}
                     fill
                     sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-                    className="image-cover transition-transform duration-500 hover:scale-[1.02]"
+                    className="image-cover transition-transform duration-500 hover:scale-[1.04]"
                   />
                 </div>
 
@@ -162,7 +162,7 @@ export default function ServicesClient({ services }: Props) {
                   <div className="service-chip w-fit">
                     {service.durationMinutes} {t("services", "minutes", lang)}
                   </div>
-                  <h3 className="mt-4 text-[1.6rem] font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
+                  <h3 className="mt-4 text-[1.6rem] font-bold tracking-[-0.01em] text-[color:var(--text-primary)]">
                     {lang === "tr" ? service.nameTr : service.nameEn}
                   </h3>
                   <p className="mt-3 flex-1 text-sm leading-relaxed text-[color:var(--text-secondary)]">

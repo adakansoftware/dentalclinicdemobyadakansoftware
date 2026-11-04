@@ -145,7 +145,7 @@ export default function ContactClient({ settings, workingHours }: Props) {
 
               <div className="mt-8 grid gap-4 md:grid-cols-3">
                 {trustPoints.map((item) => (
-                  <div key={item.title} className="rounded-[1.4rem] border border-[rgba(207,216,211,0.84)] bg-[rgba(249,251,250,0.74)] p-4">
+                  <div key={item.title} className="rounded-[1.25rem] border border-[color:var(--border)] bg-white p-4">
                     <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-main)]">{item.title}</div>
                     <p className="mt-3 text-sm leading-relaxed text-[color:var(--text-secondary)]">{item.text}</p>
                   </div>
@@ -233,7 +233,7 @@ export default function ContactClient({ settings, workingHours }: Props) {
                 </div>
               ) : (
                 <div className="editorial-panel overflow-hidden p-6">
-                  <div className="grid h-72 place-items-center rounded-[1.35rem] bg-[rgba(227,235,230,0.86)] text-center">
+                  <div className="grid h-72 place-items-center rounded-[1.35rem] bg-[color:var(--surface-muted)] text-center">
                     <div>
                       <div className="text-sm uppercase tracking-[0.2em] text-[color:var(--accent-main)]">
                         {lang === "tr" ? "Konum" : "Location"}

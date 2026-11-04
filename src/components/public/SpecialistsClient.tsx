@@ -47,7 +47,7 @@ export default function SpecialistsClient({ specialists }: Props) {
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-main)]">
                 {lang === "tr" ? "Uzman sayısı" : "Specialist count"}
               </div>
-              <div className="mt-3 text-3xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">{specialists.length}</div>
+              <div className="mt-3 text-3xl font-bold tracking-[-0.01em] text-[color:var(--text-primary)]">{specialists.length}</div>
             </div>
             <div className="metric-card p-5 text-sm leading-relaxed text-[color:var(--text-secondary)]">
               {lang === "tr" ? "Uzmanlık alanına göre hekim seçebilirsiniz." : "Choose a clinician by area of expertise."}
@@ -78,7 +78,7 @@ export default function SpecialistsClient({ specialists }: Props) {
               const bio = lang === "tr" ? specialist.biographyTr : specialist.biographyEn;
 
               return (
-                <article key={specialist.id} className="card flex h-full flex-col overflow-hidden bg-[rgba(241,245,243,0.95)]">
+                <article key={specialist.id} className="card group flex h-full flex-col overflow-hidden">
                   <div className="relative aspect-[4/4.5] overflow-hidden bg-[color:var(--surface-muted)]">
                     {specialist.photoUrl ? (
                       <Image
@@ -86,7 +86,7 @@ export default function SpecialistsClient({ specialists }: Props) {
                         alt={lang === "tr" ? specialist.nameTr : specialist.nameEn}
                         fill
                         sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-                        className="image-cover"
+                        className="image-cover transition-transform duration-500 group-hover:scale-[1.04]"
                         unoptimized={specialist.photoUrl.startsWith("data:")}
                       />
                     ) : (
@@ -97,7 +97,7 @@ export default function SpecialistsClient({ specialists }: Props) {
                   </div>
 
                   <div className="flex flex-1 flex-col p-6">
-                    <h2 className="text-[1.55rem] font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
+                    <h2 className="text-[1.55rem] font-bold tracking-[-0.01em] text-[color:var(--text-primary)]">
                       {lang === "tr" ? specialist.nameTr : specialist.nameEn}
                     </h2>
                     <p className="mt-2 text-sm font-medium text-[color:var(--accent-main)]">
