@@ -4,7 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useLang } from "@/context/LangContext";
 import SectionIntro from "@/components/shared/SectionIntro";
-import StarRating from "@/components/shared/StarRating";
+import TrustStrip from "@/components/shared/TrustStrip";
+import StatsCounter from "@/components/shared/StatsCounter";
+import DoctorCard from "@/components/shared/DoctorCard";
+import ReviewCard from "@/components/shared/ReviewCard";
 import { getServiceImage } from "@/lib/service-images";
 import { isValidGoogleMapsEmbedUrl } from "@/lib/maps";
 import { t } from "@/lib/translations";
@@ -22,28 +25,6 @@ const VISUALS = {
   doctorMale: "/images/editorial/doctor-male.jpg",
   doctorFemale: "/images/editorial/doctor-female.jpg",
 } as const;
-
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-}
-
-function truncate(text: string, max = 170) {
-  if (!text) return "";
-  return text.length > max ? `${text.slice(0, max).trim()}...` : text;
-}
-
-function formatReviewDate(date: string, lang: "tr" | "en") {
-  return new Intl.DateTimeFormat(lang === "tr" ? "tr-TR" : "en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  }).format(new Date(date));
-}
 
 export default function HomeClient({ settings, services, specialists, reviews }: Props) {
   const { lang } = useLang();
@@ -109,21 +90,27 @@ export default function HomeClient({ settings, services, specialists, reviews }:
       : null,
   ].filter(Boolean) as { label: string; value: string; href?: string; external?: boolean }[];
 
+  const stats = [
+    { value: specialists.length, suffix: "+", label: lang === "tr" ? "Uzman Hekim" : "Specialists" },
+    { value: services.length, suffix: "+", label: lang === "tr" ? "Tedavi Alanı" : "Treatment Areas" },
+    { value: reviews.filter((review) => review.isApproved && review.isVisible).length, suffix: "+", label: lang === "tr" ? "Hasta Yorumu" : "Patient Reviews" },
+  ];
+
   return (
     <>
       <section className="relative min-h-[620px] overflow-hidden md:min-h-[76vh]">
         <div className="absolute inset-0">
           <Image src="/images/hero.jpg" alt={clinicName} fill priority sizes="100vw" className="image-cover" />
         </div>
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(16,24,20,0.2)_0%,rgba(16,24,20,0.42)_55%,rgba(16,24,20,0.76)_100%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(16,24,20,0.5)_0%,rgba(16,24,20,0.14)_55%,transparent_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,26,40,0.24)_0%,rgba(10,26,40,0.46)_55%,rgba(10,26,40,0.8)_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,26,40,0.56)_0%,rgba(10,26,40,0.16)_55%,transparent_100%)]" />
 
         <div className="section-shell relative z-10 flex min-h-[620px] flex-col justify-end pb-14 pt-36 md:min-h-[76vh] md:pb-20">
           <div className="reveal-up max-w-3xl">
-            <div className="section-kicker border-white/20 bg-white/10 text-white">
+            <div className="section-kicker border-white/25 bg-white/10 text-white">
               {lang === "tr" ? "Adakan Dental Klinik" : "Adakan Dental Clinic"}
             </div>
-            <h1 className="mt-5 text-[2.7rem] font-semibold leading-[1.02] text-white md:text-[4.2rem]" style={{ letterSpacing: "-0.015em" }}>
+            <h1 className="mt-5 text-[2.7rem] font-bold leading-[1.04] text-white md:text-[4.2rem]" style={{ letterSpacing: "-0.02em" }}>
               {heroTitle}
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/80 md:text-lg">
@@ -148,8 +135,8 @@ export default function HomeClient({ settings, services, specialists, reviews }:
               </Link>
             </div>
 
-            <div className="mt-10 flex flex-wrap items-center gap-x-7 gap-y-2 text-sm text-white/70">
-              <a href={`tel:${settings.phone.replace(/\s/g, "")}`} className="font-medium transition-colors hover:text-white">
+            <div className="mt-10 flex flex-wrap items-center gap-x-7 gap-y-2 text-sm text-white/75">
+              <a href={`tel:${settings.phone.replace(/\s/g, "")}`} className="font-bold transition-colors hover:text-white">
                 {settings.phone}
               </a>
               <span className="hidden h-1 w-1 rounded-full bg-white/40 sm:block" />
@@ -159,13 +146,12 @@ export default function HomeClient({ settings, services, specialists, reviews }:
         </div>
       </section>
 
-      <section className="border-b border-[rgba(207,216,211,0.72)] bg-[color:var(--surface)]">
-        <div className="section-shell flex flex-wrap items-center justify-center gap-x-8 gap-y-3 py-5">
-          {trustStrip.map((item) => (
-            <div key={item} className="flex items-center gap-2.5 text-sm font-medium text-[color:var(--text-secondary)]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--accent-main)]" />
-              {item}
-            </div>
+      <TrustStrip items={trustStrip} />
+
+      <section className="footer-band">
+        <div className="section-shell grid gap-8 py-14 sm:grid-cols-3 md:py-16">
+          {stats.map((stat) => (
+            <StatsCounter key={stat.label} value={stat.value} suffix={stat.suffix} label={stat.label} />
           ))}
         </div>
       </section>
@@ -182,10 +168,17 @@ export default function HomeClient({ settings, services, specialists, reviews }:
             </div>
 
             <div>
-              {promises.map((item) => (
-                <article key={item.title} className="border-t border-[rgba(207,216,211,0.84)] py-7 first:border-t-0 first:pt-0 md:py-8">
-                  <h3 className="text-xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)] md:text-2xl">{item.title}</h3>
-                  <p className="mt-3 max-w-xl text-sm leading-relaxed text-[color:var(--text-secondary)] md:text-base">{item.text}</p>
+              {promises.map((item, index) => (
+                <article key={item.title} className="border-t border-[color:var(--border)] py-7 first:border-t-0 first:pt-0 md:py-8">
+                  <div className="flex items-start gap-4">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[rgba(85,145,183,0.12)] text-sm font-bold text-[color:var(--accent-main)]">
+                      {index + 1}
+                    </span>
+                    <div>
+                      <h3 className="text-xl font-bold tracking-[-0.01em] text-[color:var(--text-primary)] md:text-2xl">{item.title}</h3>
+                      <p className="mt-3 max-w-xl text-sm leading-relaxed text-[color:var(--text-secondary)] md:text-base">{item.text}</p>
+                    </div>
+                  </div>
                 </article>
               ))}
             </div>
@@ -260,16 +253,16 @@ export default function HomeClient({ settings, services, specialists, reviews }:
 
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {visibleServices.map((service) => (
-              <article key={service.id} className="card flex h-full flex-col overflow-hidden">
+              <article key={service.id} className="card group flex h-full flex-col overflow-hidden">
                 <div className="relative aspect-[4/3] overflow-hidden bg-[color:var(--surface-muted)]">
-                  <Image src={service.imageUrl || getServiceImage(service.slug)} alt={lang === "tr" ? service.nameTr : service.nameEn} fill sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw" className="image-cover transition-transform duration-500 hover:scale-[1.02]" />
+                  <Image src={service.imageUrl || getServiceImage(service.slug)} alt={lang === "tr" ? service.nameTr : service.nameEn} fill sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw" className="image-cover transition-transform duration-500 group-hover:scale-[1.04]" />
                 </div>
 
                 <div className="flex flex-1 flex-col p-6">
                   <div className="service-chip w-fit">
                     {service.durationMinutes} {t("services", "minutes", lang)}
                   </div>
-                  <h3 className="mt-4 text-[1.65rem] font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
+                  <h3 className="mt-4 text-[1.65rem] font-bold tracking-[-0.01em] text-[color:var(--text-primary)]">
                     {lang === "tr" ? service.nameTr : service.nameEn}
                   </h3>
                   <p className="mt-3 flex-1 text-sm leading-relaxed text-[color:var(--text-secondary)] md:text-base">
@@ -289,10 +282,10 @@ export default function HomeClient({ settings, services, specialists, reviews }:
           </div>
 
           {leadService ? (
-            <div className="mt-10 rounded-[2rem] border border-[rgba(207,216,211,0.9)] bg-[rgba(249,251,250,0.92)] p-6 md:p-8">
+            <div className="quiet-cta-band mt-10 p-6 md:p-8">
               <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
                 <div>
-                  <h3 className="text-3xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
+                  <h3 className="text-3xl font-bold tracking-[-0.01em] text-[color:var(--text-primary)]">
                     {lang === "tr" ? leadService.nameTr : leadService.nameEn}
                   </h3>
                   <p className="mt-4 max-w-2xl text-base leading-relaxed text-[color:var(--text-secondary)]">
@@ -327,40 +320,15 @@ export default function HomeClient({ settings, services, specialists, reviews }:
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {visibleSpecialists.map((specialist) => {
-              const bio = lang === "tr" ? specialist.biographyTr : specialist.biographyEn;
-
-              return (
-                <article key={specialist.id} className="card flex h-full flex-col overflow-hidden bg-[rgba(241,245,243,0.95)]">
-                  <div className="relative aspect-[4/4.4] overflow-hidden bg-[color:var(--surface-muted)]">
-                    {specialist.photoUrl ? (
-                      <Image src={specialist.photoUrl} alt={lang === "tr" ? specialist.nameTr : specialist.nameEn} fill sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw" className="image-cover" />
-                    ) : (
-                      <div className="grid h-full place-items-center text-sm font-semibold uppercase tracking-[0.2em] text-[color:var(--accent-main)]">
-                        {getInitials(lang === "tr" ? specialist.nameTr : specialist.nameEn)}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-1 flex-col p-6">
-                    <h3 className="text-[1.6rem] font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
-                      {lang === "tr" ? specialist.nameTr : specialist.nameEn}
-                    </h3>
-                    <p className="mt-2 text-sm font-medium text-[color:var(--accent-main)]">
-                      {lang === "tr" ? specialist.titleTr : specialist.titleEn}
-                    </p>
-                    <p className="mt-4 flex-1 text-sm leading-relaxed text-[color:var(--text-secondary)]">
-                      {truncate(bio, 150)}
-                    </p>
-                    <div className="mt-6">
-                      <Link href={`/specialists/${specialist.slug}`} className="btn-ghost">
-                        {lang === "tr" ? "Profili İncele" : "View Profile"}
-                      </Link>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
+            {visibleSpecialists.map((specialist) => (
+              <DoctorCard
+                key={specialist.id}
+                specialist={specialist}
+                href={`/specialists/${specialist.slug}`}
+                lang={lang}
+                ctaLabel={lang === "tr" ? "Profili İncele" : "View Profile"}
+              />
+            ))}
           </div>
         </div>
       </section>
@@ -376,26 +344,7 @@ export default function HomeClient({ settings, services, specialists, reviews }:
           {visibleReviews.length > 0 ? (
             <div className="grid gap-6 lg:grid-cols-3">
               {visibleReviews.map((review) => (
-                <article key={review.id} className="card flex h-full flex-col p-7">
-                  <StarRating stars={review.ratingStars} />
-                  <p className="mt-5 flex-1 text-base leading-relaxed text-[color:var(--text-secondary)]">
-                    &quot;{lang === "tr" ? review.contentTr : review.contentEn}&quot;
-                  </p>
-                  <div className="mt-6 border-t border-[rgba(207,216,211,0.84)] pt-4">
-                    <div className="flex items-center gap-3">
-                      <div className="grid h-11 w-11 place-items-center rounded-full bg-[rgba(227,235,230,0.9)] text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--accent-main)]">
-                        {getInitials(review.patientName)}
-                      </div>
-                      <div>
-                        <div className="text-sm font-semibold text-[color:var(--text-primary)]">{review.patientName}</div>
-                        <div className="mt-1 text-xs uppercase tracking-[0.14em] text-[color:var(--accent-main)]">
-                          {review.sourceLabel ? `${review.sourceLabel} / ` : ""}
-                          {formatReviewDate(review.createdAt, lang)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </article>
+                <ReviewCard key={review.id} review={review} lang={lang} />
               ))}
             </div>
           ) : (
@@ -441,7 +390,7 @@ export default function HomeClient({ settings, services, specialists, reviews }:
               {settings.mapEmbedUrl && hasValidMapEmbed ? (
                 <iframe src={settings.mapEmbedUrl} className="h-[420px] w-full rounded-[1.4rem]" loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Clinic map" />
               ) : (
-                <div className="grid h-[420px] place-items-center rounded-[1.4rem] bg-[rgba(227,235,230,0.86)] text-center">
+                <div className="grid h-[420px] place-items-center rounded-[1.4rem] bg-[color:var(--surface-muted)] text-center">
                   <div>
                     <div className="text-sm uppercase tracking-[0.2em] text-[color:var(--accent-main)]">
                       {lang === "tr" ? "Konum" : "Location"}
@@ -473,7 +422,7 @@ export default function HomeClient({ settings, services, specialists, reviews }:
           <div className="quiet-cta-band px-7 py-8 md:px-10 md:py-10">
             <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
               <div>
-                <h2 className="text-3xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)] md:text-4xl">
+                <h2 className="text-3xl font-bold tracking-[-0.01em] text-[color:var(--text-primary)] md:text-4xl">
                   {lang === "tr" ? "Muayenenizi planlamak için ilk adımı şimdi atın" : "Take the first step now to plan your dental visit"}
                 </h2>
                 <p className="mt-4 max-w-2xl text-base leading-relaxed text-[color:var(--text-secondary)]">
