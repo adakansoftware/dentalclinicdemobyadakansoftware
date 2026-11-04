@@ -127,7 +127,6 @@ export default function HomeClient({ settings, services, specialists, reviews }:
     <>
       <section className="page-hero">
         <div className="hero-orb hero-orb--one" />
-        <div className="hero-orb hero-orb--two" />
         <div className="section-shell section-block relative z-10">
           <div
             className="relative overflow-hidden rounded-[2.4rem] border border-white/30 shadow-[0_32px_80px_rgba(28,24,20,0.16)]"

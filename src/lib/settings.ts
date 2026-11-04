@@ -42,12 +42,12 @@ export const DEMO_CLINIC_PROFILE = {
     "Adakan Dental Klinik, muayeneden tedavi planlamasına kadar her adımda güven veren, sakin ve şeffaf bir hasta deneyimi sunmak için kurgulanmıştır. Kliniğimizde estetik diş hekimliği, implant planlaması, çocuk diş sağlığı ve koruyucu bakım süreçleri kişiye özel değerlendirme ile ele alınır.",
   aboutTextEn:
     "Adakan Dental Clinic is designed to deliver a calm, transparent, and reassuring patient experience from consultation to treatment planning. Aesthetic dentistry, implant planning, pediatric dentistry, and preventive care are all handled with individualized clinical evaluation.",
-  seoTitleTr: "Adakan Dental Klinik | Modern Diş Kliniği Demo",
-  seoTitleEn: "Adakan Dental Clinic | Modern Dental Clinic Demo",
+  seoTitleTr: "Adakan Dental Klinik | Modern Diş Kliniği",
+  seoTitleEn: "Adakan Dental Clinic | Modern Dental Clinic",
   seoDescTr:
-    "Diş klinikleri için modern, mobil uyumlu, online randevu destekli web sitesi demosu. Güven veren içerik yapısı ve premium klinik sunumu içerir.",
+    "Uzman kadro, kişiye özel tedavi planları ve online randevu desteğiyle modern diş kliniği deneyimi. Sağlıklı ve estetik gülüşler için yanınızdayız.",
   seoDescEn:
-    "A modern dental clinic website demo with mobile-first design, online appointment flow, and a premium clinic presentation.",
+    "Modern dental clinic experience with a specialist team, personalized treatment plans, and online appointment support for healthy, aesthetic smiles.",
 } as const;
 
 export const DEFAULT_SETTINGS: SiteSettings = {

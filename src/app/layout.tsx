@@ -9,8 +9,8 @@ import {
 } from "@/lib/social-preview";
 import "./globals.css";
 
-const defaultTitle = "Adakan Dental Klinik | Modern Dis Klinigi Demo";
-const defaultDescription = "Dis klinikleri icin modern, mobil uyumlu, online randevu destekli web sitesi demosu.";
+const defaultTitle = "Adakan Dental Klinik | Modern Diş Kliniği";
+const defaultDescription = "Uzman kadro, kişiye özel tedavi planları ve online randevu desteğiyle modern diş kliniği deneyimi.";
 
 export async function generateMetadata(): Promise<Metadata> {
   const baseUrl = await getRequestBaseUrl();
