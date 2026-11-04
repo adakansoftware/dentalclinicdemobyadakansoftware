@@ -50,8 +50,8 @@ function SpecialistForm({ specialist, onClose }: { specialist?: SpecialistItem; 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[28px] border border-[rgba(217,210,200,0.84)] bg-[rgba(251,250,247,0.98)] shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-[rgba(217,210,200,0.84)] p-6">
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[28px] border border-[rgba(207,216,211,0.84)] bg-[rgba(249,251,250,0.98)] shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-[rgba(207,216,211,0.84)] p-6">
           <h2 className="font-bold text-[color:var(--text-primary)]">{specialist ? "Uzman Düzenle" : "Yeni Uzman"}</h2>
           <button onClick={onClose} className="text-2xl text-gray-400 hover:text-gray-600">&times;</button>
         </div>
@@ -171,7 +171,7 @@ export default function AdminSpecialistsClient({ specialists, services }: Props)
         {specialists.map((sp) => (
           <div key={sp.id} className="card">
             <div className="flex items-center gap-4 p-5">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[rgba(239,233,225,0.9)] text-[10px] font-semibold tracking-[0.12em] text-[color:var(--accent-main)]">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[rgba(227,235,230,0.9)] text-[10px] font-semibold tracking-[0.12em] text-[color:var(--accent-main)]">
                 {sp.photoUrl ? (
                   <Image src={sp.photoUrl} alt={sp.nameTr} width={48} height={48} sizes="48px" className="h-full w-full rounded-full object-cover" unoptimized={sp.photoUrl.startsWith("data:")} />
                 ) : (

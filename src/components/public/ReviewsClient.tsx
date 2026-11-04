@@ -4,6 +4,7 @@ import { useLang } from "@/context/LangContext";
 import SectionIntro from "@/components/shared/SectionIntro";
 import { t } from "@/lib/translations";
 import PageHero from "@/components/shared/PageHero";
+import StarRating from "@/components/shared/StarRating";
 import type { PublicReviewsData } from "@/types";
 
 interface Props {
@@ -27,18 +28,6 @@ function getInitials(name: string) {
     .join("");
 }
 
-function StarRating({ stars }: { stars: number }) {
-  return (
-    <div className="flex gap-1 text-[13px] text-[color:var(--accent-main)]">
-      {[1, 2, 3, 4, 5].map((s) => (
-        <span key={s} className={s <= stars ? "opacity-100" : "opacity-25"}>
-          *
-        </span>
-      ))}
-    </div>
-  );
-}
-
 export default function ReviewsClient({ data }: Props) {
   const { lang } = useLang();
   const { reviews, placeName, placeUrl, averageRating, totalReviews, source } = data;
@@ -54,16 +43,15 @@ export default function ReviewsClient({ data }: Props) {
         <div className="hero-panel hero-panel--compact p-6">
           <div className="metric-card p-5">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-main)]">
-              {lang === "tr" ? "Kaynak" : "Source"}
+              {lang === "tr" ? "Genel puan" : "Overall rating"}
             </div>
-            <div className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-[color:var(--text-primary)]">
-              {source === "google" ? "Google" : reviews.length}
+            <div className="mt-3 text-3xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
+              {averageRating ? averageRating.toFixed(1) : reviews.length}
             </div>
-            {averageRating ? (
-              <div className="mt-2 text-sm text-[color:var(--text-secondary)]">
-                {averageRating.toFixed(1)} / 5 {totalReviews ? `(${totalReviews})` : ""}
-              </div>
-            ) : null}
+            <div className="mt-2 text-sm text-[color:var(--text-secondary)]">
+              {averageRating ? (totalReviews ? `${totalReviews} ${lang === "tr" ? "değerlendirme" : "reviews"}` : "") : lang === "tr" ? "yorum" : "reviews"}
+              {source === "google" ? " · Google" : ""}
+            </div>
           </div>
         </div>
       </PageHero>
@@ -80,11 +68,11 @@ export default function ReviewsClient({ data }: Props) {
                 title={
                   source === "google"
                     ? lang === "tr"
-                      ? "Google yorumları sakin ve güven veren bir düzende sunuluyor"
-                      : "Google reviews are presented in a calm, trust-building layout"
+                      ? "Hastalarımızın Google üzerindeki deneyimleri"
+                      : "Patient experiences on Google"
                     : lang === "tr"
-                      ? "Yorumlar sakin ve güven veren bir düzende sunuluyor"
-                      : "Reviews are presented in a calm, trust-building layout"
+                      ? "Hastalarımızın klinik deneyimleri"
+                      : "Patient experiences at our clinic"
                 }
                 subtitle={
                   placeName
@@ -106,9 +94,9 @@ export default function ReviewsClient({ data }: Props) {
                     <p className="mt-5 flex-1 text-base leading-relaxed text-[color:var(--text-secondary)]">
                       &quot;{lang === "tr" ? review.contentTr : review.contentEn}&quot;
                     </p>
-                    <div className="mt-6 border-t border-[rgba(217,210,200,0.84)] pt-4">
+                    <div className="mt-6 border-t border-[rgba(207,216,211,0.84)] pt-4">
                       <div className="flex items-center gap-3">
-                        <div className="relative h-10 w-10 overflow-hidden rounded-full bg-[rgba(239,233,225,0.9)]">
+                        <div className="relative h-10 w-10 overflow-hidden rounded-full bg-[rgba(227,235,230,0.9)]">
                           {review.authorPhotoUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={review.authorPhotoUrl} alt={review.patientName} className="h-full w-full object-cover" />
@@ -133,7 +121,7 @@ export default function ReviewsClient({ data }: Props) {
           )}
 
           <div className="mx-auto mt-16 max-w-2xl editorial-panel p-7 md:p-8">
-            <h2 className="text-center text-2xl font-semibold tracking-[-0.04em] text-[color:var(--text-primary)]">
+            <h2 className="text-center text-2xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
               {source === "google"
                 ? lang === "tr"
                   ? "Google üzerinden tüm yorumları inceleyin"

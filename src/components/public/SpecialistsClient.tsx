@@ -17,6 +17,15 @@ function truncate(text: string, max = 170) {
   return text.length > max ? `${text.slice(0, max).trim()}...` : text;
 }
 
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
 export default function SpecialistsClient({ specialists }: Props) {
   const { lang } = useLang();
 
@@ -27,8 +36,8 @@ export default function SpecialistsClient({ specialists }: Props) {
         title={t("specialists", "title", lang)}
         subtitle={
           lang === "tr"
-            ? "Uzman profilleri; biyografi, alanlar ve ilgili randevu geçişlerini daha sakin ve düzenli bir kurgu ile sunar."
-            : "Specialist profiles organize biography, focus areas, and booking access in a calmer, more refined composition."
+            ? "Ekibimizdeki uzman hekimlerin biyografilerini, uzmanlık alanlarını ve ilgilendikleri tedavileri inceleyebilirsiniz."
+            : "Explore the biographies, areas of expertise, and treatments our specialist clinicians focus on."
         }
         minimal
       >
@@ -38,10 +47,10 @@ export default function SpecialistsClient({ specialists }: Props) {
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-main)]">
                 {lang === "tr" ? "Uzman sayısı" : "Specialist count"}
               </div>
-              <div className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-[color:var(--text-primary)]">{specialists.length}</div>
+              <div className="mt-3 text-3xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">{specialists.length}</div>
             </div>
             <div className="metric-card p-5 text-sm leading-relaxed text-[color:var(--text-secondary)]">
-              {lang === "tr" ? "Profesyonel ama insani bir sunum dili." : "A presentation language that feels professional yet human."}
+              {lang === "tr" ? "Uzmanlık alanına göre hekim seçebilirsiniz." : "Choose a clinician by area of expertise."}
             </div>
           </div>
         </div>
@@ -57,8 +66,8 @@ export default function SpecialistsClient({ specialists }: Props) {
             }
             subtitle={
               lang === "tr"
-                ? "Kartlar hizmet alanlarından biraz daha sıcak bir ton taşırken kurumsal dengeyi korur."
-                : "The cards carry a slightly warmer tone than the service grid while preserving institutional balance."
+                ? "Her hekimin uzmanlık alanları, deneyimi ve ilgilendiği tedaviler profilinde düzenli olarak yer alır."
+                : "Each profile clearly presents the clinician's expertise, experience, and relevant treatments."
             }
           />
 
@@ -69,7 +78,7 @@ export default function SpecialistsClient({ specialists }: Props) {
               const bio = lang === "tr" ? specialist.biographyTr : specialist.biographyEn;
 
               return (
-                <article key={specialist.id} className="card flex h-full flex-col overflow-hidden bg-[rgba(248,246,241,0.95)]">
+                <article key={specialist.id} className="card flex h-full flex-col overflow-hidden bg-[rgba(241,245,243,0.95)]">
                   <div className="relative aspect-[4/4.5] overflow-hidden bg-[color:var(--surface-muted)]">
                     {specialist.photoUrl ? (
                       <Image
@@ -81,14 +90,14 @@ export default function SpecialistsClient({ specialists }: Props) {
                         unoptimized={specialist.photoUrl.startsWith("data:")}
                       />
                     ) : (
-                      <div className="grid h-full place-items-center text-sm uppercase tracking-[0.2em] text-[color:var(--accent-main)]">
-                        Portrait
+                      <div className="grid h-full place-items-center text-sm font-semibold uppercase tracking-[0.2em] text-[color:var(--accent-main)]">
+                        {getInitials(lang === "tr" ? specialist.nameTr : specialist.nameEn)}
                       </div>
                     )}
                   </div>
 
                   <div className="flex flex-1 flex-col p-6">
-                    <h2 className="text-[1.55rem] font-semibold tracking-[-0.04em] text-[color:var(--text-primary)]">
+                    <h2 className="text-[1.55rem] font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
                       {lang === "tr" ? specialist.nameTr : specialist.nameEn}
                     </h2>
                     <p className="mt-2 text-sm font-medium text-[color:var(--accent-main)]">

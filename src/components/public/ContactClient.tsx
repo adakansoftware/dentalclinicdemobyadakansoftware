@@ -70,9 +70,13 @@ export default function ContactClient({ settings, workingHours }: Props) {
         minimal
       >
         <div className="hero-panel hero-panel--compact p-6">
-          <div className="space-y-3 text-sm text-[color:var(--text-secondary)]">
-            <div>{settings.phone}</div>
-            <div>{settings.email}</div>
+          <div className="space-y-3 text-sm">
+            <a href={`tel:${settings.phone.replace(/\s/g, "")}`} className="block font-semibold text-[color:var(--text-primary)] transition-colors hover:text-[color:var(--accent-main)]">
+              {settings.phone}
+            </a>
+            <a href={`mailto:${settings.email}`} className="block break-all text-[color:var(--text-secondary)] transition-colors hover:text-[color:var(--text-primary)]">
+              {settings.email}
+            </a>
           </div>
         </div>
       </PageHero>
@@ -141,7 +145,7 @@ export default function ContactClient({ settings, workingHours }: Props) {
 
               <div className="mt-8 grid gap-4 md:grid-cols-3">
                 {trustPoints.map((item) => (
-                  <div key={item.title} className="rounded-[1.4rem] border border-[rgba(217,210,200,0.84)] bg-[rgba(251,250,247,0.74)] p-4">
+                  <div key={item.title} className="rounded-[1.4rem] border border-[rgba(207,216,211,0.84)] bg-[rgba(249,251,250,0.74)] p-4">
                     <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-main)]">{item.title}</div>
                     <p className="mt-3 text-sm leading-relaxed text-[color:var(--text-secondary)]">{item.text}</p>
                   </div>
@@ -151,7 +155,7 @@ export default function ContactClient({ settings, workingHours }: Props) {
 
             <div className="space-y-6 lg:sticky lg:top-28">
               <div className="surface-panel p-6">
-                <h3 className="text-2xl font-semibold tracking-[-0.04em] text-[color:var(--text-primary)]">
+                <h3 className="text-2xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
                   {lang === "tr" ? "İletişim kanalları" : "Contact channels"}
                 </h3>
 
@@ -195,7 +199,7 @@ export default function ContactClient({ settings, workingHours }: Props) {
               </div>
 
               <div className="surface-panel p-6">
-                <h3 className="mb-4 text-2xl font-semibold tracking-[-0.04em] text-[color:var(--text-primary)]">{t("contact", "workingHours", lang)}</h3>
+                <h3 className="mb-4 text-2xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">{t("contact", "workingHours", lang)}</h3>
                 <div className="space-y-2.5">
                   {dayOrder.map((day) => {
                     const workingHour = hoursMap[day];
@@ -229,7 +233,7 @@ export default function ContactClient({ settings, workingHours }: Props) {
                 </div>
               ) : (
                 <div className="editorial-panel overflow-hidden p-6">
-                  <div className="grid h-72 place-items-center rounded-[1.35rem] bg-[rgba(239,233,225,0.86)] text-center">
+                  <div className="grid h-72 place-items-center rounded-[1.35rem] bg-[rgba(227,235,230,0.86)] text-center">
                     <div>
                       <div className="text-sm uppercase tracking-[0.2em] text-[color:var(--accent-main)]">
                         {lang === "tr" ? "Konum" : "Location"}

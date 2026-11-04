@@ -30,7 +30,7 @@ export default function PublicFooter({ settings }: Props) {
   ].filter(Boolean) as { href: string; label: string }[];
 
   return (
-    <footer className="border-t border-[rgba(217,210,200,0.84)] bg-[rgba(248,246,241,0.92)]">
+    <footer className="border-t border-[rgba(207,216,211,0.84)] bg-[rgba(241,245,243,0.92)]">
       <div className="section-shell py-12 md:py-16">
         <div className="quiet-cta-band mb-10 px-6 py-7 md:px-8">
           <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
@@ -38,7 +38,7 @@ export default function PublicFooter({ settings }: Props) {
               <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[color:var(--accent-main)]">
                 {lang === "tr" ? "Planlı iletişim" : "Planned contact"}
               </div>
-              <h2 className="mt-3 text-2xl font-semibold tracking-[-0.05em] text-[color:var(--text-primary)] md:text-[2rem]">
+              <h2 className="mt-3 text-2xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)] md:text-[2rem]">
                 {lang === "tr"
                   ? "Tedaviye dair ilk sorularınız için sakin ve net bir iletişim alanı"
                   : "A calm and clear contact space for your first treatment questions"}
@@ -69,11 +69,11 @@ export default function PublicFooter({ settings }: Props) {
                   unoptimized={settings.logoUrl.startsWith("data:")}
                 />
               ) : (
-                <div className="grid h-11 w-11 place-items-center rounded-2xl border border-[rgba(217,210,200,0.9)] bg-[rgba(239,233,225,0.82)] text-sm font-semibold text-[color:var(--accent-main)]">
+                <div className="grid h-11 w-11 place-items-center rounded-2xl border border-[rgba(207,216,211,0.9)] bg-[rgba(227,235,230,0.82)] text-sm font-semibold text-[color:var(--accent-main)]">
                   AD
                 </div>
               )}
-              <div className="text-lg font-semibold tracking-[-0.03em] text-[color:var(--text-primary)]">{clinicName}</div>
+              <div className="text-lg font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">{clinicName}</div>
             </div>
 
             <p className="text-sm leading-relaxed text-[color:var(--text-secondary)]">
@@ -135,7 +135,7 @@ export default function PublicFooter({ settings }: Props) {
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col gap-2 border-t border-[rgba(217,210,200,0.84)] pt-6 text-xs text-[color:var(--text-secondary)] md:flex-row md:items-center md:justify-between">
+        <div className="mt-10 flex flex-col gap-2 border-t border-[rgba(207,216,211,0.84)] pt-6 text-xs text-[color:var(--text-secondary)] md:flex-row md:items-center md:justify-between">
           <div>
             &copy; {new Date().getFullYear()} {clinicName}. {t("footer", "rights", lang)}
           </div>

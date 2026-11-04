@@ -107,7 +107,7 @@ export default function AboutClient({ settings }: Props) {
               {values.map((item) => (
                 <article key={item.title} className="card p-7">
                   <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-main)]">{item.number}</div>
-                  <h3 className="mt-5 text-2xl font-semibold tracking-[-0.04em] text-[color:var(--text-primary)]">{item.title}</h3>
+                  <h3 className="mt-5 text-2xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">{item.title}</h3>
                   <p className="mt-3 text-sm leading-relaxed text-[color:var(--text-secondary)]">{item.desc}</p>
                 </article>
               ))}
@@ -138,8 +138,8 @@ export default function AboutClient({ settings }: Props) {
                 <div key={item.src} className={`ambient-card overflow-hidden ${item.className}`}>
                   <div className="relative aspect-[4/4.1] overflow-hidden rounded-[1.4rem]">
                     <Image src={item.src} alt={item.alt} fill sizes="(max-width: 768px) 100vw, 33vw" className="image-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[rgba(31,31,27,0.26)] via-transparent to-transparent" />
-                    <div className="absolute bottom-4 left-4 rounded-full border border-white/35 bg-[rgba(28,28,25,0.36)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white">
+                    <div className="absolute inset-0 bg-gradient-to-t from-[rgba(18,26,22,0.26)] via-transparent to-transparent" />
+                    <div className="absolute bottom-4 left-4 rounded-full border border-white/35 bg-[rgba(21,30,26,0.36)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white">
                       {item.label}
                     </div>
                   </div>

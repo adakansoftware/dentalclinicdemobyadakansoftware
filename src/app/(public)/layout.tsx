@@ -38,7 +38,7 @@ export default async function PublicLayout({ children }: { children: ReactNode }
 
   return (
     <LangProvider>
-      <div className="min-h-screen">
+      <div className="public-shell min-h-screen">
         <PublicNavbar settings={settings} hoursLabel={hoursLabel} />
       <main>{children}</main>
       <ConversionDock settings={settings} />

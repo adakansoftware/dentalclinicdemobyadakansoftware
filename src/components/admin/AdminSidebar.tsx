@@ -27,11 +27,11 @@ export default function AdminSidebar({ adminName }: Props) {
   const safePathname = pathname ?? "";
 
   return (
-    <aside className="flex min-h-screen w-72 shrink-0 flex-col border-r border-[rgba(217,210,200,0.84)] bg-[rgba(248,246,241,0.92)]">
-      <div className="border-b border-[rgba(217,210,200,0.84)] p-6">
-        <div className="rounded-[28px] border border-[rgba(217,210,200,0.84)] bg-[rgba(251,250,247,0.92)] p-5 shadow-[var(--shadow-card)]">
+    <aside className="flex min-h-screen w-72 shrink-0 flex-col border-r border-[rgba(207,216,211,0.84)] bg-[rgba(241,245,243,0.92)]">
+      <div className="border-b border-[rgba(207,216,211,0.84)] p-6">
+        <div className="rounded-[28px] border border-[rgba(207,216,211,0.84)] bg-[rgba(249,251,250,0.92)] p-5 shadow-[var(--shadow-card)]">
           <div className="mb-4 flex items-center gap-3">
-            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[rgba(239,233,225,0.92)] text-sm font-semibold tracking-[0.12em] text-[color:var(--accent-main)]">
+            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[rgba(227,235,230,0.92)] text-sm font-semibold tracking-[0.12em] text-[color:var(--accent-main)]">
               DC
             </div>
             <div>
@@ -51,7 +51,7 @@ export default function AdminSidebar({ adminName }: Props) {
 
           return (
             <Link key={item.href} href={item.href} className={`admin-sidebar-link ${active ? "active" : ""}`}>
-              <span className="grid h-8 w-8 place-items-center rounded-xl bg-[rgba(239,233,225,0.9)] text-[10px] font-semibold tracking-[0.12em] text-[color:var(--accent-main)]">
+              <span className="grid h-8 w-8 place-items-center rounded-xl bg-[rgba(227,235,230,0.9)] text-[10px] font-semibold tracking-[0.12em] text-[color:var(--accent-main)]">
                 {item.badge}
               </span>
               <span>{item.label}</span>
@@ -60,9 +60,9 @@ export default function AdminSidebar({ adminName }: Props) {
         })}
       </nav>
 
-      <div className="space-y-2 border-t border-[rgba(217,210,200,0.84)] p-4">
+      <div className="space-y-2 border-t border-[rgba(207,216,211,0.84)] p-4">
         <Link href="/" target="_blank" className="admin-sidebar-link text-sm">
-          <span className="grid h-8 w-8 place-items-center rounded-xl bg-[rgba(239,233,225,0.9)] text-[10px] font-semibold tracking-[0.12em] text-[color:var(--accent-main)]">
+          <span className="grid h-8 w-8 place-items-center rounded-xl bg-[rgba(227,235,230,0.9)] text-[10px] font-semibold tracking-[0.12em] text-[color:var(--accent-main)]">
             WS
           </span>
           <span>Siteyi Aç</span>

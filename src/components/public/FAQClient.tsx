@@ -44,22 +44,32 @@ export default function FAQClient({ faqs }: Props) {
 
                   return (
                     <article key={faq.id} className="surface-panel overflow-hidden">
-                      <button onClick={() => setOpen(active ? null : faq.id)} className="flex w-full items-start justify-between gap-4 px-6 py-6 text-left">
+                      <button
+                        onClick={() => setOpen(active ? null : faq.id)}
+                        aria-expanded={active}
+                        className="flex w-full items-start justify-between gap-4 px-6 py-6 text-left"
+                      >
                         <div>
                           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-main)]">
                             {String(index + 1).padStart(2, "0")}
                           </div>
-                          <div className="mt-3 text-lg font-semibold tracking-[-0.03em] text-[color:var(--text-primary)]">
+                          <div className="mt-3 text-lg font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
                             {lang === "tr" ? faq.questionTr : faq.questionEn}
                           </div>
                         </div>
-                        <span className="mt-1 text-sm uppercase tracking-[0.18em] text-[color:var(--accent-main)]">
-                          {active ? (lang === "tr" ? "Kapat" : "Close") : lang === "tr" ? "Aç" : "Open"}
+                        <span
+                          className={`mt-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[rgba(207,216,211,0.9)] text-[color:var(--accent-main)] transition-transform duration-300 ${
+                            active ? "rotate-180" : ""
+                          }`}
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M19 9l-7 7-7-7" />
+                          </svg>
                         </span>
                       </button>
 
                       {active ? (
-                        <div className="border-t border-[rgba(217,210,200,0.84)] px-6 pb-6 pt-5 text-sm leading-relaxed text-[color:var(--text-secondary)] md:text-base">
+                        <div className="border-t border-[rgba(207,216,211,0.84)] px-6 pb-6 pt-5 text-sm leading-relaxed text-[color:var(--text-secondary)] md:text-base">
                           {lang === "tr" ? faq.answerTr : faq.answerEn}
                         </div>
                       ) : null}

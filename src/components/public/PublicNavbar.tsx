@@ -77,166 +77,145 @@ export default function PublicNavbar({ settings, hoursLabel }: Props) {
 
   return (
     <header
-      className={`sticky top-0 z-40 px-3 pt-3 transition-transform duration-300 md:px-5 ${
-        mobileNavHidden ? "-translate-y-[calc(100%-1rem)] lg:translate-y-0" : "translate-y-0"
-      }`}
+      className={`sticky top-0 z-40 border-b border-[rgba(207,216,211,0.7)] bg-[rgba(251,252,251,0.94)] backdrop-blur-md transition-all duration-300 ${
+        scrolled ? "shadow-[0_10px_30px_rgba(23,34,30,0.06)]" : ""
+      } ${mobileNavHidden ? "-translate-y-full lg:translate-y-0" : "translate-y-0"}`}
     >
-      <div className="section-shell">
-        <div className={`nav-shell overflow-hidden ${scrolled ? "nav-shell--scrolled" : ""}`}>
-          <div className="hidden items-center justify-between border-b border-[rgba(217,210,200,0.72)] px-5 py-2.5 md:flex">
-            <div className="grid w-full gap-3 lg:grid-cols-3">
-              {infoItems.map((item) => (
-                <div key={item.label} className="flex items-center gap-3 text-xs text-[color:var(--text-secondary)]">
-                  <span className="uppercase tracking-[0.18em] text-[color:var(--accent-main)]">{item.label}</span>
-                  {item.href ? (
-                    <a href={item.href} className="truncate transition-colors hover:text-[color:var(--text-primary)]">
-                      {item.value}
-                    </a>
-                  ) : (
-                    <span className="truncate">{item.value}</span>
-                  )}
-                </div>
-              ))}
+      <nav className="section-shell flex min-h-[76px] items-center justify-between gap-4">
+        <Link href="/" className="flex min-w-0 items-center gap-3">
+          {settings.logoUrl ? (
+            <Image
+              src={settings.logoUrl}
+              alt={clinicName}
+              width={42}
+              height={42}
+              sizes="42px"
+              className="h-10 w-auto rounded-2xl object-contain"
+              unoptimized={settings.logoUrl.startsWith("data:")}
+            />
+          ) : (
+            <div className="grid h-10 w-10 place-items-center rounded-2xl border border-[rgba(207,216,211,0.9)] bg-[rgba(227,235,230,0.82)] text-sm font-semibold text-[color:var(--accent-main)]">
+              AD
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="truncate text-[1.05rem] font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
+              {clinicName}
             </div>
           </div>
+        </Link>
 
-          <nav className="flex min-h-[78px] items-center justify-between gap-4 px-4 sm:px-5 lg:px-6">
-            <Link href="/" className="flex min-w-0 items-center gap-3 rounded-2xl px-1 py-1.5 transition-colors hover:bg-[rgba(251,250,247,0.6)]">
-              {settings.logoUrl ? (
-                <Image
-                  src={settings.logoUrl}
-                  alt={clinicName}
-                  width={42}
-                  height={42}
-                  sizes="42px"
-                  className="h-10 w-auto rounded-2xl object-contain"
-                  unoptimized={settings.logoUrl.startsWith("data:")}
-                />
-              ) : (
-                <div className="grid h-10 w-10 place-items-center rounded-2xl border border-[rgba(217,210,200,0.9)] bg-[rgba(239,233,225,0.82)] text-sm font-semibold text-[color:var(--accent-main)]">
-                  AD
-                </div>
-              )}
-              <div className="min-w-0">
-                <div className="truncate text-[1.05rem] font-semibold tracking-[-0.03em] text-[color:var(--text-primary)]">
-                  {clinicName}
-                </div>
-              </div>
-            </Link>
-
-            <div className="hidden items-center gap-1 lg:flex">
-              {links.map((link) => {
-                const active = pathname === link.href || pathname?.startsWith(`${link.href}/`);
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`rounded-2xl px-4 py-2.5 text-sm transition-colors ${
-                      active
-                        ? "bg-[rgba(239,233,225,0.9)] text-[color:var(--text-primary)]"
-                        : "text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                );
-              })}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={toggleLang}
-                className="hidden rounded-2xl border border-[rgba(217,210,200,0.9)] bg-[rgba(251,250,247,0.7)] px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-[color:var(--text-secondary)] transition-colors hover:text-[color:var(--text-primary)] sm:inline-flex"
+        <div className="hidden items-center gap-1 lg:flex">
+          {links.map((link) => {
+            const active = pathname === link.href || pathname?.startsWith(`${link.href}/`);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`rounded-full px-4 py-2.5 text-sm font-medium transition-colors ${
+                  active
+                    ? "bg-[rgba(227,235,230,0.9)] text-[color:var(--text-primary)]"
+                    : "text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
+                }`}
               >
-                {lang === "tr" ? "TR / EN" : "EN / TR"}
-              </button>
-
-              {whatsappHref ? (
-                <a
-                  href={whatsappHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hidden btn-ghost sm:inline-flex"
-                >
-                  WhatsApp
-                </a>
-              ) : null}
-
-              <Link href="/appointment" className="hidden btn-primary sm:inline-flex">
-                {lang === "tr" ? "Online Randevu Al" : "Book Appointment"}
+                {link.label}
               </Link>
-
-              <button
-                className="rounded-2xl border border-[rgba(217,210,200,0.9)] p-2.5 text-[color:var(--text-primary)] lg:hidden"
-                onClick={() => setOpen((value) => !value)}
-                aria-label="Menu"
-                aria-expanded={open}
-                aria-controls="mobile-nav-panel"
-              >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  {open ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M6 18L18 6M6 6l12 12" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M4 7h16M4 12h16M4 17h16" />
-                  )}
-                </svg>
-              </button>
-            </div>
-          </nav>
+            );
+          })}
         </div>
 
-        {open ? (
-          <div id="mobile-nav-panel" className="premium-surface mt-3 p-4 lg:hidden">
-            <div className="mb-4 grid gap-3 rounded-2xl bg-[rgba(248,246,241,0.88)] p-4 text-sm text-[color:var(--text-secondary)]">
-              {infoItems.map((item) => (
-                <div key={item.label}>
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-[color:var(--accent-main)]">{item.label}</div>
-                  {item.href ? (
-                    <a href={item.href} className="mt-1 block text-[color:var(--text-primary)]">
-                      {item.value}
-                    </a>
-                  ) : (
-                    <div className="mt-1 text-[color:var(--text-primary)]">{item.value}</div>
-                  )}
-                </div>
-              ))}
-            </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleLang}
+            className="hidden rounded-full border border-[rgba(207,216,211,0.9)] bg-[rgba(249,251,250,0.7)] px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-[color:var(--text-secondary)] transition-colors hover:text-[color:var(--text-primary)] sm:inline-flex"
+          >
+            {lang === "tr" ? "TR / EN" : "EN / TR"}
+          </button>
 
-            <div className="space-y-1">
-              {links.map((link) => {
-                const active = pathname === link.href || pathname?.startsWith(`${link.href}/`);
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`block rounded-2xl px-4 py-3 text-sm ${
-                      active
-                        ? "bg-[rgba(239,233,225,0.96)] text-[color:var(--text-primary)]"
-                        : "text-[color:var(--text-secondary)]"
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                );
-              })}
-            </div>
+          {whatsappHref ? (
+            <a
+              href={whatsappHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden btn-ghost sm:inline-flex"
+            >
+              WhatsApp
+            </a>
+          ) : null}
 
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              <button onClick={toggleLang} className="btn-ghost w-full">
-                {lang === "tr" ? "English" : "Türkçe"}
-              </button>
-              {whatsappHref ? (
-                <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="btn-ghost w-full text-center">
-                  WhatsApp
-                </a>
-              ) : null}
-              <Link href="/appointment" className="btn-primary w-full">
-                {lang === "tr" ? "Online Randevu Al" : "Book Appointment"}
-              </Link>
-            </div>
+          <Link href="/appointment" className="hidden btn-primary sm:inline-flex">
+            {lang === "tr" ? "Online Randevu Al" : "Book Appointment"}
+          </Link>
+
+          <button
+            className="rounded-full border border-[rgba(207,216,211,0.9)] p-2.5 text-[color:var(--text-primary)] lg:hidden"
+            onClick={() => setOpen((value) => !value)}
+            aria-label="Menu"
+            aria-expanded={open}
+            aria-controls="mobile-nav-panel"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              {open ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M4 7h16M4 12h16M4 17h16" />
+              )}
+            </svg>
+          </button>
+        </div>
+      </nav>
+
+      {open ? (
+        <div id="mobile-nav-panel" className="premium-surface section-shell mb-4 p-4 lg:hidden">
+          <div className="mb-4 grid gap-3 rounded-2xl bg-[rgba(241,245,243,0.88)] p-4 text-sm text-[color:var(--text-secondary)]">
+            {infoItems.map((item) => (
+              <div key={item.label}>
+                <div className="text-[11px] uppercase tracking-[0.18em] text-[color:var(--accent-main)]">{item.label}</div>
+                {item.href ? (
+                  <a href={item.href} className="mt-1 block text-[color:var(--text-primary)]">
+                    {item.value}
+                  </a>
+                ) : (
+                  <div className="mt-1 text-[color:var(--text-primary)]">{item.value}</div>
+                )}
+              </div>
+            ))}
           </div>
-        ) : null}
-      </div>
+
+          <div className="space-y-1">
+            {links.map((link) => {
+              const active = pathname === link.href || pathname?.startsWith(`${link.href}/`);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`block rounded-2xl px-4 py-3 text-sm ${
+                    active
+                      ? "bg-[rgba(227,235,230,0.96)] text-[color:var(--text-primary)]"
+                      : "text-[color:var(--text-secondary)]"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            <button onClick={toggleLang} className="btn-ghost w-full">
+              {lang === "tr" ? "English" : "Türkçe"}
+            </button>
+            {whatsappHref ? (
+              <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="btn-ghost w-full text-center">
+                WhatsApp
+              </a>
+            ) : null}
+            <Link href="/appointment" className="btn-primary w-full">
+              {lang === "tr" ? "Online Randevu Al" : "Book Appointment"}
+            </Link>
+          </div>
+        </div>
+      ) : null}
     </header>
   );
 }

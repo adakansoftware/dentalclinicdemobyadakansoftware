@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Fraunces, Manrope } from "next/font/google";
 import { getRequestBaseUrl } from "@/lib/seo";
 import {
   getSocialImageMimeType,
@@ -66,9 +67,22 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+const displayFont = Fraunces({
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500", "600"],
+  variable: "--font-display",
+  display: "swap",
+});
+
+const sansFont = Manrope({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="tr">
+    <html lang="tr" className={`${displayFont.variable} ${sansFont.variable}`}>
       <body className="antialiased">{children}</body>
     </html>
   );

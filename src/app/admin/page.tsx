@@ -66,7 +66,7 @@ export default async function AdminDashboard() {
         <div className="absolute inset-y-0 right-0 w-72 bg-cyan-400/10 blur-3xl" />
         <div className="relative z-10">
           <div className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Operasyon Özeti</div>
-          <h1 className="mb-2 text-3xl font-bold tracking-[-0.04em] text-gray-900">Dashboard</h1>
+          <h1 className="mb-2 text-3xl font-bold tracking-[-0.01em] text-gray-900">Dashboard</h1>
           <p className="max-w-2xl text-slate-600">
             Günlük yoğunluğu, bekleyen aksiyonları ve operasyon ritmini tek bakışta takip edebileceğiniz yönetim görünümü.
           </p>
@@ -85,7 +85,7 @@ export default async function AdminDashboard() {
       <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="surface-panel p-6">
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Operasyon Kalitesi</div>
-          <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-slate-900">Günlük akışta ilk bakışta risk görünürlüğü</h2>
+          <h2 className="mt-3 text-2xl font-semibold tracking-[-0.01em] text-slate-900">Günlük akışta ilk bakışta risk görünürlüğü</h2>
           <p className="mt-3 text-sm leading-relaxed text-slate-600">
             Panel; bekleyen randevular, okunmamış mesajlar ve haftalık operasyon ritmini tek alanda görünür tutar.
           </p>

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useLang } from "@/context/LangContext";
 import SectionIntro from "@/components/shared/SectionIntro";
+import StarRating from "@/components/shared/StarRating";
 import { getServiceImage } from "@/lib/service-images";
 import { isValidGoogleMapsEmbedUrl } from "@/lib/maps";
 import { t } from "@/lib/translations";
@@ -44,18 +45,6 @@ function formatReviewDate(date: string, lang: "tr" | "en") {
   }).format(new Date(date));
 }
 
-function StarRating({ stars }: { stars: number }) {
-  return (
-    <div className="flex gap-1 text-[13px] text-[color:var(--accent-main)]">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <span key={star} className={star <= stars ? "opacity-100" : "opacity-25"}>
-          *
-        </span>
-      ))}
-    </div>
-  );
-}
-
 export default function HomeClient({ settings, services, specialists, reviews }: Props) {
   const { lang } = useLang();
 
@@ -63,7 +52,7 @@ export default function HomeClient({ settings, services, specialists, reviews }:
   const address = lang === "tr" ? settings.address : settings.addressEn;
   const hasValidMapEmbed = isValidGoogleMapsEmbedUrl(settings.mapEmbedUrl);
   const leadService = services[0];
-  const visibleServices = services.slice(0, 6);
+  const visibleServices = services.slice(0, 3);
   const visibleSpecialists = specialists.slice(0, 3);
   const visibleReviews = reviews.filter((review) => review.isApproved && review.isVisible).slice(0, 3);
   const whatsappHref = settings.whatsapp ? `https://wa.me/${settings.whatsapp.replace(/\D/g, "")}` : null;
@@ -84,7 +73,6 @@ export default function HomeClient({ settings, services, specialists, reviews }:
 
   const promises = [
     {
-      number: "01",
       title: lang === "tr" ? "Net tedavi planlaması" : "Clear treatment planning",
       text:
         lang === "tr"
@@ -92,7 +80,6 @@ export default function HomeClient({ settings, services, specialists, reviews }:
           : "Treatment scope, estimated session structure, and process details are shared clearly from the first visit.",
     },
     {
-      number: "02",
       title: lang === "tr" ? "Uzmanlık odaklı yaklaşım" : "Specialist-led care",
       text:
         lang === "tr"
@@ -100,7 +87,6 @@ export default function HomeClient({ settings, services, specialists, reviews }:
           : "Each clinician's expertise and relevant treatment areas are presented in a structured way.",
     },
     {
-      number: "03",
       title: lang === "tr" ? "Kolay randevu ve iletişim" : "Accessible booking and contact",
       text:
         lang === "tr"
@@ -125,105 +111,84 @@ export default function HomeClient({ settings, services, specialists, reviews }:
 
   return (
     <>
-      <section className="page-hero">
-        <div className="hero-orb hero-orb--one" />
-        <div className="section-shell section-block relative z-10">
-          <div
-            className="relative overflow-hidden rounded-[2.4rem] border border-white/30 shadow-[0_32px_80px_rgba(28,24,20,0.16)]"
-            style={{ minHeight: "540px" }}
-          >
-            <div className="absolute inset-0">
-              <Image src="/images/hero.jpg" alt={clinicName} fill priority sizes="100vw" className="image-cover scale-[1.04]" />
+      <section className="relative min-h-[620px] overflow-hidden md:min-h-[76vh]">
+        <div className="absolute inset-0">
+          <Image src="/images/hero.jpg" alt={clinicName} fill priority sizes="100vw" className="image-cover" />
+        </div>
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(16,24,20,0.2)_0%,rgba(16,24,20,0.42)_55%,rgba(16,24,20,0.76)_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(16,24,20,0.5)_0%,rgba(16,24,20,0.14)_55%,transparent_100%)]" />
+
+        <div className="section-shell relative z-10 flex min-h-[620px] flex-col justify-end pb-14 pt-36 md:min-h-[76vh] md:pb-20">
+          <div className="reveal-up max-w-3xl">
+            <div className="section-kicker border-white/20 bg-white/10 text-white">
+              {lang === "tr" ? "Adakan Dental Klinik" : "Adakan Dental Clinic"}
             </div>
-            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(17,17,15,0.68)_0%,rgba(17,17,15,0.48)_32%,rgba(17,17,15,0.16)_58%,rgba(17,17,15,0.28)_100%)]" />
-            <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[rgba(14,14,12,0.38)] to-transparent" />
+            <h1 className="mt-5 text-[2.7rem] font-semibold leading-[1.02] text-white md:text-[4.2rem]" style={{ letterSpacing: "-0.015em" }}>
+              {heroTitle}
+            </h1>
+            <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/80 md:text-lg">
+              {heroSubtitle}
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <Link href="/appointment" className="btn-primary">
+                {lang === "tr" ? "Online Randevu Al" : "Book Appointment"}
+              </Link>
+              {whatsappHref ? (
+                <a
+                  href={whatsappHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-outline border-white/25 bg-white/10 text-white hover:border-white/40 hover:bg-white/18"
+                >
+                  {lang === "tr" ? "WhatsApp'tan Yaz" : "Write on WhatsApp"}
+                </a>
+              ) : null}
+              <Link href="/services" className="btn-outline border-white/25 bg-white/10 text-white hover:border-white/40 hover:bg-white/18">
+                {lang === "tr" ? "Hizmetleri İncele" : "Explore Treatments"}
+              </Link>
+            </div>
 
-            <div className="relative min-h-[540px] px-6 py-8 md:px-10 md:py-10 xl:px-14 xl:py-14">
-              <div className="grid min-h-[460px] gap-10 xl:grid-cols-[1.12fr_0.88fr] xl:items-end">
-                <div className="flex max-w-3xl flex-col justify-center">
-                  <div className="reveal-up">
-                    <div className="section-kicker border-white/20 bg-white/10 text-white">
-                      {lang === "tr" ? "Adakan Dental Klinik" : "Adakan Dental Clinic"}
-                    </div>
-                    <h1 className="mt-5 text-[3.1rem] font-semibold leading-[0.98] text-white md:text-[5.1rem]" style={{ letterSpacing: "-0.075em" }}>
-                      {heroTitle}
-                    </h1>
-                    <p className="mt-6 max-w-2xl text-base leading-relaxed text-white/80 md:text-lg">
-                      {heroSubtitle}
-                    </p>
-                    <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                      <Link href="/appointment" className="btn-primary">
-                        {lang === "tr" ? "Online Randevu Al" : "Book Appointment"}
-                      </Link>
-                      {whatsappHref ? (
-                        <a
-                          href={whatsappHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn-outline border-white/20 bg-white/10 text-white hover:border-white/30 hover:bg-white/18"
-                        >
-                          {lang === "tr" ? "WhatsApp'tan Yaz" : "Write on WhatsApp"}
-                        </a>
-                      ) : null}
-                      <Link href="/services" className="btn-outline border-white/20 bg-white/10 text-white hover:border-white/30 hover:bg-white/18">
-                        {lang === "tr" ? "Hizmetleri İncele" : "Explore Treatments"}
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-end justify-end xl:justify-center">
-                  <div className="w-full max-w-[20rem] rounded-[1.5rem] border border-white/16 bg-[rgba(255,255,255,0.12)] p-5 backdrop-blur-md xl:mb-2">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/65">
-                      {lang === "tr" ? "Klinik Bilgisi" : "Clinic Info"}
-                    </div>
-                    <div className="mt-3 text-[2rem] font-semibold tracking-[-0.05em] text-white">{clinicName}</div>
-                    <p className="mt-2 text-sm leading-relaxed text-white/78">{address}</p>
-                    <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                      <a href={`tel:${settings.phone.replace(/\s/g, "")}`} className="btn-outline border-white/14 bg-white/10 text-white hover:border-white/24 hover:bg-white/16">
-                        {settings.phone}
-                      </a>
-                      <Link href="/contact" className="btn-outline border-white/14 bg-white/10 text-white hover:border-white/24 hover:bg-white/16">
-                        {lang === "tr" ? "İletişim" : "Contact"}
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div className="mt-10 flex flex-wrap items-center gap-x-7 gap-y-2 text-sm text-white/70">
+              <a href={`tel:${settings.phone.replace(/\s/g, "")}`} className="font-medium transition-colors hover:text-white">
+                {settings.phone}
+              </a>
+              <span className="hidden h-1 w-1 rounded-full bg-white/40 sm:block" />
+              <span>{address}</span>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="border-b border-[rgba(217,210,200,0.72)] bg-[rgba(248,246,241,0.82)] py-6">
-        <div className="section-shell">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {trustStrip.map((item, index) => (
-              <div key={item} className={`proof-band reveal-up reveal-delay-${Math.min(index, 3)}`}>
-                <span className="proof-band__index">{`0${index + 1}`}</span>
-                <span className="proof-band__text">{item}</span>
-              </div>
-            ))}
-          </div>
+      <section className="border-b border-[rgba(207,216,211,0.72)] bg-[color:var(--surface)]">
+        <div className="section-shell flex flex-wrap items-center justify-center gap-x-8 gap-y-3 py-5">
+          {trustStrip.map((item) => (
+            <div key={item} className="flex items-center gap-2.5 text-sm font-medium text-[color:var(--text-secondary)]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--accent-main)]" />
+              {item}
+            </div>
+          ))}
         </div>
       </section>
 
       <section className="section-block">
         <div className="section-shell">
-          <SectionIntro
-            kicker={lang === "tr" ? "Neden Biz" : "Why Us"}
-            title={lang === "tr" ? "Muayeneden tedavi planına kadar güven veren bir hasta yolculuğu" : "A reassuring patient journey from examination to treatment planning"}
-            subtitle={lang === "tr" ? "Kliniğimizi ilk kez ziyaret eden hastaların ihtiyaç duyduğu temel bilgiler tek bir düzenli akış içinde sunulur." : "Core information needed by first-time patients is presented in one clear and organized flow."}
-          />
+          <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16">
+            <div className="lg:sticky lg:top-28 lg:self-start">
+              <SectionIntro
+                kicker={lang === "tr" ? "Neden Biz" : "Why Us"}
+                title={lang === "tr" ? "Muayeneden tedavi planına kadar güven veren bir hasta yolculuğu" : "A reassuring patient journey from examination to treatment planning"}
+                subtitle={lang === "tr" ? "Kliniğimizi ilk kez ziyaret eden hastaların ihtiyaç duyduğu temel bilgiler tek bir düzenli akış içinde sunulur." : "Core information needed by first-time patients is presented in one clear and organized flow."}
+              />
+            </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
-            {promises.map((item) => (
-              <article key={item.title} className="card flex h-full flex-col p-7">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-main)]">{item.number}</div>
-                <h3 className="mt-6 text-2xl font-semibold tracking-[-0.04em] text-[color:var(--text-primary)]">{item.title}</h3>
-                <p className="mt-4 flex-1 text-sm leading-relaxed text-[color:var(--text-secondary)] md:text-base">{item.text}</p>
-              </article>
-            ))}
+            <div>
+              {promises.map((item) => (
+                <article key={item.title} className="border-t border-[rgba(207,216,211,0.84)] py-7 first:border-t-0 first:pt-0 md:py-8">
+                  <h3 className="text-xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)] md:text-2xl">{item.title}</h3>
+                  <p className="mt-3 max-w-xl text-sm leading-relaxed text-[color:var(--text-secondary)] md:text-base">{item.text}</p>
+                </article>
+              ))}
+            </div>
           </div>
 
           <div className="mt-10 grid gap-5 lg:grid-cols-[1.08fr_0.92fr]">
@@ -304,7 +269,7 @@ export default function HomeClient({ settings, services, specialists, reviews }:
                   <div className="service-chip w-fit">
                     {service.durationMinutes} {t("services", "minutes", lang)}
                   </div>
-                  <h3 className="mt-4 text-[1.65rem] font-semibold tracking-[-0.04em] text-[color:var(--text-primary)]">
+                  <h3 className="mt-4 text-[1.65rem] font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
                     {lang === "tr" ? service.nameTr : service.nameEn}
                   </h3>
                   <p className="mt-3 flex-1 text-sm leading-relaxed text-[color:var(--text-secondary)] md:text-base">
@@ -324,10 +289,10 @@ export default function HomeClient({ settings, services, specialists, reviews }:
           </div>
 
           {leadService ? (
-            <div className="mt-10 rounded-[2rem] border border-[rgba(217,210,200,0.9)] bg-[rgba(251,250,247,0.92)] p-6 md:p-8">
+            <div className="mt-10 rounded-[2rem] border border-[rgba(207,216,211,0.9)] bg-[rgba(249,251,250,0.92)] p-6 md:p-8">
               <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
                 <div>
-                  <h3 className="text-3xl font-semibold tracking-[-0.05em] text-[color:var(--text-primary)]">
+                  <h3 className="text-3xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
                     {lang === "tr" ? leadService.nameTr : leadService.nameEn}
                   </h3>
                   <p className="mt-4 max-w-2xl text-base leading-relaxed text-[color:var(--text-secondary)]">
@@ -366,17 +331,19 @@ export default function HomeClient({ settings, services, specialists, reviews }:
               const bio = lang === "tr" ? specialist.biographyTr : specialist.biographyEn;
 
               return (
-                <article key={specialist.id} className="card flex h-full flex-col overflow-hidden bg-[rgba(248,246,241,0.95)]">
+                <article key={specialist.id} className="card flex h-full flex-col overflow-hidden bg-[rgba(241,245,243,0.95)]">
                   <div className="relative aspect-[4/4.4] overflow-hidden bg-[color:var(--surface-muted)]">
                     {specialist.photoUrl ? (
                       <Image src={specialist.photoUrl} alt={lang === "tr" ? specialist.nameTr : specialist.nameEn} fill sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw" className="image-cover" />
                     ) : (
-                      <div className="grid h-full place-items-center text-sm uppercase tracking-[0.2em] text-[color:var(--accent-main)]">Portrait</div>
+                      <div className="grid h-full place-items-center text-sm font-semibold uppercase tracking-[0.2em] text-[color:var(--accent-main)]">
+                        {getInitials(lang === "tr" ? specialist.nameTr : specialist.nameEn)}
+                      </div>
                     )}
                   </div>
 
                   <div className="flex flex-1 flex-col p-6">
-                    <h3 className="text-[1.6rem] font-semibold tracking-[-0.04em] text-[color:var(--text-primary)]">
+                    <h3 className="text-[1.6rem] font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
                       {lang === "tr" ? specialist.nameTr : specialist.nameEn}
                     </h3>
                     <p className="mt-2 text-sm font-medium text-[color:var(--accent-main)]">
@@ -414,9 +381,9 @@ export default function HomeClient({ settings, services, specialists, reviews }:
                   <p className="mt-5 flex-1 text-base leading-relaxed text-[color:var(--text-secondary)]">
                     &quot;{lang === "tr" ? review.contentTr : review.contentEn}&quot;
                   </p>
-                  <div className="mt-6 border-t border-[rgba(217,210,200,0.84)] pt-4">
+                  <div className="mt-6 border-t border-[rgba(207,216,211,0.84)] pt-4">
                     <div className="flex items-center gap-3">
-                      <div className="grid h-11 w-11 place-items-center rounded-full bg-[rgba(239,233,225,0.9)] text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--accent-main)]">
+                      <div className="grid h-11 w-11 place-items-center rounded-full bg-[rgba(227,235,230,0.9)] text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--accent-main)]">
                         {getInitials(review.patientName)}
                       </div>
                       <div>
@@ -474,7 +441,7 @@ export default function HomeClient({ settings, services, specialists, reviews }:
               {settings.mapEmbedUrl && hasValidMapEmbed ? (
                 <iframe src={settings.mapEmbedUrl} className="h-[420px] w-full rounded-[1.4rem]" loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Clinic map" />
               ) : (
-                <div className="grid h-[420px] place-items-center rounded-[1.4rem] bg-[rgba(239,233,225,0.86)] text-center">
+                <div className="grid h-[420px] place-items-center rounded-[1.4rem] bg-[rgba(227,235,230,0.86)] text-center">
                   <div>
                     <div className="text-sm uppercase tracking-[0.2em] text-[color:var(--accent-main)]">
                       {lang === "tr" ? "Konum" : "Location"}
@@ -506,7 +473,7 @@ export default function HomeClient({ settings, services, specialists, reviews }:
           <div className="quiet-cta-band px-7 py-8 md:px-10 md:py-10">
             <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
               <div>
-                <h2 className="text-3xl font-semibold tracking-[-0.05em] text-[color:var(--text-primary)] md:text-4xl">
+                <h2 className="text-3xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)] md:text-4xl">
                   {lang === "tr" ? "Muayenenizi planlamak için ilk adımı şimdi atın" : "Take the first step now to plan your dental visit"}
                 </h2>
                 <p className="mt-4 max-w-2xl text-base leading-relaxed text-[color:var(--text-secondary)]">

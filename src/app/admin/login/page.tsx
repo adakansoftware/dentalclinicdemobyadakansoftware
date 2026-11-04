@@ -13,10 +13,10 @@ export default async function LoginPage() {
       <div className="section-shell flex min-h-screen items-center justify-center py-12">
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-[22px] border border-[rgba(217,210,200,0.84)] bg-[rgba(251,250,247,0.92)] text-sm font-semibold tracking-[0.18em] text-[color:var(--accent-main)] shadow-[var(--shadow-card)]">
+            <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-[22px] border border-[rgba(207,216,211,0.84)] bg-[rgba(249,251,250,0.92)] text-sm font-semibold tracking-[0.18em] text-[color:var(--accent-main)] shadow-[var(--shadow-card)]">
               DC
             </div>
-            <h1 className="mt-4 text-3xl font-bold tracking-[-0.04em] text-gray-900">Admin Paneli</h1>
+            <h1 className="mt-4 text-3xl font-bold tracking-[-0.01em] text-gray-900">Admin Paneli</h1>
             <p className="mt-2 text-sm text-gray-500">Yonetici girisi</p>
           </div>
           <LoginForm />

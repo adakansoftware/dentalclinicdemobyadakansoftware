@@ -30,6 +30,15 @@ interface Props {
   specialist: SpecialistWithServices;
 }
 
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
 export default function SpecialistDetailClient({ specialist: sp }: Props) {
   const { lang } = useLang();
 
@@ -58,8 +67,8 @@ export default function SpecialistDetailClient({ specialist: sp }: Props) {
                 unoptimized={sp.photoUrl.startsWith("data:")}
               />
             ) : (
-              <div className="grid h-[380px] place-items-center text-sm uppercase tracking-[0.2em] text-[color:var(--accent-main)]">
-                Portrait
+              <div className="grid h-[380px] place-items-center text-sm font-semibold uppercase tracking-[0.2em] text-[color:var(--accent-main)]">
+                {getInitials(name)}
               </div>
             )}
           </div>
@@ -104,7 +113,7 @@ export default function SpecialistDetailClient({ specialist: sp }: Props) {
               ) : null}
 
               <div className="editorial-panel p-6">
-                <h3 className="text-2xl font-semibold tracking-[-0.04em] text-[color:var(--text-primary)]">
+                <h3 className="text-2xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
                   {lang === "tr"
                     ? "Randevu ya da ön bilgi için kliniğimizle iletişime geçebilirsiniz"
                     : "Contact the clinic for an appointment or preliminary information"}

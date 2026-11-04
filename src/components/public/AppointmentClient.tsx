@@ -157,31 +157,14 @@ export default function AppointmentClient({
 
   const assurancePoints = [
     lang === "tr"
-      ? "Uygun saatler anlık müsaitlik mantığıyla listelenir."
-      : "Available slots are listed against live availability rules.",
+      ? "Seçtiğiniz tarih ve saat, uzmanın çalışma planına göre listelenir."
+      : "Available times are listed based on the specialist's schedule.",
     lang === "tr"
-      ? "Form gönderimi bot koruması ve hız limiti ile korunur."
-      : "Booking requests are protected with bot checks and rate limiting.",
+      ? "Randevu talebiniz klinik ekibimiz tarafından en kısa sürede değerlendirilir."
+      : "Your request is reviewed by our clinic team as soon as possible.",
     lang === "tr"
-      ? "İptal ve görüntüleme akışları ad-soyad ve telefon eşleşmesiyle çalışır."
-      : "Lookup and cancellation flows require both name and phone matching.",
-  ];
-
-  const supportHighlights = [
-    {
-      title: lang === "tr" ? "Planlı akış" : "Structured flow",
-      text:
-        lang === "tr"
-          ? "Hizmet, uzman, tarih ve bilgi girişi tek ekranda dağılmadan tamamlanır."
-          : "Service, specialist, date, and patient details are completed in one focused flow.",
-    },
-    {
-      title: lang === "tr" ? "Güvenli istek yapısı" : "Protected request flow",
-      text:
-        lang === "tr"
-          ? "Form işlemleri bot koruması, hız sınırı ve kontrollü hata davranışıyla güçlendirilir."
-          : "Form actions are reinforced with bot checks, rate limits, and controlled failure handling.",
-    },
+      ? "Bilgileriniz yalnızca randevu planlaması için kullanılır."
+      : "Your details are used only for appointment planning.",
   ];
 
   if (state.success) {
@@ -189,7 +172,7 @@ export default function AppointmentClient({
       <section className="section-block">
         <div className="section-shell">
           <div className="success-panel mx-auto max-w-xl">
-            <h2 className="text-3xl font-semibold tracking-[-0.04em] text-[color:var(--text-primary)]">
+            <h2 className="text-3xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
               {lang === "tr" ? "Randevu talebiniz alındı" : "Your appointment request has been received"}
             </h2>
             <p className="mt-4 text-base leading-relaxed text-[color:var(--text-secondary)]">
@@ -224,10 +207,10 @@ export default function AppointmentClient({
                   key={label}
                   className={`flex items-center gap-3 rounded-2xl px-4 py-3 ${
                     active
-                      ? "bg-[rgba(239,233,225,0.9)] text-[color:var(--text-primary)]"
+                      ? "bg-[rgba(227,235,230,0.9)] text-[color:var(--text-primary)]"
                       : done
-                        ? "bg-[rgba(248,246,241,0.9)] text-[color:var(--text-primary)]"
-                        : "bg-[rgba(251,250,247,0.7)] text-[color:var(--text-secondary)]"
+                        ? "bg-[rgba(241,245,243,0.9)] text-[color:var(--text-primary)]"
+                        : "bg-[rgba(249,251,250,0.7)] text-[color:var(--text-secondary)]"
                   }`}
                 >
                   <span className="step-badge">{String(index + 1).padStart(2, "0")}</span>
@@ -253,7 +236,7 @@ export default function AppointmentClient({
                 <div className="step-shell p-6 md:p-8">
                   <div className="mb-6 flex items-center gap-4">
                     <div className="step-badge">01</div>
-                    <h2 className="text-2xl font-semibold tracking-[-0.04em] text-[color:var(--text-primary)]">
+                    <h2 className="text-2xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
                       {t("appointment", "step1", lang)}
                     </h2>
                   </div>
@@ -291,7 +274,7 @@ export default function AppointmentClient({
                 <div className="step-shell p-6 md:p-8">
                   <div className="mb-6 flex items-center gap-4">
                     <div className="step-badge">02</div>
-                    <h2 className="text-2xl font-semibold tracking-[-0.04em] text-[color:var(--text-primary)]">
+                    <h2 className="text-2xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
                       {t("appointment", "step2", lang)}
                     </h2>
                   </div>
@@ -342,8 +325,8 @@ export default function AppointmentClient({
                     </div>
                   )}
 
-                  <button onClick={() => setStep(1)} className="mt-6 text-sm text-[color:var(--text-secondary)]">
-                    {"<-"} {t("appointment", "back", lang)}
+                  <button onClick={() => setStep(1)} className="mt-6 text-sm text-[color:var(--text-secondary)] transition-colors hover:text-[color:var(--text-primary)]">
+                    <span aria-hidden="true">←</span> {t("appointment", "back", lang)}
                   </button>
                 </div>
               ) : null}
@@ -352,7 +335,7 @@ export default function AppointmentClient({
                 <div className="step-shell p-6 md:p-8">
                   <div className="mb-6 flex items-center gap-4">
                     <div className="step-badge">03</div>
-                    <h2 className="text-2xl font-semibold tracking-[-0.04em] text-[color:var(--text-primary)]">
+                    <h2 className="text-2xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
                       {t("appointment", "step3", lang)}
                     </h2>
                   </div>
@@ -399,15 +382,15 @@ export default function AppointmentClient({
                   ) : null}
 
                   <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <button onClick={() => setStep(2)} className="text-sm text-[color:var(--text-secondary)]">
-                      {"<-"} {t("appointment", "back", lang)}
+                    <button onClick={() => setStep(2)} className="text-sm text-[color:var(--text-secondary)] transition-colors hover:text-[color:var(--text-primary)]">
+                      <span aria-hidden="true">←</span> {t("appointment", "back", lang)}
                     </button>
                     <button
                       onClick={() => setStep(4)}
                       disabled={!selectedSlot}
                       className="btn-primary sm:ml-auto disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {t("appointment", "next", lang)} {"->"}
+                      {t("appointment", "next", lang)} <span aria-hidden="true">→</span>
                     </button>
                   </div>
                 </div>
@@ -417,7 +400,7 @@ export default function AppointmentClient({
                 <div className="step-shell p-6 md:p-8">
                   <div className="mb-6 flex items-center gap-4">
                     <div className="step-badge">04</div>
-                    <h2 className="text-2xl font-semibold tracking-[-0.04em] text-[color:var(--text-primary)]">
+                    <h2 className="text-2xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
                       {t("appointment", "step4", lang)}
                     </h2>
                   </div>
@@ -460,8 +443,8 @@ export default function AppointmentClient({
                     </div>
 
                     <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center">
-                      <button type="button" onClick={() => setStep(3)} className="text-sm text-[color:var(--text-secondary)]">
-                        {"<-"} {t("appointment", "back", lang)}
+                      <button type="button" onClick={() => setStep(3)} className="text-sm text-[color:var(--text-secondary)] transition-colors hover:text-[color:var(--text-primary)]">
+                        <span aria-hidden="true">←</span> {t("appointment", "back", lang)}
                       </button>
                       <button type="submit" disabled={isPending} className="btn-primary sm:ml-auto">
                         {isPending ? t("common", "loading", lang) : t("appointment", "confirm", lang)}
@@ -474,7 +457,7 @@ export default function AppointmentClient({
 
             <div className="space-y-6 lg:sticky lg:top-28">
               <div className="surface-panel p-6">
-                <h3 className="text-2xl font-semibold tracking-[-0.04em] text-[color:var(--text-primary)]">
+                <h3 className="text-2xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
                   {lang === "tr" ? "Seçimleriniz" : "Your selections"}
                 </h3>
                 {summaryRows.length === 0 ? (
@@ -494,7 +477,7 @@ export default function AppointmentClient({
               </div>
 
               <div className="surface-panel p-6">
-                <h3 className="mb-4 text-2xl font-semibold tracking-[-0.04em] text-[color:var(--text-primary)]">
+                <h3 className="mb-4 text-2xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
                   {lang === "tr" ? "Bilgilendirme" : "Information"}
                 </h3>
                 <div className="space-y-3 text-sm leading-relaxed text-[color:var(--text-secondary)]">
@@ -510,7 +493,7 @@ export default function AppointmentClient({
                   </p>
                 </div>
 
-                <div className="mt-5 space-y-3 rounded-[1.5rem] border border-[rgba(217,210,200,0.82)] bg-[rgba(248,246,241,0.72)] p-4">
+                <div className="mt-5 space-y-3 rounded-[1.5rem] border border-[rgba(207,216,211,0.82)] bg-[rgba(241,245,243,0.72)] p-4">
                   {assurancePoints.map((item) => (
                     <div key={item} className="flex items-start gap-3 text-sm leading-relaxed text-[color:var(--text-secondary)]">
                       <span className="mt-1 inline-flex h-2.5 w-2.5 rounded-full bg-[color:var(--accent-main)]" />
@@ -521,27 +504,13 @@ export default function AppointmentClient({
               </div>
 
               <div className="surface-panel p-6">
-                <h3 className="text-2xl font-semibold tracking-[-0.04em] text-[color:var(--text-primary)]">
-                  {lang === "tr" ? "Bu Akış Neden Güven Verir?" : "Why This Flow Feels Stronger"}
-                </h3>
-                <div className="mt-4 space-y-4">
-                  {supportHighlights.map((item) => (
-                    <div key={item.title} className="rounded-[1.35rem] border border-[rgba(217,210,200,0.82)] bg-[rgba(251,250,247,0.9)] p-4">
-                      <div className="text-sm font-semibold uppercase tracking-[0.14em] text-[color:var(--accent-main)]">{item.title}</div>
-                      <p className="mt-2 text-sm leading-relaxed text-[color:var(--text-secondary)]">{item.text}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="surface-panel p-6">
-                <h3 className="text-2xl font-semibold tracking-[-0.04em] text-[color:var(--text-primary)]">
+                <h3 className="text-2xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
                   {lang === "tr" ? "Randevularımı Görüntüle" : "View My Appointments"}
                 </h3>
                 <p className="mt-3 text-sm leading-relaxed text-[color:var(--text-secondary)]">
                   {lang === "tr"
-                    ? "Ad-soyad ve telefon numaranız ile yaklaşan randevularınızı listeleyebilirsiniz. Robot doğrulaması gereklidir."
-                    : "List your upcoming appointments with your full name and phone number. Bot verification is required."}
+                    ? "Ad-soyad ve telefon numaranız ile yaklaşan randevularınızı görüntüleyebilirsiniz."
+                    : "View your upcoming appointments with your full name and phone number."}
                 </p>
 
                 {lookupState.error ? (
@@ -603,7 +572,7 @@ export default function AppointmentClient({
               </div>
 
               <div className="surface-panel p-6">
-                <h3 className="text-2xl font-semibold tracking-[-0.04em] text-[color:var(--text-primary)]">
+                <h3 className="text-2xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
                   {lang === "tr" ? "Randevu İptali" : "Cancel Appointment"}
                 </h3>
                 <p className="mt-3 text-sm leading-relaxed text-[color:var(--text-secondary)]">
