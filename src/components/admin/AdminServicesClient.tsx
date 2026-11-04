@@ -25,8 +25,8 @@ function ServiceForm({ service, onClose }: { service?: ServiceData; onClose: () 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-[28px] border border-[rgba(207,216,211,0.84)] bg-[rgba(249,251,250,0.98)] shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-[rgba(207,216,211,0.84)] p-6">
+      <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-[28px] border border-[color:var(--border)] bg-white shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-[color:var(--border)] p-6">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-main)]">Yönetim</p>
             <h2 className="text-xl font-bold text-[color:var(--text-primary)]">{service ? "Hizmet Düzenle" : "Yeni Hizmet"}</h2>
@@ -162,7 +162,7 @@ export default function AdminServicesClient({ services }: { services: ServiceDat
 
       <div className="card overflow-hidden">
         <table className="w-full text-left">
-          <thead className="border-b border-gray-100 bg-[rgba(241,245,243,0.92)]">
+          <thead className="border-b border-gray-100 bg-[color:var(--surface-muted)]">
             <tr>
               {["Görsel", "Sıra", "Ad (TR)", "Süre", "Durum", "İşlemler"].map((h) => (
                 <th key={h} className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">{h}</th>

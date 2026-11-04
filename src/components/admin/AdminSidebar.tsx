@@ -27,22 +27,20 @@ export default function AdminSidebar({ adminName }: Props) {
   const safePathname = pathname ?? "";
 
   return (
-    <aside className="flex min-h-screen w-72 shrink-0 flex-col border-r border-[rgba(207,216,211,0.84)] bg-[rgba(241,245,243,0.92)]">
-      <div className="border-b border-[rgba(207,216,211,0.84)] p-6">
-        <div className="rounded-[28px] border border-[rgba(207,216,211,0.84)] bg-[rgba(249,251,250,0.92)] p-5 shadow-[var(--shadow-card)]">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[rgba(227,235,230,0.92)] text-sm font-semibold tracking-[0.12em] text-[color:var(--accent-main)]">
-              DC
-            </div>
-            <div>
-              <p className="text-sm font-semibold tracking-[-0.02em] text-[color:var(--text-primary)]">Admin Panel</p>
-              <p className="text-xs text-[color:var(--text-secondary)]">{adminName}</p>
-            </div>
+    <aside className="flex min-h-screen w-72 shrink-0 flex-col bg-[color:var(--admin-sidebar-bg)]">
+      <div className="border-b border-white/10 p-6">
+        <div className="flex items-center gap-3">
+          <div className="grid h-12 w-12 place-items-center rounded-xl bg-white/10 text-sm font-bold tracking-[0.12em] text-white">
+            DC
           </div>
-          <p className="text-sm leading-relaxed text-[color:var(--text-secondary)]">
-            Klinik operasyonlarını daha sakin ve düzenli bir panelden yönetin.
-          </p>
+          <div>
+            <p className="text-sm font-bold tracking-[-0.02em] text-white">Admin Panel</p>
+            <p className="text-xs text-[rgba(232,241,247,0.72)]">{adminName}</p>
+          </div>
         </div>
+        <p className="mt-4 text-sm leading-relaxed text-[rgba(232,241,247,0.6)]">
+          Klinik operasyonlarını daha sakin ve düzenli bir panelden yönetin.
+        </p>
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto p-4">
@@ -51,7 +49,7 @@ export default function AdminSidebar({ adminName }: Props) {
 
           return (
             <Link key={item.href} href={item.href} className={`admin-sidebar-link ${active ? "active" : ""}`}>
-              <span className="grid h-8 w-8 place-items-center rounded-xl bg-[rgba(227,235,230,0.9)] text-[10px] font-semibold tracking-[0.12em] text-[color:var(--accent-main)]">
+              <span className="grid h-8 w-8 place-items-center rounded-lg bg-white/10 text-[10px] font-bold tracking-[0.12em] text-[rgba(232,241,247,0.85)]">
                 {item.badge}
               </span>
               <span>{item.label}</span>
@@ -60,9 +58,9 @@ export default function AdminSidebar({ adminName }: Props) {
         })}
       </nav>
 
-      <div className="space-y-2 border-t border-[rgba(207,216,211,0.84)] p-4">
+      <div className="space-y-2 border-t border-white/10 p-4">
         <Link href="/" target="_blank" className="admin-sidebar-link text-sm">
-          <span className="grid h-8 w-8 place-items-center rounded-xl bg-[rgba(227,235,230,0.9)] text-[10px] font-semibold tracking-[0.12em] text-[color:var(--accent-main)]">
+          <span className="grid h-8 w-8 place-items-center rounded-lg bg-white/10 text-[10px] font-bold tracking-[0.12em] text-[rgba(232,241,247,0.85)]">
             WS
           </span>
           <span>Siteyi Aç</span>
@@ -74,8 +72,8 @@ export default function AdminSidebar({ adminName }: Props) {
             });
           }}
         >
-          <button type="submit" className="admin-sidebar-link w-full text-red-600 hover:bg-red-50">
-            <span className="grid h-8 w-8 place-items-center rounded-xl bg-red-50 text-[10px] font-semibold tracking-[0.12em] text-red-500">
+          <button type="submit" className="admin-sidebar-link w-full text-red-300 hover:bg-red-500/15">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-red-500/15 text-[10px] font-bold tracking-[0.12em] text-red-300">
               CK
             </span>
             <span>Çıkış Yap</span>

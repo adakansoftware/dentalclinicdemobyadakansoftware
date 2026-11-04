@@ -63,7 +63,7 @@ export default async function AdminDashboard() {
   return (
     <div className="space-y-8">
       <div className="surface-panel relative overflow-hidden p-7 md:p-8">
-        <div className="absolute inset-y-0 right-0 w-72 bg-cyan-400/10 blur-3xl" />
+        <div className="absolute inset-y-0 right-0 w-72 bg-[#5591b7]/10 blur-3xl" />
         <div className="relative z-10">
           <div className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Operasyon Özeti</div>
           <h1 className="mb-2 text-3xl font-bold tracking-[-0.01em] text-gray-900">Dashboard</h1>
