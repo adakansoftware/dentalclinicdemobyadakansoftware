@@ -4,7 +4,7 @@ interface Props {
 
 export default function StarRating({ stars }: Props) {
   return (
-    <div className="flex gap-1 text-[color:var(--accent-main)]" aria-label={`${stars}/5`}>
+    <div className="flex gap-1 text-[#f5b301]" aria-label={`${stars}/5`}>
       {[1, 2, 3, 4, 5].map((star) => (
         <svg
           key={star}

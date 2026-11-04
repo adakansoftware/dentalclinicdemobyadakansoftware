@@ -30,8 +30,8 @@ export default function PageHero({ kicker, title, subtitle, children, compact = 
               </div>
             ) : null}
             <h1
-              className={`${kicker ? "mt-5" : ""} ${minimal ? "text-[2.5rem] md:text-5xl lg:text-[3.45rem]" : "text-[2.8rem] md:text-5xl lg:text-[4.25rem]"} font-semibold leading-[1.02] text-[color:var(--text-primary)]`}
-              style={{ letterSpacing: "-0.015em" }}
+              className={`${kicker ? "mt-5" : ""} ${minimal ? "text-[2.5rem] md:text-5xl lg:text-[3.45rem]" : "text-[2.8rem] md:text-5xl lg:text-[4.25rem]"} font-bold leading-[1.05] text-[color:var(--text-primary)]`}
+              style={{ letterSpacing: "-0.02em" }}
             >
               {title}
             </h1>
