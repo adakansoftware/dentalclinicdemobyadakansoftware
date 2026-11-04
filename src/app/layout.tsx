@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Manrope } from "next/font/google";
+import { DM_Sans, Nunito } from "next/font/google";
 import { getRequestBaseUrl } from "@/lib/seo";
 import {
   getSocialImageMimeType,
@@ -67,14 +67,14 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-const displayFont = Fraunces({
+const displayFont = DM_Sans({
   subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-display",
   display: "swap",
 });
 
-const sansFont = Manrope({
+const sansFont = Nunito({
   subsets: ["latin", "latin-ext"],
   variable: "--font-sans",
   display: "swap",
