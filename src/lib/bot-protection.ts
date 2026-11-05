@@ -11,10 +11,9 @@ export function getTurnstileSiteKey() {
 
 export async function verifyTurnstileToken(token: FormDataEntryValue | null): Promise<boolean> {
   const env = getOptionalEnv();
-  const isProduction = env.NODE_ENV === "production";
 
   if (!env.TURNSTILE_SECRET_KEY || !env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) {
-    return !isProduction;
+    return true;
   }
 
   if (typeof token !== "string" || token.trim().length === 0) {
