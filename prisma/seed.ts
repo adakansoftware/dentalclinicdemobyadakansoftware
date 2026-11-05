@@ -82,11 +82,11 @@ async function main() {
       value:
         "At our clinic, each patient is welcomed with a careful examination, clear communication, and a treatment plan tailored to individual needs. Our goal is not only to solve the current complaint, but also to support long-term oral health through reliable care.",
     },
-    { key: "seoTitleTr", value: "Adakan Dental Klinik | Modern Diş Kliniği Demo" },
-    { key: "seoTitleEn", value: "Adakan" },
+    { key: "seoTitleTr", value: "Adakan Dental Klinik | Modern Diş Kliniği" },
+    { key: "seoTitleEn", value: "Adakan Dental Clinic | Modern Dental Clinic" },
     {
       key: "seoDescTr",
-      value: "Diş klinikleri için modern, mobil uyumlu, online randevu destekli web sitesi demosu.",
+      value: "Adakan Dental Klinik'te muayene, estetik diş tedavileri ve koruyucu diş hekimliği için online randevu alın.",
     },
     {
       key: "seoDescEn",
