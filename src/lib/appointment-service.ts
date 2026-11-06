@@ -34,7 +34,7 @@ async function getAppointmentIdsByNormalizedPhone(params: {
           WHERE "date" >= ${params.startUtc}
             AND "date" <= ${params.endUtc}
             AND "status" IN ('PENDING', 'CONFIRMED')
-            AND regexp_replace("patientPhone", '\D', '', 'g') = ${params.normalizedPhone}
+            AND regexp_replace("patientPhone", '\\D', '', 'g') = ${params.normalizedPhone}
           ORDER BY "date" ASC, "startTime" ASC
           LIMIT ${params.limit}
         `
@@ -42,7 +42,7 @@ async function getAppointmentIdsByNormalizedPhone(params: {
           SELECT id
           FROM "Appointment"
           WHERE "date" >= ${params.startUtc}
-            AND regexp_replace("patientPhone", '\D', '', 'g') = ${params.normalizedPhone}
+            AND regexp_replace("patientPhone", '\\D', '', 'g') = ${params.normalizedPhone}
           ORDER BY "date" ASC, "startTime" ASC
           LIMIT ${params.limit}
         `;
