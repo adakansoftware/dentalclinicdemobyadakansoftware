@@ -81,7 +81,7 @@ export default function PublicNavbar({ settings, hoursLabel }: Props) {
         scrolled ? "shadow-[0_10px_30px_rgba(16,38,56,0.08)]" : ""
       } ${mobileNavHidden ? "-translate-y-full lg:translate-y-0" : "translate-y-0"}`}
     >
-      <nav className="section-shell flex min-h-[76px] items-center justify-between gap-4">
+      <nav className="section-shell flex min-h-[84px] items-center justify-between gap-6">
         <Link href="/" className="flex min-w-0 items-center gap-3">
           {settings.logoUrl ? (
             <Image
@@ -105,14 +105,14 @@ export default function PublicNavbar({ settings, hoursLabel }: Props) {
           </div>
         </Link>
 
-        <div className="hidden items-center gap-1 lg:flex">
+        <div className="hidden items-center gap-2 lg:flex">
           {links.map((link) => {
             const active = pathname === link.href || pathname?.startsWith(`${link.href}/`);
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`rounded-full px-4 py-2.5 text-sm font-semibold transition-colors ${
+                className={`rounded-full px-5 py-2.5 text-sm font-semibold transition-colors ${
                   active
                     ? "bg-[rgba(85,145,183,0.12)] text-[color:var(--accent-main)]"
                     : "text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
@@ -124,7 +124,7 @@ export default function PublicNavbar({ settings, hoursLabel }: Props) {
           })}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <a
             href={phoneHref}
             className="hidden items-center gap-2 text-sm font-bold text-[color:var(--text-primary)] transition-colors hover:text-[color:var(--accent-main)] xl:inline-flex"
