@@ -127,7 +127,7 @@ export default function PublicNavbar({ settings, hoursLabel }: Props) {
         <div className="flex items-center gap-3">
           <a
             href={phoneHref}
-            className="hidden shrink-0 items-center gap-3 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold tracking-[0.01em] text-[color:var(--text-primary)] transition-colors hover:bg-[rgba(85,145,183,0.08)] hover:text-[color:var(--accent-main)] xl:inline-flex"
+            className="hidden shrink-0 items-center gap-3 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold tracking-[0.01em] text-[color:var(--text-primary)] transition-colors hover:bg-[rgba(85,145,183,0.08)] hover:text-[color:var(--accent-main)] 2xl:inline-flex"
           >
             <span className="grid h-9 w-9 place-items-center rounded-full bg-[rgba(85,145,183,0.12)] text-[color:var(--accent-main)]">
               <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" className="h-4 w-4">
