@@ -77,7 +77,7 @@ function DayRow({
         { state.error && <span className="text-red-500 text-xs">{state.error}</span>}
         <button type="submit" disabled={isPending}
           className="text-sm px-4 py-1.5 rounded-lg text-white font-medium transition-opacity disabled:opacity-60"
-          style={{ background: "var(--color-primary)" }}>
+          style={{ background: "var(--admin-accent)" }}>
           {isPending ? "..." : "Kaydet"}
         </button>
       </div>

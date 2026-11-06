@@ -396,19 +396,8 @@ export default function HomeClient({ settings, services, specialists, reviews }:
                       {lang === "tr" ? "Konum" : "Location"}
                     </div>
                     <div className="mt-3 max-w-sm text-base leading-relaxed text-[color:var(--text-secondary)]">
-                      {settings.mapEmbedUrl && !hasValidMapEmbed
-                        ? lang === "tr"
-                          ? "Geçerli bir Google Maps embed bağlantısı girildiğinde klinik konumu bu alanda gösterilecektir."
-                          : "The clinic location will appear here once a valid Google Maps embed link is provided."
-                        : address}
+                      {address}
                     </div>
-                    {settings.mapEmbedUrl && !hasValidMapEmbed ? (
-                      <div className="mt-4 max-w-sm rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-700">
-                        {lang === "tr"
-                          ? "Bu alan, müşteriye ait geçerli konum bağlantısı eklendiğinde otomatik olarak aktif haritaya dönüşecektir."
-                          : "This area will automatically switch to a live map once a valid customer location link is added."}
-                      </div>
-                    ) : null}
                   </div>
                 </div>
               )}

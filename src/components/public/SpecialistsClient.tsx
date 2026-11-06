@@ -58,21 +58,29 @@ export default function SpecialistsClient({ specialists }: Props) {
 
       <section className="section-block">
         <div className="section-shell">
-          <SectionIntro
-            title={
-              lang === "tr"
-                ? "Uzmanları tanımak, tedavi güveninin önemli bir parçası"
-                : "Meeting the specialists is an important part of treatment trust"
-            }
-            subtitle={
-              lang === "tr"
-                ? "Her hekimin uzmanlık alanları, deneyimi ve ilgilendiği tedaviler profilinde düzenli olarak yer alır."
-                : "Each profile clearly presents the clinician's expertise, experience, and relevant treatments."
-            }
-          />
+          {specialists.length === 0 ? (
+            <div className="surface-panel p-12 text-center text-[color:var(--text-secondary)]">
+              {lang === "tr"
+                ? "Şu anda listelenebilir bir uzman bulunmuyor. Randevu için bize ulaşabilirsiniz."
+                : "There are no specialists listed at the moment. You can contact us to book an appointment."}
+            </div>
+          ) : (
+            <>
+              <SectionIntro
+                title={
+                  lang === "tr"
+                    ? "Uzmanları tanımak, tedavi güveninin önemli bir parçası"
+                    : "Meeting the specialists is an important part of treatment trust"
+                }
+                subtitle={
+                  lang === "tr"
+                    ? "Her hekimin uzmanlık alanları, deneyimi ve ilgilendiği tedaviler profilinde düzenli olarak yer alır."
+                    : "Each profile clearly presents the clinician's expertise, experience, and relevant treatments."
+                }
+              />
 
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {specialists.map((specialist) => {
+              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {specialists.map((specialist) => {
               const expertise =
                 specialist.services?.slice(0, 3).map((service) => (lang === "tr" ? service.nameTr : service.nameEn)) ?? [];
               const bio = lang === "tr" ? specialist.biographyTr : specialist.biographyEn;
@@ -127,8 +135,10 @@ export default function SpecialistsClient({ specialists }: Props) {
                   </div>
                 </article>
               );
-            })}
-          </div>
+                })}
+              </div>
+            </>
+          )}
         </div>
       </section>
     </>

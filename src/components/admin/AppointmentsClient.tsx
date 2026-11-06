@@ -63,9 +63,9 @@ function AppointmentModal({ apt, onClose }: { apt: AppointmentItem; onClose: () 
         className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-gray-100 p-6">
-          <h2 className="text-lg font-bold text-gray-900">Randevu Detayı</h2>
-          <button onClick={onClose} className="text-2xl leading-none text-gray-400 hover:text-gray-600">
+        <div className="flex items-center justify-between border-b border-[color:var(--border)] p-6">
+          <h2 className="text-lg font-bold text-[color:var(--text-primary)]">Randevu Detayı</h2>
+          <button onClick={onClose} className="text-2xl leading-none text-[color:var(--accent-main)] hover:text-[color:var(--text-primary)]">
             &times;
           </button>
         </div>
@@ -90,16 +90,16 @@ function AppointmentModal({ apt, onClose }: { apt: AppointmentItem; onClose: () 
               ["SMS", apt.smsSent ? "Gönderildi" : "Gönderilmedi"],
             ].map(([label, value]) => (
               <div key={label}>
-                <span className="text-xs text-gray-500">{label}</span>
-                <p className="font-medium text-gray-900">{value}</p>
+                <span className="text-xs text-[color:var(--text-secondary)]">{label}</span>
+                <p className="font-medium text-[color:var(--text-primary)]">{value}</p>
               </div>
             ))}
           </div>
 
           {apt.patientNote ? (
-            <div className="rounded-lg bg-gray-50 p-3 text-sm">
-              <p className="mb-1 text-xs text-gray-500">Hasta Notu</p>
-              <p className="text-gray-700">{apt.patientNote}</p>
+            <div className="rounded-lg bg-[color:var(--surface-muted)] p-3 text-sm">
+              <p className="mb-1 text-xs text-[color:var(--text-secondary)]">Hasta Notu</p>
+              <p className="text-[color:var(--text-primary)]">{apt.patientNote}</p>
             </div>
           ) : null}
 
@@ -109,7 +109,7 @@ function AppointmentModal({ apt, onClose }: { apt: AppointmentItem; onClose: () 
                 void formAction(formData);
               });
             }}
-            className="space-y-4 border-t border-gray-100 pt-4"
+            className="space-y-4 border-t border-[color:var(--border)] pt-4"
           >
             <input type="hidden" name="id" value={apt.id} />
 
@@ -122,7 +122,7 @@ function AppointmentModal({ apt, onClose }: { apt: AppointmentItem; onClose: () 
                   </option>
                 ))}
               </select>
-              <p className="mt-2 text-xs text-gray-500">Sadece izin verilen durum geçişleri listelenir.</p>
+              <p className="mt-2 text-xs text-[color:var(--text-secondary)]">Sadece izin verilen durum geçişleri listelenir.</p>
             </div>
 
             <div>
@@ -131,15 +131,15 @@ function AppointmentModal({ apt, onClose }: { apt: AppointmentItem; onClose: () 
             </div>
 
             <div>
-              <label className="form-label">Admin Sifresi</label>
+              <label className="form-label">Admin Şifresi</label>
               <input
                 name="stepUpPassword"
                 type="password"
                 className="form-input"
                 autoComplete="current-password"
-                placeholder="Iptal / tamamlandi gecislerinde gerekebilir"
+                placeholder="İptal / tamamlandı geçişlerinde gerekebilir"
               />
-              <p className="mt-2 text-xs text-gray-500">Kritik durum degisikliklerinde son 10 dakikalik dogrulama aranir.</p>
+              <p className="mt-2 text-xs text-[color:var(--text-secondary)]">Kritik durum değişikliklerinde son 10 dakikalık doğrulama aranır.</p>
             </div>
 
             <button type="submit" disabled={isPending} className="btn-primary w-full">
@@ -169,7 +169,7 @@ export default function AppointmentsClient({ appointments }: Props) {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold text-gray-900">Randevular</h1>
+      <h1 className="mb-6 text-2xl font-bold text-[color:var(--text-primary)]">Randevular</h1>
 
       <div className="mb-6 flex flex-col gap-3 sm:flex-row">
         <input
@@ -185,9 +185,9 @@ export default function AppointmentsClient({ appointments }: Props) {
               key={status}
               onClick={() => setStatusFilter(status)}
               className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
-                statusFilter === status ? "border-transparent text-white" : "border-gray-200 text-gray-600 hover:border-gray-400"
+                statusFilter === status ? "border-transparent text-white" : "border-[color:var(--border-strong)] text-[color:var(--text-secondary)] hover:border-[color:var(--accent-main)]"
               }`}
-              style={statusFilter === status ? { background: "var(--color-primary)" } : {}}
+              style={statusFilter === status ? { background: "var(--admin-accent)" } : {}}
             >
               {status === "ALL" ? "Tümü" : STATUS_LABELS[status]}
             </button>
@@ -198,30 +198,30 @@ export default function AppointmentsClient({ appointments }: Props) {
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="border-b border-gray-100 bg-gray-50">
+            <thead className="border-b border-[color:var(--border)] bg-[color:var(--surface-muted)]">
               <tr>
                 {["Hasta", "Telefon", "Hizmet", "Uzman", "Tarih/Saat", "Durum"].map((header) => (
-                  <th key={header} className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
+                  <th key={header} className="px-4 py-3 text-xs font-semibold uppercase text-[color:var(--text-secondary)]">
                     {header}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-[color:var(--border)]">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-500">
+                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-[color:var(--text-secondary)]">
                     Randevu bulunamadı
                   </td>
                 </tr>
               ) : (
                 filtered.map((appointment) => (
-                  <tr key={appointment.id} className="cursor-pointer hover:bg-gray-50" onClick={() => setSelected(appointment)}>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{appointment.patientName}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{appointment.patientPhone}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{appointment.service.nameTr}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{appointment.specialist.nameTr}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
+                  <tr key={appointment.id} className="cursor-pointer hover:bg-[color:var(--surface-muted)]" onClick={() => setSelected(appointment)}>
+                    <td className="px-4 py-3 text-sm font-medium text-[color:var(--text-primary)]">{appointment.patientName}</td>
+                    <td className="px-4 py-3 text-sm text-[color:var(--text-secondary)]">{appointment.patientPhone}</td>
+                    <td className="px-4 py-3 text-sm text-[color:var(--text-secondary)]">{appointment.service.nameTr}</td>
+                    <td className="px-4 py-3 text-sm text-[color:var(--text-secondary)]">{appointment.specialist.nameTr}</td>
+                    <td className="px-4 py-3 text-sm text-[color:var(--text-secondary)]">
                       {new Date(appointment.date).toLocaleDateString("tr-TR")} {appointment.startTime}
                     </td>
                     <td className="px-4 py-3">

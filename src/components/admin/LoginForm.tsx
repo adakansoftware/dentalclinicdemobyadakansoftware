@@ -28,11 +28,11 @@ export default function LoginForm() {
         <input name="email" type="email" className="form-input" required autoComplete="email" />
       </div>
       <div>
-        <label className="form-label">Sifre</label>
+        <label className="form-label">Şifre</label>
         <input name="password" type="password" className="form-input" required autoComplete="current-password" />
       </div>
       <button type="submit" disabled={isPending} className="btn-primary w-full py-3.5">
-        {isPending ? "Giris yapiliyor..." : "Giris Yap"}
+        {isPending ? "Giriş yapılıyor..." : "Giriş Yap"}
       </button>
     </form>
   );

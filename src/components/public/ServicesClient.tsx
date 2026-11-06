@@ -132,21 +132,29 @@ export default function ServicesClient({ services }: Props) {
             </div>
           ) : null}
 
-          <SectionIntro
-            title={
-              lang === "tr"
-                ? "Hangi tedavinin size uygun olduğunu daha kolay karşılaştırın"
-                : "Compare treatments more easily to find the care that suits you"
-            }
-            subtitle={
-              lang === "tr"
-                ? "Hizmetlerimiz; işlem kapsamı, ortalama süre ve randevu adımı ile birlikte açık bir düzende listelenir."
-                : "Our services are listed with procedure scope, estimated duration, and a direct booking option."
-            }
-          />
+          {services.length === 0 ? (
+            <div className="surface-panel p-12 text-center text-[color:var(--text-secondary)]">
+              {lang === "tr"
+                ? "Şu anda listelenebilir bir hizmet bulunmuyor. Randevu için bize ulaşabilirsiniz."
+                : "There are no services listed at the moment. You can contact us to book an appointment."}
+            </div>
+          ) : (
+            <>
+              <SectionIntro
+                title={
+                  lang === "tr"
+                    ? "Hangi tedavinin size uygun olduğunu daha kolay karşılaştırın"
+                    : "Compare treatments more easily to find the care that suits you"
+                }
+                subtitle={
+                  lang === "tr"
+                    ? "Hizmetlerimiz; işlem kapsamı, ortalama süre ve randevu adımı ile birlikte açık bir düzende listelenir."
+                    : "Our services are listed with procedure scope, estimated duration, and a direct booking option."
+                }
+              />
 
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {services.map((service) => (
+              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {services.map((service) => (
               <article key={service.id} className="card flex h-full flex-col overflow-hidden">
                 <div className="relative aspect-[4/3] overflow-hidden bg-[color:var(--surface-muted)]">
                   <Image
@@ -179,8 +187,10 @@ export default function ServicesClient({ services }: Props) {
                   </div>
                 </div>
               </article>
-            ))}
-          </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </section>
     </>

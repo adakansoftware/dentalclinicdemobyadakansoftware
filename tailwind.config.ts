@@ -8,10 +8,6 @@ const config: Config = {
   ],
   theme: {
     extend: {
-      colors: {
-        primary: "var(--color-primary)",
-        accent: "var(--color-accent)",
-      },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
       },

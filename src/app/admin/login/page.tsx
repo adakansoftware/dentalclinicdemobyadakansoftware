@@ -14,10 +14,10 @@ export default async function LoginPage() {
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
             <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-[22px] border border-[color:var(--border)] bg-white text-sm font-semibold tracking-[0.18em] text-[color:var(--accent-main)] shadow-[var(--shadow-card)]">
-              DC
+              AD
             </div>
             <h1 className="mt-4 text-3xl font-bold tracking-[-0.01em] text-gray-900">Admin Paneli</h1>
-            <p className="mt-2 text-sm text-gray-500">Yonetici girisi</p>
+            <p className="mt-2 text-sm text-gray-500">Yönetici girişi</p>
           </div>
           <LoginForm />
         </div>

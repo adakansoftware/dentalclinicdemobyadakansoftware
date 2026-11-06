@@ -104,8 +104,8 @@ export default function ReviewsClient({ data }: Props) {
                   ? "Sitede gösterilen yorumlar Google Places üzerinden alınmaktadır. Tam listeyi ve yorum detaylarını Google'da görebilirsiniz."
                   : "The reviews shown on this site are fetched from Google Places. You can view the full list and review details on Google."
                 : lang === "tr"
-                  ? "Google Places ayarları tanımlanana kadar mevcut yorumlar gösterilmeye devam eder."
-                  : "Existing reviews continue to be shown until Google Places settings are configured."}
+                  ? "Tedavi deneyiminizi paylaşarak kliniğimizi geliştirmemize yardımcı olabilirsiniz."
+                  : "You can help us improve our clinic by sharing your treatment experience."}
             </p>
             {placeUrl ? (
               <div className="mt-6 flex justify-center">

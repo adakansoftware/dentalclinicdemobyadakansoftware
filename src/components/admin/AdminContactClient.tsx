@@ -30,7 +30,7 @@ export default function AdminContactClient({ requests }: { requests: ContactRequ
           {requests.map((req) => (
             <button key={req.id} onClick={() => setSelected(req)}
               className={`card p-4 text-left w-full transition-all ${selected?.id === req.id ? "ring-2" : ""} ${!req.isRead ? "border-l-4 border-blue-400" : ""}`}
-              style={selected?.id === req.id ? { outlineColor: "var(--color-primary)" } : {}}>
+              style={selected?.id === req.id ? { outlineColor: "var(--admin-accent)" } : {}}>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">

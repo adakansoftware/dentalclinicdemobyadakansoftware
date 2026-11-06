@@ -236,17 +236,17 @@ export default function AdminSettingsClient({ settings }: Props) {
           </div>
         </Section>
 
-        <Section title="Guvenlik Dogrulamasi">
+        <Section title="Güvenlik Doğrulaması">
           <div className="max-w-md">
-            <label className="form-label">Admin Sifresi</label>
+            <label className="form-label">Admin Şifresi</label>
             <input
               name="stepUpPassword"
               type="password"
               className="form-input"
               autoComplete="current-password"
-              placeholder="Kritik degisiklikleri onaylamak icin"
+              placeholder="Kritik değişiklikleri onaylamak için"
             />
-            <p className="mt-2 text-xs text-slate-500">Son 10 dakika icinde dogrulama varsa tekrar istenmez.</p>
+            <p className="mt-2 text-xs text-slate-500">Son 10 dakika içinde doğrulama varsa tekrar istenmez.</p>
           </div>
         </Section>
 

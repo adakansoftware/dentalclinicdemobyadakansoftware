@@ -95,7 +95,7 @@ export default function ContactClient({ settings, workingHours }: Props) {
               />
 
               {state.success ? (
-                <div className="rounded-2xl border border-green-200 bg-green-50 px-6 py-8 text-center text-green-800">
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-6 py-8 text-center text-emerald-800">
                   {t("contact", "success", lang)}
                 </div>
               ) : (
@@ -239,19 +239,8 @@ export default function ContactClient({ settings, workingHours }: Props) {
                         {lang === "tr" ? "Konum" : "Location"}
                       </div>
                       <div className="mt-3 max-w-sm text-base leading-relaxed text-[color:var(--text-secondary)]">
-                        {settings.mapEmbedUrl && !hasValidMapEmbed
-                          ? lang === "tr"
-                            ? "Müşteri konumu için geçerli Google Maps embed bağlantısı girildiğinde bu alanda harita gösterilecektir."
-                            : "A live map will be shown here once a valid Google Maps embed link is added for the client location."
-                          : address}
+                        {address}
                       </div>
-                      {settings.mapEmbedUrl && !hasValidMapEmbed ? (
-                        <div className="mt-4 max-w-sm rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-700">
-                          {lang === "tr"
-                            ? "Harita alanı korunmuştur. Geçerli müşteri konumu girildiğinde doğrudan aktif harita olarak görünecektir."
-                            : "The map area is preserved. It will automatically render as a live map once a valid client location is entered."}
-                        </div>
-                      ) : null}
                     </div>
                   </div>
                 </div>
