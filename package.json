@@ -8,9 +8,11 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "test:unit": "node --experimental-strip-types scripts/unit-test.mts",
     "test:smoke": "node scripts/smoke-test.mjs",
-    "verify": "npm run lint && npm run build && npm run test:unit && npm run test:smoke",
+    "verify": "npm run lint && npm run build && npm run test && npm run test:unit && npm run test:smoke",
+    "verify:fast": "npm run lint && npm run typecheck && npm run test && npm run test:unit",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
@@ -29,16 +31,23 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.3",
     "@types/bcryptjs": "^2.4.6",
-    "@types/node": "^20",
+    "@types/node": "^22.20.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.3.0",
     "autoprefixer": "^10.4.20",
     "eslint": "^9",
     "eslint-config-next": "^15.2.4",
+    "eslint-plugin-security": "^3.0.1",
+    "jsdom": "^29.1.1",
+    "playwright": "^1.65.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "typescript-eslint": "^8.72.2",
+    "vitest": "^5.1.0"
   }
 }

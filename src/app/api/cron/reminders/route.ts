@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { getRequestIdFromHeaders } from "@/lib/api-security";
 import { jsonError, jsonOk } from "@/lib/api-response";
 import {
@@ -128,8 +127,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    let appointments;
-    appointments = await runWithCircuitBreaker(
+    const appointments = await runWithCircuitBreaker(
       "cron-reminders",
       { failureThreshold: 3, cooldownMs: 60_000, halfOpenMaxConcurrent: 1 },
       () =>

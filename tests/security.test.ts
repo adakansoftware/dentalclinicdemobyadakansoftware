@@ -1,4 +1,4 @@
-import test from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import {
   buildApiHeaders,
@@ -146,8 +146,8 @@ test("getBearerTokenFromHeaders extracts bearer token", () => {
 test("asset validators accept only safe local asset references", () => {
   assert.equal(isAllowedLocalAssetPath("/images/hero.jpg"), true);
   assert.equal(isAllowedLocalAssetPath("/uploads/services/demo.jpg"), true);
-  assert.equal(isAllowedLocalAssetPath("/opengraph-image.png"), true);
-  assert.equal(isAllowedLocalAssetPath("/twitter-image.png"), true);
+  assert.equal(isAllowedLocalAssetPath(SOCIAL_IMAGE_PATH), true);
+  assert.equal(isAllowedLocalAssetPath(TWITTER_IMAGE_PATH), true);
   assert.equal(isAllowedLocalAssetPath("/admin/secret.txt"), false);
   assert.equal(isValidAssetInput("https://evil.example/logo.png"), false);
 });
