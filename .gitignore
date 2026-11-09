@@ -5,3 +5,8 @@ node_modules/
 *.log
 *.tsbuildinfo
 npx
+
+# local artifacts
+.claude/
+klinik-rapor.pdf
+probe-result.txt
