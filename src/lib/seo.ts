@@ -57,6 +57,7 @@ interface PublicPageMetadataInput {
   description: string;
   path?: string;
   imageUrl?: string | null;
+  locale?: "tr" | "en";
 }
 
 export async function buildPublicPageMetadata({
@@ -65,16 +66,25 @@ export async function buildPublicPageMetadata({
   description,
   path = "/",
   imageUrl,
+  locale = "tr",
 }: PublicPageMetadataInput): Promise<Metadata> {
   const baseUrl = await getRequestBaseUrl();
   const resolvedImage = resolveSocialPreviewImage(baseUrl, imageUrl, settings.logoUrl || settings.faviconUrl);
   const imageMimeType = resolvedImage ? getSocialImageMimeType(resolvedImage) : undefined;
+  const englishPath = locale === "en" ? path : path === "/" ? "/en" : `/en${path}`;
 
   return {
     metadataBase: baseUrl,
     title,
     description,
-    alternates: { canonical: path },
+    alternates: {
+      canonical: path,
+      languages: {
+        tr: path,
+        en: englishPath,
+        "x-default": path,
+      },
+    },
     openGraph: {
       title,
       description,
@@ -92,7 +102,7 @@ export async function buildPublicPageMetadata({
             },
           ]
         : undefined,
-      locale: "tr_TR",
+      locale: locale === "en" ? "en_US" : "tr_TR",
     },
     twitter: {
       card: resolvedImage ? "summary_large_image" : "summary",

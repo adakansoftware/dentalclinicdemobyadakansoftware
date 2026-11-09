@@ -67,7 +67,7 @@ function FAQForm({ item, onClose }: { item?: FAQData; onClose: () => void }) {
 export default function AdminFAQClient({ faqs }: { faqs: FAQData[] }) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<FAQData | undefined>();
-  const [deleteState, deleteAction] = useActionState(deleteFAQAction, initialState);
+  const [, deleteAction] = useActionState(deleteFAQAction, initialState);
 
   return (
     <div>

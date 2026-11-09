@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import LocaleLink from "@/components/shared/LocaleLink";
 import { useLang } from "@/context/LangContext";
 import { t } from "@/lib/translations";
 import type { SiteSettings } from "@/types";
@@ -44,9 +44,9 @@ export default function PublicFooter({ settings }: Props) {
             </h2>
           </div>
           <div className="flex flex-wrap gap-3 lg:justify-end">
-            <Link href="/appointment" className="btn-primary">
+            <LocaleLink href="/appointment" className="btn-primary">
               {lang === "tr" ? "Online Randevu Al" : "Book Appointment"}
-            </Link>
+            </LocaleLink>
             <a
               href={`tel:${settings.phone.replace(/\s/g, "")}`}
               className="inline-flex items-center justify-center rounded-xl border border-[rgba(232,241,247,0.28)] px-6 py-3 text-sm font-bold text-[#e8f1f7] transition-colors hover:border-[rgba(232,241,247,0.5)]"
@@ -88,9 +88,9 @@ export default function PublicFooter({ settings }: Props) {
             </h3>
             <div className="space-y-3 text-sm text-[rgba(232,241,247,0.72)]">
               {navLinks.map((link) => (
-                <Link key={link.href} href={link.href} className="block transition-colors hover:text-white">
+                <LocaleLink key={link.href} href={link.href} className="block transition-colors hover:text-white">
                   {link.label}
-                </Link>
+                </LocaleLink>
               ))}
             </div>
           </div>

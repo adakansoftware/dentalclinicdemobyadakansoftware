@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import LocaleLink from "@/components/shared/LocaleLink";
 import { useLang } from "@/context/LangContext";
 import SectionIntro from "@/components/shared/SectionIntro";
 import PageHero from "@/components/shared/PageHero";
@@ -108,12 +108,12 @@ export default function ServicesClient({ services }: Props) {
                         <h3 className="stack-card__title">{item.title}</h3>
                         <p className="mt-2 text-sm leading-relaxed text-[color:var(--text-secondary)]">{item.description}</p>
                         <div className="mt-4 flex flex-wrap gap-3">
-                          <Link href={`/services/${item.slug}`} className="btn-ghost">
+                          <LocaleLink href={`/services/${item.slug}`} className="btn-ghost">
                             {lang === "tr" ? "Detayları İncele" : "Explore Details"}
-                          </Link>
-                          <Link href={`/appointment?service=${item.id}`} className="btn-outline">
+                          </LocaleLink>
+                          <LocaleLink href={`/appointment?service=${item.id}`} className="btn-outline">
                             {lang === "tr" ? "Randevu Al" : "Book Appointment"}
-                          </Link>
+                          </LocaleLink>
                         </div>
                       </div>
                     </div>
@@ -121,12 +121,12 @@ export default function ServicesClient({ services }: Props) {
                 </div>
 
                 <div className="featured-split-card__actions">
-                  <Link href={services[0] ? `/appointment?service=${services[0].id}` : "/appointment"} className="btn-primary">
+                  <LocaleLink href={services[0] ? `/appointment?service=${services[0].id}` : "/appointment"} className="btn-primary">
                     {lang === "tr" ? "Randevu Al" : "Book Appointment"}
-                  </Link>
-                  <Link href={services[0] ? `/services/${services[0].slug}` : "/services"} className="btn-ghost">
+                  </LocaleLink>
+                  <LocaleLink href={services[0] ? `/services/${services[0].slug}` : "/services"} className="btn-ghost">
                     {lang === "tr" ? "Detayları İncele" : "Explore Details"}
-                  </Link>
+                  </LocaleLink>
                 </div>
               </div>
             </div>
@@ -178,12 +178,12 @@ export default function ServicesClient({ services }: Props) {
                   </p>
 
                   <div className="mt-6 flex flex-wrap gap-3">
-                    <Link href={`/services/${service.slug}`} className="btn-ghost">
+                    <LocaleLink href={`/services/${service.slug}`} className="btn-ghost">
                       {lang === "tr" ? "Detayları İncele" : "Details"}
-                    </Link>
-                    <Link href={`/appointment?service=${service.id}`} className="btn-outline">
+                    </LocaleLink>
+                    <LocaleLink href={`/appointment?service=${service.id}`} className="btn-outline">
                       {lang === "tr" ? "Randevu Al" : "Appointment"}
-                    </Link>
+                    </LocaleLink>
                   </div>
                 </div>
               </article>

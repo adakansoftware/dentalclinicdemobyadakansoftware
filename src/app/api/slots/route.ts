@@ -1,7 +1,6 @@
-import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAvailableSlotsWithMeta } from "@/lib/slots";
-import { buildApiHeaders, getRequestIdFromHeaders, isAllowedBrowserOrigin } from "@/lib/api-security";
+import { getRequestIdFromHeaders, isAllowedBrowserOrigin } from "@/lib/api-security";
 import { jsonError, jsonOk } from "@/lib/api-response";
 import { compareDateStrings, getTodayDateInTurkey } from "@/lib/date";
 import { buildRequestFingerprintFromHeaders, getRateLimitDecisionByKeyAsync } from "@/lib/security";

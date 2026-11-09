@@ -9,8 +9,8 @@ import type { ReviewData } from "@/types";
 const initialState: ActionResult = { success: false };
 
 export default function AdminReviewsClient({ reviews }: { reviews: ReviewData[] }) {
-  const [approveState, approveAction] = useActionState(approveReviewAction, initialState);
-  const [deleteState, deleteAction] = useActionState(deleteReviewAction, initialState);
+  const [, approveAction] = useActionState(approveReviewAction, initialState);
+  const [, deleteAction] = useActionState(deleteReviewAction, initialState);
 
   const pending = reviews.filter((r) => !r.isApproved);
   const approved = reviews.filter((r) => r.isApproved);

@@ -1,14 +1,9 @@
 import { headers } from "next/headers";
 import {
   buildRequestFingerprintFromHeaders,
-  enforceRateLimitByKey,
   enforceRateLimitByKeyAsync,
-  getRateLimitDecisionByKey,
-  getRateLimitDecisionByKeyAsync,
   getClientIpFromHeadersSync,
   type RateLimitOptions,
-  validateFormAge,
-  validateHoneypot,
 } from "./security-core";
 
 export {

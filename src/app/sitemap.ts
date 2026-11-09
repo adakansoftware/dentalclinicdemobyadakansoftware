@@ -18,7 +18,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ),
   ]);
 
-  const staticPages: MetadataRoute.Sitemap = [
+  const staticPaths = [
     "",
     "/about",
     "/appointment",
@@ -27,20 +27,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/reviews",
     "/services",
     "/specialists",
-  ].map((path) => ({
+  ];
+
+  const withAlternates = (path: string, lastModified: Date): MetadataRoute.Sitemap[number] => ({
     url: absoluteUrl(path || "/", baseUrl),
-    lastModified: new Date(),
-  }));
+    lastModified,
+    alternates: {
+      languages: {
+        tr: absoluteUrl(path || "/", baseUrl),
+        en: absoluteUrl(path === "" ? "/en" : `/en${path}`, baseUrl),
+      },
+    },
+  });
 
-  const servicePages: MetadataRoute.Sitemap = services.map((service) => ({
-    url: absoluteUrl(`/services/${service.slug}`, baseUrl),
-    lastModified: service.updatedAt,
-  }));
+  const staticPages: MetadataRoute.Sitemap = staticPaths.map((path) => withAlternates(path, new Date()));
 
-  const specialistPages: MetadataRoute.Sitemap = specialists.map((specialist) => ({
-    url: absoluteUrl(`/specialists/${specialist.slug}`, baseUrl),
-    lastModified: specialist.updatedAt,
-  }));
+  const servicePages: MetadataRoute.Sitemap = services.map((service) =>
+    withAlternates(`/services/${service.slug}`, service.updatedAt)
+  );
+
+  const specialistPages: MetadataRoute.Sitemap = specialists.map((specialist) =>
+    withAlternates(`/specialists/${specialist.slug}`, specialist.updatedAt)
+  );
 
   return [...staticPages, ...servicePages, ...specialistPages];
 }

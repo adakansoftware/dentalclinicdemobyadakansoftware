@@ -5,7 +5,7 @@ interface Props {
   align?: "left" | "center";
 }
 
-export default function SectionIntro({ kicker, title, subtitle, align = "left" }: Props) {
+export default function SectionIntro({ title, subtitle, align = "left" }: Props) {
   const alignment = align === "center" ? "text-center items-center" : "text-left items-start";
 
   return (

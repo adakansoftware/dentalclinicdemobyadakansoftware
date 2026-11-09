@@ -1,6 +1,11 @@
 "use server";
 
 import { z } from "zod";
+import {
+  cancelAppointmentSchema,
+  createAppointmentSchema,
+  lookupAppointmentsSchema,
+} from "@/lib/action-schemas";
 import { requireAdmin } from "@/lib/auth";
 import {
   cancelAppointmentByPhoneRecord,
@@ -20,24 +25,6 @@ import { getAvailableSlots } from "@/lib/slots";
 import { buildCancellationMessage, buildConfirmationMessage, sendSms } from "@/lib/sms";
 import { revalidatePath } from "next/cache";
 import type { ActionResult, PublicAppointmentLookupItem, TimeSlot } from "@/types";
-
-const createAppointmentSchema = z
-  .object({
-    serviceId: z.string().min(1, "Hizmet secimi gerekli"),
-    specialistId: z.string().min(1, "Uzman secimi gerekli"),
-    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Gecerli tarih girin"),
-    startTime: z.string().regex(/^\d{2}:\d{2}$/, "Gecerli saat girin"),
-    endTime: z.string().regex(/^\d{2}:\d{2}$/, "Gecerli bitis saati girin"),
-    patientName: z.string().trim().min(2, "Ad soyad en az 2 karakter olmali").max(120),
-    patientPhone: z.string().trim().min(10, "Gecerli telefon numarasi girin").max(30).regex(/^[\d\s\+\-\(\)]+$/),
-    patientEmail: z.string().trim().email().or(z.literal("")),
-    patientNote: z.string().trim().max(500).optional(),
-    patientLanguage: z.enum(["TR", "EN"]).default("TR"),
-  })
-  .refine((data) => data.startTime < data.endTime, {
-    message: "Bitis saati baslangic saatinden sonra olmali",
-    path: ["endTime"],
-  });
 
 export async function createAppointmentAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
   const guardResult = await runPublicActionGuard({
@@ -325,13 +312,6 @@ export async function getAvailableSlotsAction(specialistId: string, date: string
   return getAvailableSlots(specialistId, date);
 }
 
-const cancelAppointmentSchema = z.object({
-  patientName: z.string().trim().min(2, "Ad soyad en az 2 karakter olmali").max(120),
-  patientPhone: z.string().trim().min(10, "Gecerli telefon numarasi girin").max(30).regex(/^[\d\s\+\-\(\)]+$/),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Gecerli tarih girin"),
-  patientLanguage: z.enum(["TR", "EN"]).default("TR"),
-});
-
 export async function cancelAppointmentByPhoneAction(
   _prev: ActionResult,
   formData: FormData
@@ -470,12 +450,6 @@ export async function cancelAppointmentByPhoneAction(
     };
   }
 }
-
-const lookupAppointmentsSchema = z.object({
-  patientName: z.string().trim().min(2, "Ad soyad en az 2 karakter olmali").max(120),
-  patientPhone: z.string().trim().min(10, "Gecerli telefon numarasi girin").max(30).regex(/^[\d\s\+\-\(\)]+$/),
-  patientLanguage: z.enum(["TR", "EN"]).default("TR"),
-});
 
 export async function lookupAppointmentsByPhoneAction(
   _prev: ActionResult<PublicAppointmentLookupItem[]>,

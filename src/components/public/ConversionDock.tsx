@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import LocaleLink from "@/components/shared/LocaleLink";
 import { useLang } from "@/context/LangContext";
 import type { SiteSettings } from "@/types";
 
@@ -26,9 +26,9 @@ export default function ConversionDock({ settings }: Props) {
         >
           {whatsappHref ? "WhatsApp" : lang === "tr" ? "Telefon" : "Call"}
         </a>
-        <Link href="/appointment" className="conversion-dock__primary">
+        <LocaleLink href="/appointment" className="conversion-dock__primary">
           {lang === "tr" ? "Online Randevu Al" : "Book Appointment"}
-        </Link>
+        </LocaleLink>
       </div>
     </div>
   );

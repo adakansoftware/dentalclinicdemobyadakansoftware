@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import LocaleLink from "@/components/shared/LocaleLink";
 import { useLang } from "@/context/LangContext";
 
 export default function NotFoundClient() {
@@ -30,12 +30,12 @@ export default function NotFoundClient() {
         <h1 className="section-title mt-6">{copy.title}</h1>
         <p className="section-subtitle mx-auto mt-4">{copy.body}</p>
         <div className="mt-10 flex flex-wrap justify-center gap-3">
-          <Link href="/" className="btn-primary">
+          <LocaleLink href="/" className="btn-primary">
             {copy.home}
-          </Link>
-          <Link href="/appointment" className="btn-outline">
+          </LocaleLink>
+          <LocaleLink href="/appointment" className="btn-outline">
             {copy.appointment}
-          </Link>
+          </LocaleLink>
         </div>
       </div>
     </div>

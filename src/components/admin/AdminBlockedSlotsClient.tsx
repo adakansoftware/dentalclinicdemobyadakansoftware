@@ -17,7 +17,7 @@ const initialState: ActionResult = { success: false };
 
 export default function AdminBlockedSlotsClient({ specialists, blockedSlots }: Props) {
   const [createState, createAction, isCreating] = useActionState(createBlockedSlotAction, initialState);
-  const [deleteState, deleteAction] = useActionState(deleteBlockedSlotAction, initialState);
+  const [, deleteAction] = useActionState(deleteBlockedSlotAction, initialState);
 
   const today = new Date().toISOString().split("T")[0] ?? "";
 

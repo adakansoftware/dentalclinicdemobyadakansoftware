@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import LocaleLink from "@/components/shared/LocaleLink";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useLang } from "@/context/LangContext";
@@ -82,7 +82,7 @@ export default function PublicNavbar({ settings, hoursLabel }: Props) {
       } ${mobileNavHidden ? "-translate-y-full lg:translate-y-0" : "translate-y-0"}`}
     >
       <nav className="section-shell flex min-h-[84px] items-center justify-between gap-6">
-        <Link href="/" className="flex min-w-0 items-center gap-3">
+        <LocaleLink href="/" className="flex min-w-0 items-center gap-3">
           {settings.logoUrl ? (
             <Image
               src={settings.logoUrl}
@@ -103,13 +103,13 @@ export default function PublicNavbar({ settings, hoursLabel }: Props) {
               {clinicName}
             </div>
           </div>
-        </Link>
+        </LocaleLink>
 
         <div className="hidden items-center gap-3 lg:flex">
           {links.map((link) => {
             const active = pathname === link.href || pathname?.startsWith(`${link.href}/`);
             return (
-              <Link
+              <LocaleLink
                 key={link.href}
                 href={link.href}
                 className={`rounded-full px-5 py-2.5 text-sm font-semibold transition-colors ${
@@ -119,7 +119,7 @@ export default function PublicNavbar({ settings, hoursLabel }: Props) {
                 }`}
               >
                 {link.label}
-              </Link>
+              </LocaleLink>
             );
           })}
         </div>
@@ -158,9 +158,9 @@ export default function PublicNavbar({ settings, hoursLabel }: Props) {
             </a>
           ) : null}
 
-          <Link href="/appointment" className="hidden shrink-0 btn-primary sm:inline-flex">
+          <LocaleLink href="/appointment" className="hidden shrink-0 btn-primary sm:inline-flex">
             {lang === "tr" ? "Randevu Al" : "Book Now"}
-          </Link>
+          </LocaleLink>
 
           <button
             className="rounded-xl border border-[color:var(--border-strong)] p-2.5 text-[color:var(--text-primary)] lg:hidden"
@@ -201,7 +201,7 @@ export default function PublicNavbar({ settings, hoursLabel }: Props) {
             {links.map((link) => {
               const active = pathname === link.href || pathname?.startsWith(`${link.href}/`);
               return (
-                <Link
+                <LocaleLink
                   key={link.href}
                   href={link.href}
                   className={`block rounded-xl px-4 py-3 text-sm font-semibold ${
@@ -211,7 +211,7 @@ export default function PublicNavbar({ settings, hoursLabel }: Props) {
                   }`}
                 >
                   {link.label}
-                </Link>
+                </LocaleLink>
               );
             })}
           </div>
@@ -225,9 +225,9 @@ export default function PublicNavbar({ settings, hoursLabel }: Props) {
                 WhatsApp
               </a>
             ) : null}
-            <Link href="/appointment" className="btn-primary w-full">
+            <LocaleLink href="/appointment" className="btn-primary w-full">
               {lang === "tr" ? "Online Randevu Al" : "Book Appointment"}
-            </Link>
+            </LocaleLink>
           </div>
         </div>
       ) : null}

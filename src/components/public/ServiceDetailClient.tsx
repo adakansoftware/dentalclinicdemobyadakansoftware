@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import LocaleLink from "@/components/shared/LocaleLink";
 import { useLang } from "@/context/LangContext";
 import SectionIntro from "@/components/shared/SectionIntro";
 import { t } from "@/lib/translations";
@@ -108,12 +108,12 @@ export default function ServiceDetailClient({ service }: Props) {
                 </div>
 
                 <div className="mt-6 flex flex-wrap gap-3">
-                  <Link href={`/appointment?service=${service.id}`} className="btn-primary">
+                  <LocaleLink href={`/appointment?service=${service.id}`} className="btn-primary">
                     {lang === "tr" ? "Online Randevu" : "Book Appointment"}
-                  </Link>
-                  <Link href="/contact" className="btn-ghost">
+                  </LocaleLink>
+                  <LocaleLink href="/contact" className="btn-ghost">
                     {lang === "tr" ? "İletişim" : "Contact"}
-                  </Link>
+                  </LocaleLink>
                 </div>
               </div>
 
@@ -124,7 +124,7 @@ export default function ServiceDetailClient({ service }: Props) {
                   </div>
                   <div className="space-y-4">
                     {service.specialistServices.map(({ specialist }) => (
-                      <Link key={specialist.id} href={`/specialists/${specialist.slug}`} className="contact-line">
+                      <LocaleLink key={specialist.id} href={`/specialists/${specialist.slug}`} className="contact-line">
                         <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-[color:var(--surface-muted)]">
                           {specialist.photoUrl ? (
                             <Image
@@ -142,7 +142,7 @@ export default function ServiceDetailClient({ service }: Props) {
                           <div className="font-semibold text-[color:var(--text-primary)]">{lang === "tr" ? specialist.nameTr : specialist.nameEn}</div>
                           <div className="mt-1 text-sm text-[color:var(--text-secondary)]">{lang === "tr" ? specialist.titleTr : specialist.titleEn}</div>
                         </div>
-                      </Link>
+                      </LocaleLink>
                     ))}
                   </div>
                 </div>

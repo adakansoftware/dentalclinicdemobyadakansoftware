@@ -155,7 +155,7 @@ async function main() {
   try {
     await waitForServer(`http://127.0.0.1:${port}`);
 
-    const routes = ["/", "/about", "/services", "/appointment", "/admin/login", "/robots.txt", "/sitemap.xml"];
+    const routes = ["/", "/about", "/services", "/appointment", "/en", "/en/appointment", "/admin/login", "/robots.txt", "/sitemap.xml"];
     for (const route of routes) {
       const response = await request(route);
       assert(response.status === 200, `${route} expected 200, got ${response.status}`);
@@ -263,6 +263,22 @@ async function main() {
     if (!serverExited) {
       await stopServer(server);
     }
+    // The security layer persists suspicion/rate-limit state for the probe
+    // IPs this run used. The SecurityState table is shared with production,
+    // so clean the run's own residue instead of letting it linger until TTL.
+    await prisma.securityState.deleteMany({
+      where: {
+        OR: [
+          { key: { startsWith: "suspicion:127." } },
+          { key: { startsWith: "suspicion:192.168." } },
+          { key: { startsWith: "ratelimit:slots-api:127." } },
+          { key: { startsWith: "ratelimit:slots-api-target:127." } },
+          { key: { startsWith: "ratelimit:cron-reminders-route:127." } },
+          { key: { startsWith: "ratelimit:cron-reminders-route:192.168." } },
+          { key: { startsWith: "ratelimit:health-route:127." } },
+        ],
+      },
+    });
     await prisma.$disconnect();
   }
 

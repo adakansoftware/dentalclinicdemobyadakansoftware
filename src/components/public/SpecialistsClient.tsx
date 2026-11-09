@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import LocaleLink from "@/components/shared/LocaleLink";
 import { useLang } from "@/context/LangContext";
 import SectionIntro from "@/components/shared/SectionIntro";
 import { t } from "@/lib/translations";
@@ -125,12 +125,12 @@ export default function SpecialistsClient({ specialists }: Props) {
                     <p className="mt-4 flex-1 text-sm leading-relaxed text-[color:var(--text-secondary)]">{truncate(bio)}</p>
 
                     <div className="mt-6 flex flex-wrap gap-3">
-                      <Link href={`/specialists/${specialist.slug}`} className="btn-ghost">
+                      <LocaleLink href={`/specialists/${specialist.slug}`} className="btn-ghost">
                         {lang === "tr" ? "Profili İncele" : "View Profile"}
-                      </Link>
-                      <Link href={`/appointment?specialist=${specialist.id}`} className="btn-outline">
+                      </LocaleLink>
+                      <LocaleLink href={`/appointment?specialist=${specialist.id}`} className="btn-outline">
                         {lang === "tr" ? "Randevu Al" : "Appointment"}
-                      </Link>
+                      </LocaleLink>
                     </div>
                   </div>
                 </article>

@@ -10,11 +10,10 @@ const initialState: ActionResult = { success: false };
 
 export default function AdminContactClient({ requests }: { requests: ContactRequestData[] }) {
   const [selected, setSelected] = useState<ContactRequestData | null>(null);
-  const [markState, markAction] = useActionState(markContactReadAction, initialState);
-  const [deleteState, deleteAction] = useActionState(deleteContactRequestAction, initialState);
+  const [, markAction] = useActionState(markContactReadAction, initialState);
+  const [, deleteAction] = useActionState(deleteContactRequestAction, initialState);
 
   const unread = requests.filter((r) => !r.isRead);
-  const read = requests.filter((r) => r.isRead);
 
   return (
     <div>

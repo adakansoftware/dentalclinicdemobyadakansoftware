@@ -2,24 +2,17 @@
 
 import { z } from "zod";
 import { runAdminMutation } from "@/lib/admin-mutation";
+import { contactSchema } from "@/lib/action-schemas";
 import { isBackendError } from "@/lib/backend-errors";
 import {
   createContactRequestRecord,
   deleteContactRequestRecord,
   markContactRequestReadRecord,
 } from "@/lib/contact-service";
-import { recordIdSchema, sanitizeEmailInput, sanitizePhoneInput, sanitizeTextInput, sanitizeTextareaInput } from "@/lib/input";
+import { recordIdSchema } from "@/lib/input";
 import { logEvent } from "@/lib/observability";
 import { runPublicActionGuard } from "@/lib/public-action-guard";
 import type { ActionResult } from "@/types";
-
-const contactSchema = z.object({
-  name: z.string().trim().min(2, "Ad soyad gerekli").max(120).transform(sanitizeTextInput),
-  phone: z.string().trim().min(10, "Gecerli telefon girin").max(30).regex(/^[\d\s\+\-\(\)]+$/).transform(sanitizePhoneInput),
-  email: z.string().trim().email("Gecerli e-posta girin").transform(sanitizeEmailInput).or(z.literal("")),
-  subject: z.string().trim().min(3, "Konu gerekli").max(160).transform(sanitizeTextInput),
-  message: z.string().trim().min(10, "Mesaj gerekli").max(2000).transform(sanitizeTextareaInput),
-});
 
 const contactRequestIdSchema = z.object({
   id: recordIdSchema,

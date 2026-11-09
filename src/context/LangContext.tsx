@@ -3,49 +3,56 @@
 import {
   createContext,
   useContext,
-  useState,
   useEffect,
   type ReactNode,
 } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import type { Lang } from "@/types";
 
 interface LangContextType {
   lang: Lang;
-  setLang: (lang: Lang) => void;
   toggleLang: () => void;
 }
 
 const LangContext = createContext<LangContextType>({
   lang: "tr",
-  setLang: () => {},
   toggleLang: () => {},
 });
 
-export function LangProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Lang>("tr");
+function localizedPath(lang: Lang, pathname: string) {
+  if (lang === "en") {
+    return pathname.startsWith("/en") ? pathname : `/en${pathname === "/" ? "" : pathname}`;
+  }
+  return pathname.startsWith("/en") ? pathname.slice(3) || "/" : pathname;
+}
 
-  useEffect(() => {
-    const stored = localStorage.getItem("lang") as Lang | null;
-    if (stored === "tr" || stored === "en") {
-      setLangState(stored);
-    }
-  }, []);
+export function LangProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname() ?? "/";
+  const router = useRouter();
+  const lang: Lang = pathname.startsWith("/en") ? "en" : "tr";
 
   useEffect(() => {
     document.documentElement.lang = lang;
   }, [lang]);
 
-  const setLang = (l: Lang) => {
-    setLangState(l);
-    localStorage.setItem("lang", l);
-  };
+  // Returning visitors who previously chose English get forwarded to /en once.
+  useEffect(() => {
+    if (pathname !== "/" || lang !== "tr") {
+      return;
+    }
+    if (localStorage.getItem("lang") === "en") {
+      router.replace("/en");
+    }
+  }, [pathname, lang, router]);
 
   const toggleLang = () => {
-    setLang(lang === "tr" ? "en" : "tr");
+    const next = lang === "tr" ? "en" : "tr";
+    localStorage.setItem("lang", next);
+    router.push(localizedPath(next, pathname));
   };
 
   return (
-    <LangContext.Provider value={{ lang, setLang, toggleLang }}>
+    <LangContext.Provider value={{ lang, toggleLang }}>
       {children}
     </LangContext.Provider>
   );

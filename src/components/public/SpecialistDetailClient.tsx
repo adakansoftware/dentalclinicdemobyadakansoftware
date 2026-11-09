@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import LocaleLink from "@/components/shared/LocaleLink";
 import { useLang } from "@/context/LangContext";
 import SectionIntro from "@/components/shared/SectionIntro";
 import PageHero from "@/components/shared/PageHero";
@@ -104,9 +104,9 @@ export default function SpecialistDetailClient({ specialist: sp }: Props) {
                   </div>
                   <div className="space-y-3">
                     {sp.specialistServices.map(({ service }) => (
-                      <Link key={service.id} href={`/services/${service.slug}`} className="contact-line">
+                      <LocaleLink key={service.id} href={`/services/${service.slug}`} className="contact-line">
                         <div className="font-medium text-[color:var(--text-primary)]">{lang === "tr" ? service.nameTr : service.nameEn}</div>
-                      </Link>
+                      </LocaleLink>
                     ))}
                   </div>
                 </div>
@@ -119,12 +119,12 @@ export default function SpecialistDetailClient({ specialist: sp }: Props) {
                     : "Contact the clinic for an appointment or preliminary information"}
                 </h3>
                 <div className="mt-6 flex flex-wrap gap-3">
-                  <Link href={`/appointment?specialist=${sp.id}`} className="btn-primary">
+                  <LocaleLink href={`/appointment?specialist=${sp.id}`} className="btn-primary">
                     {lang === "tr" ? "Online Randevu" : "Book Appointment"}
-                  </Link>
-                  <Link href="/contact" className="btn-ghost">
+                  </LocaleLink>
+                  <LocaleLink href="/contact" className="btn-ghost">
                     {lang === "tr" ? "İletişim" : "Contact"}
-                  </Link>
+                  </LocaleLink>
                 </div>
               </div>
             </div>

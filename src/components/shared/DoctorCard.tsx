@@ -1,4 +1,4 @@
-import Link from "next/link";
+import LocaleLink from "@/components/shared/LocaleLink";
 import type { Lang, SpecialistData } from "@/types";
 
 interface Props {
@@ -21,7 +21,7 @@ export default function DoctorCard({ specialist, href, lang, ctaLabel }: Props) 
     .toUpperCase();
 
   return (
-    <Link href={href} className="card group">
+    <LocaleLink href={href} className="card group">
       <div className="relative aspect-[4/4.4] overflow-hidden rounded-t-[1.25rem] bg-[color:var(--surface-muted)]">
         {specialist.photoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -47,6 +47,6 @@ export default function DoctorCard({ specialist, href, lang, ctaLabel }: Props) 
           </svg>
         </span>
       </div>
-    </Link>
+    </LocaleLink>
   );
 }

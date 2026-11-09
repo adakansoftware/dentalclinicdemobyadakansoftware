@@ -1,20 +1,14 @@
 "use server";
 
 import { createHash } from "crypto";
-import { z } from "zod";
+import { loginSchema } from "@/lib/action-schemas";
 import { prisma } from "@/lib/prisma";
 import { createSession, destroySession, isAdminRequestAllowed, setSessionCookie, verifyPassword } from "@/lib/auth";
-import { sanitizeEmailInput } from "@/lib/input";
 import { logEvent } from "@/lib/observability";
 import { runPublicActionGuard } from "@/lib/public-action-guard";
 import { getRequestFingerprint } from "@/lib/security";
 import { redirect } from "next/navigation";
 import type { ActionResult } from "@/types";
-
-const loginSchema = z.object({
-  email: z.string().trim().email("Gecerli bir e-posta girin").transform(sanitizeEmailInput),
-  password: z.string().min(1, "Sifre gereklidir"),
-});
 
 function fingerprintIdentifier(value: string) {
   return createHash("sha256").update(value).digest("hex").slice(0, 16);
