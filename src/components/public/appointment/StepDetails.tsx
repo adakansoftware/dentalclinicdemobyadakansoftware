@@ -12,6 +12,7 @@ interface Props {
   selectedSpecialist: SpecialistItem;
   selectedDate: string;
   selectedSlot: TimeSlot;
+  complaint: string;
   isPending: boolean;
   formAction: (formData: FormData) => void;
   onBack: () => void;
@@ -23,6 +24,7 @@ export default function StepDetails({
   selectedSpecialist,
   selectedDate,
   selectedSlot,
+  complaint,
   isPending,
   formAction,
   onBack,
@@ -30,9 +32,9 @@ export default function StepDetails({
   return (
     <div className="step-shell p-6 md:p-8">
       <div className="mb-6 flex items-center gap-4">
-        <div className="step-badge">04</div>
+        <div className="step-badge">05</div>
         <h2 className="text-2xl font-semibold tracking-[-0.01em] text-[color:var(--text-primary)]">
-          {t("appointment", "step4", lang)}
+          {t("appointment", "step5", lang)}
         </h2>
       </div>
 
@@ -51,6 +53,7 @@ export default function StepDetails({
         <input type="hidden" name="startTime" value={selectedSlot.startTime} />
         <input type="hidden" name="endTime" value={selectedSlot.endTime} />
         <input type="hidden" name="patientLanguage" value={lang.toUpperCase()} />
+        <input type="hidden" name="patientNote" value={complaint} />
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
@@ -66,11 +69,6 @@ export default function StepDetails({
         <div>
           <label className="form-label">{t("appointment", "email", lang)}</label>
           <input name="patientEmail" type="email" className="form-input" />
-        </div>
-
-        <div>
-          <label className="form-label">{t("appointment", "note", lang)}</label>
-          <textarea name="patientNote" className="form-input min-h-[110px]" />
         </div>
 
         <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center">

@@ -11,6 +11,7 @@ import PageHero from "@/components/shared/PageHero";
 import StepService from "@/components/public/appointment/StepService";
 import StepSpecialist from "@/components/public/appointment/StepSpecialist";
 import StepDateTime from "@/components/public/appointment/StepDateTime";
+import StepComplaint from "@/components/public/appointment/StepComplaint";
 import StepDetails from "@/components/public/appointment/StepDetails";
 import SummaryPanel from "@/components/public/appointment/SummaryPanel";
 import InfoPanel from "@/components/public/appointment/InfoPanel";
@@ -28,7 +29,7 @@ interface Props {
   preselectedSpecialistId?: string;
 }
 
-const STEP_LABELS = ["step1", "step2", "step3", "step4"] as const;
+const STEP_LABELS = ["step1", "step2", "step3", "step4", "step5"] as const;
 const initialState: ActionResult = { success: false };
 const cancelInitialState: ActionResult = { success: false };
 const lookupInitialState: ActionResult<PublicAppointmentLookupItem[]> = { success: false };
@@ -50,6 +51,7 @@ export default function AppointmentClient({
   );
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
+  const [complaint, setComplaint] = useState("");
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [state, formAction, isPending] = useActionState(createAppointmentAction, initialState);
@@ -105,6 +107,15 @@ export default function AppointmentClient({
       : null,
     selectedSlot
       ? { label: t("appointment", "time", lang), value: `${selectedSlot.startTime} - ${selectedSlot.endTime}` }
+      : null,
+    complaint.trim()
+      ? {
+          label: t("appointment", "complaint", lang),
+          value:
+            complaint.trim().length > 60
+              ? `${complaint.trim().slice(0, 60)}…`
+              : complaint.trim(),
+        }
       : null,
   ].filter(Boolean) as { label: string; value: string }[];
 
@@ -218,16 +229,27 @@ export default function AppointmentClient({
                 />
               ) : null}
 
-              {step === 4 && selectedService && selectedSpecialist && selectedSlot ? (
+              {step === 4 ? (
+                <StepComplaint
+                  lang={lang}
+                  complaint={complaint}
+                  onChange={setComplaint}
+                  onBack={() => setStep(3)}
+                  onNext={() => setStep(5)}
+                />
+              ) : null}
+
+              {step === 5 && selectedService && selectedSpecialist && selectedSlot ? (
                 <StepDetails
                   lang={lang}
                   selectedService={selectedService}
                   selectedSpecialist={selectedSpecialist}
                   selectedDate={selectedDate}
                   selectedSlot={selectedSlot}
+                  complaint={complaint}
                   isPending={isPending}
                   formAction={formAction}
-                  onBack={() => setStep(3)}
+                  onBack={() => setStep(4)}
                 />
               ) : null}
             </div>

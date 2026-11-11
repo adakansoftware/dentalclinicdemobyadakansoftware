@@ -141,7 +141,7 @@ export default function PublicFooter({ settings }: Props) {
           <div>
             Design by{" "}
             <a
-              href="https://www.instagram.com/adakansoftware"
+              href="https://www.adakansoftware.com"
               target="_blank"
               rel="noopener noreferrer"
               className="text-white transition-colors hover:text-[#8db4cd]"
