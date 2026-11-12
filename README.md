@@ -14,7 +14,8 @@ Production-grade dental clinic demo and core booking system built with Next.js 1
 ## Core Capabilities
 
 - Public clinic website with services, specialists, reviews, FAQ, and contact
-- 4-step appointment booking flow
+- Bilingual public site: Turkish (canonical, unprefixed) and English (`/en/*`)
+- 5-step appointment booking flow with optional complaint step
 - Appointment lookup and cancellation by full name + phone
 - Admin panel for appointments, services, specialists, FAQ, reviews, working hours, blocked slots, and settings
 - Bot protection, rate limiting, origin validation, request hardening, and observability
@@ -87,9 +88,16 @@ npm run dev
 Run these before every production deploy:
 
 ```bash
+npm run verify:fast  # lint + typecheck + unit tests
+npm run verify       # lint + build + unit tests + smoke test
+```
+
+Or run the individual steps:
+
+```bash
 npm run lint
 npm run typecheck
-npm run test:unit
+npm run test
 npm run build
 npm run test:smoke
 ```
